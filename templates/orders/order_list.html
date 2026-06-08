@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+{% block title %}My orders — AMS Store{% endblock %}
+
+{% block content %}
+<h1 class="h4 mb-3">My orders</h1>
+{% if orders %}
+<div class="card shadow-sm">
+  <div class="table-responsive">
+    <table class="table table-hover align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>#</th><th>Date</th><th>Warehouse</th><th>Status</th><th class="text-end">Total</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for order in orders %}
+        <tr>
+          <td>#{{ order.pk }}</td>
+          <td>{{ order.created_at|date:"Y-m-d H:i" }}</td>
+          <td>{{ order.warehouse.name }}</td>
+          <td><span class="badge text-bg-secondary">{{ order.get_status_display }}</span></td>
+          <td class="text-end">{{ order.total|rubles }}</td>
+          <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'orders:order_detail' order.pk %}">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% else %}
+<div class="alert alert-info">You have no orders yet. <a href="{% url 'catalog:product_list' %}">Browse the catalog</a>.</div>
+{% endif %}
+{% endblock %}

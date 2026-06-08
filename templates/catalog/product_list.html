@@ -1,0 +1,173 @@
+{% extends 'base.html' %}
+{% block title %}Каталог — Автомеханика-Сибирь{% endblock %}
+
+{% block banner %}
+{% if banner_slides %}
+<div id="homeBanner" class="carousel slide" data-bs-ride="carousel">
+  {% if banner_slides|length > 1 %}
+  <div class="carousel-indicators">
+    {% for slide in banner_slides %}
+    <button type="button" data-bs-target="#homeBanner" data-bs-slide-to="{{ forloop.counter0 }}"
+            {% if forloop.first %}class="active" aria-current="true"{% endif %}
+            aria-label="Slide {{ forloop.counter }}"></button>
+    {% endfor %}
+  </div>
+  {% endif %}
+  <div class="carousel-inner">
+    {% for slide in banner_slides %}
+    <div class="carousel-item {% if forloop.first %}active{% endif %}">
+      {% if slide.link_url %}<a href="{{ slide.link_url }}">{% endif %}
+      <img src="{{ slide.image.url }}" class="d-block banner-img" alt="{{ slide.caption }}">
+      {% if slide.link_url %}</a>{% endif %}
+      {% if slide.caption %}
+      <div class="carousel-caption d-none d-md-block">
+        <h5 class="bg-dark bg-opacity-50 d-inline-block px-3 py-1 rounded">{{ slide.caption }}</h5>
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% if banner_slides|length > 1 %}
+  <button class="carousel-control-prev" type="button" data-bs-target="#homeBanner" data-bs-slide="prev">
+    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Previous</span>
+  </button>
+  <button class="carousel-control-next" type="button" data-bs-target="#homeBanner" data-bs-slide="next">
+    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+    <span class="visually-hidden">Next</span>
+  </button>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between align-items-center mb-3">
+  <h1 class="h4 mb-0">Каталог</h1>
+  {% if current_warehouse %}
+  <span class="text-muted"><i class="bi bi-geo-alt"></i> Наличие в <strong>{{ current_warehouse.name }}</strong></span>
+  {% endif %}
+</div>
+
+{% if not user.is_authenticated %}
+<div class="alert alert-info">
+  You're browsing as a guest. <a href="{% url 'login' %}">Log in</a> or
+  <a href="{% url 'register' %}">register</a> to see stock availability and place orders.
+</div>
+{% elif not current_warehouse %}
+<div class="alert alert-warning">
+  No warehouse is assigned to your account yet, so stock levels are hidden.
+  Please contact an administrator to get access.
+</div>
+{% endif %}
+
+<div class="row">
+  <div class="col-lg-3 mb-3">
+    <form method="get" class="card card-body shadow-sm">
+      <input type="hidden" name="q" value="{{ query }}">
+      <label class="form-label small fw-bold mb-1">Бренд</label>
+      <select name="brand" class="form-select form-select-sm mb-3" onchange="this.form.submit()">
+        <option value="">Все бренды</option>
+        {% for b in brands %}
+        <option value="{{ b.slug }}" {% if b.slug == selected_brand %}selected{% endif %}>{{ b.name }}</option>
+        {% endfor %}
+      </select>
+      <label class="form-label small fw-bold mb-1">Категория</label>
+      <select name="category" class="form-select form-select-sm mb-3" onchange="this.form.submit()">
+        <option value="">Все категории</option>
+        {% for c in categories %}
+        <option value="{{ c.pk }}" {% if selected_category == c.pk|stringformat:'s' %}selected{% endif %}>{{ c.name }}</option>
+        {% endfor %}
+      </select>
+      <label class="form-label small fw-bold mb-1">Подкатегория</label>
+      <select name="subcategory" class="form-select form-select-sm mb-3" onchange="this.form.submit()">
+        <option value="">Все подкатегории</option>
+        {% for c in categories %}
+          {% if c.subcategories.all %}
+          <optgroup label="{{ c.name }}">
+            {% for s in c.subcategories.all %}
+            <option value="{{ s.pk }}" {% if selected_subcategory == s.pk|stringformat:'s' %}selected{% endif %}>{{ s.name }}</option>
+            {% endfor %}
+          </optgroup>
+          {% endif %}
+        {% endfor %}
+      </select>
+      <label class="form-label small fw-bold mb-1">Объём</label>
+      <select name="volume" class="form-select form-select-sm mb-3" onchange="this.form.submit()">
+        <option value="">Все объёмы</option>
+        {% for vol in volumes %}
+        <option value="{{ vol }}" {% if selected_volume == vol|stringformat:'s' %}selected{% endif %}>{{ vol|floatformat:"-3" }} L</option>
+        {% endfor %}
+      </select>
+      <button class="btn btn-sm btn-primary">Применить</button>
+      <a href="{% url 'catalog:product_list' %}" class="btn btn-sm btn-link">Сбросить фильтры</a>
+    </form>
+  </div>
+
+  <div class="col-lg-9">
+    {% if page_obj %}
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-3">
+      {% for product in page_obj %}
+      <div class="col">
+        <div class="card h-100 shadow-sm">
+          {% if product.picture %}
+          <img src="{{ product.picture.url }}" class="card-img-top product-thumb p-2" alt="{{ product.name }}">
+          {% else %}
+          <div class="product-thumb-placeholder"><i class="bi bi-image"></i></div>
+          {% endif %}
+          <div class="card-body d-flex flex-column">
+            <div class="small text-muted">{{ product.brand.name }}</div>
+            <h2 class="h6 mb-1"><a href="{{ product.get_absolute_url }}" class="text-decoration-none text-dark">{{ product.name }}</a></h2>
+            <div class="small text-muted mb-2">Article: {{ product.article }}</div>
+            <div class="mt-auto">
+              <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-bold">{{ product.price|rubles }}</span>
+                {% if show_stock %}
+                  {% if product.stock_qty > 0 %}
+                  <span class="badge text-bg-success">В наличии: {{ product.stock_qty }}</span>
+                  {% else %}
+                  <span class="badge text-bg-secondary">Закончился</span>
+                  {% endif %}
+                {% endif %}
+              </div>
+              {% if user.is_authenticated %}
+              <form method="post" action="{% url 'orders:add_to_cart' product.pk %}">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                <button class="btn btn-sm btn-outline-primary w-100" {% if not show_stock or product.stock_qty <= 0 %}disabled{% endif %}>
+                  <i class="bi bi-cart-plus"></i> Добавить в корзину
+                </button>
+              </form>
+              {% else %}
+              <a class="btn btn-sm btn-outline-primary w-100" href="{% url 'login' %}?next={{ product.get_absolute_url|urlencode }}">
+                <i class="bi bi-box-arrow-in-right"></i> Log in to buy
+              </a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="col-12"><div class="alert alert-light border">Товары по запросу не найдены.</div></div>
+      {% endfor %}
+    </div>
+
+    {% if page_obj.paginator.num_pages > 1 %}
+    {% with qs="q="|add:query|add:"&brand="|add:selected_brand|add:"&category="|add:selected_category|add:"&subcategory="|add:selected_subcategory|add:"&volume="|add:selected_volume %}
+    <nav class="mt-4">
+      <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+        <li class="page-item"><a class="page-link" href="?{{ qs }}&page={{ page_obj.previous_page_number }}">Previous</a></li>
+        {% endif %}
+        <li class="page-item disabled"><span class="page-link">Страница {{ page_obj.number }} из {{ page_obj.paginator.num_pages }}</span></li>
+        {% if page_obj.has_next %}
+        <li class="page-item"><a class="page-link" href="?{{ qs }}&page={{ page_obj.next_page_number }}">Следующая</a></li>
+        {% endif %}
+      </ul>
+    </nav>
+    {% endwith %}
+    {% endif %}
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

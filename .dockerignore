@@ -1,0 +1,14 @@
+.git/
+.gitignore
+.claude/
+venv/
+.venv/
+__pycache__/
+*.py[cod]
+db.sqlite3
+db.sqlite3-journal
+/media/
+/staticfiles/
+.env
+.env.docker
+.DS_Store

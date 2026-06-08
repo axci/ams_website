@@ -1,0 +1,35 @@
+{% extends 'base.html' %}
+{% block title %}Profile — AMS Store{% endblock %}
+
+{% block content %}
+<h1 class="h4 mb-3">My profile</h1>
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header">Account</div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Username</span><span>{{ user.get_username }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Name</span><span>{{ user.get_full_name|default:"—" }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Email</span><span>{{ user.email|default:"—" }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Company</span><span>{{ user.company_name|default:"—" }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Phone</span><span>{{ user.phone|default:"—" }}</span></li>
+      </ul>
+    </div>
+  </div>
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header">My warehouses</div>
+      <ul class="list-group list-group-flush">
+        {% for wh in accessible_warehouses %}
+        <li class="list-group-item d-flex justify-content-between">
+          <span>{{ wh.name }} <span class="text-muted small">({{ wh.code }})</span></span>
+          {% if current_warehouse and current_warehouse.pk == wh.pk %}<span class="badge text-bg-primary">current</span>{% endif %}
+        </li>
+        {% empty %}
+        <li class="list-group-item text-muted">No warehouses assigned yet. Please contact an administrator.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+{% endblock %}

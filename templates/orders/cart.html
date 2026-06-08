@@ -1,0 +1,67 @@
+{% extends 'base.html' %}
+{% block title %}Корзина{% endblock %}
+
+{% block content %}
+<h1 class="h4 mb-3">Корзина</h1>
+
+{% if items %}
+<div class="card shadow-sm mb-3">
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Наименование</th><th class="text-end">Цена</th><th class="text-center" style="width: 170px;">Количество</th>
+          <th class="text-center">В наличии</th><th class="text-end">Сумма</th><th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        <tr>
+          <td>
+            <a href="{{ item.product.get_absolute_url }}" class="text-decoration-none">{{ item.product.name }}</a>
+            <div class="small text-muted">Артикул: {{ item.product.article }} · {{ item.product.brand.name }}</div>
+          </td>
+          <td class="text-end">{{ item.product.price|rubles }}</td>
+          <td class="text-center">
+            <form method="post" action="{% url 'orders:update_cart_item' item.pk %}" class="d-inline-flex">
+              {% csrf_token %}
+              <input type="number" name="quantity" value="{{ item.quantity }}" min="1" class="form-control form-control-sm me-1" style="width: 80px;">
+              <button class="btn btn-sm btn-outline-secondary" title="Update"><i class="bi bi-arrow-repeat"></i></button>
+            </form>
+          </td>
+          <td class="text-center">
+            {% if warehouse %}
+              {% if item.quantity > item.available %}
+              <span class="badge text-bg-danger">Only {{ item.available }} left</span>
+              {% else %}
+              <span class="badge text-bg-success">{{ item.available }} в наличии</span>
+              {% endif %}
+            {% else %}
+              <span class="text-muted small">—</span>
+            {% endif %}
+          </td>
+          <td class="text-end">{{ item.subtotal|rubles }}</td>
+          <td class="text-end">
+            <form method="post" action="{% url 'orders:remove_from_cart' item.pk %}">
+              {% csrf_token %}
+              <button class="btn btn-sm btn-outline-danger" title="Remove"><i class="bi bi-trash"></i></button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot class="table-light">
+        <tr><th colspan="4" class="text-end">Итого</th><th class="text-end">{{ cart.total|rubles }}</th><th></th></tr>
+      </tfoot>
+    </table>
+  </div>
+</div>
+
+<div class="d-flex justify-content-between">
+  <a href="{% url 'catalog:product_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i>Продолжить покупки</a>
+  <a href="{% url 'orders:checkout' %}" class="btn btn-primary">К оформлению заказа <i class="bi bi-arrow-right"></i></a>
+</div>
+{% else %}
+<div class="alert alert-info">Корзина пуста. <a href="{% url 'catalog:product_list' %}">Browse the catalog</a>.</div>
+{% endif %}
+{% endblock %}

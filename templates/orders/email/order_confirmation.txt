@@ -1,0 +1,17 @@
+Здравствуйте{% if order.user.get_full_name %}, {{ order.user.get_full_name }}{% endif %}!
+
+Спасибо за заказ. Заказ №{{ order.pk }} от {{ order.created_at|date:"d.m.Y H:i" }} принят.
+Склад: {{ order.warehouse.name }}
+
+Состав заказа:
+{% for item in order.items.all %}  - {{ item.name }} (арт. {{ item.product.article }}) — {{ item.quantity }} x {{ item.price|rubles }} = {{ item.subtotal|rubles }}
+{% endfor %}
+Итого: {{ order.total|rubles }}
+{% if order.shipping_address %}
+Адрес доставки: {{ order.shipping_address }}{% endif %}{% if order.comment %}
+Комментарий: {{ order.comment }}{% endif %}
+
+Мы свяжемся с вами для подтверждения.
+
+С уважением,
+Автомеханика-Сибирь
