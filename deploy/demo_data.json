@@ -1,62 +1,12 @@
 [
 {
   "model": "catalog.brand",
-  "pk": 1,
-  "fields": {
-    "name": "Mobil",
-    "slug": "mobil",
-    "logo": "",
-    "order": 5
-  }
-},
-{
-  "model": "catalog.brand",
-  "pk": 2,
-  "fields": {
-    "name": "Castrol",
-    "slug": "castrol",
-    "logo": "",
-    "order": 5
-  }
-},
-{
-  "model": "catalog.brand",
-  "pk": 3,
-  "fields": {
-    "name": "Shell",
-    "slug": "shell",
-    "logo": "",
-    "order": 4
-  }
-},
-{
-  "model": "catalog.brand",
   "pk": 4,
   "fields": {
     "name": "Liqui Moly",
     "slug": "liqui-moly",
     "logo": "",
     "order": 3
-  }
-},
-{
-  "model": "catalog.brand",
-  "pk": 5,
-  "fields": {
-    "name": "Bosch",
-    "slug": "bosch",
-    "logo": "",
-    "order": 3
-  }
-},
-{
-  "model": "catalog.brand",
-  "pk": 6,
-  "fields": {
-    "name": "Mann-Filter",
-    "slug": "mann-filter",
-    "logo": "",
-    "order": 4
   }
 },
 {
@@ -326,6 +276,15 @@
   }
 },
 {
+  "model": "catalog.subcategory",
+  "pk": 23,
+  "fields": {
+    "category": 6,
+    "name": "Mon Areon",
+    "order": 0
+  }
+},
+{
   "model": "catalog.modelproduct",
   "pk": 8,
   "fields": {
@@ -589,6 +548,104 @@
   "pk": 45,
   "fields": {
     "name": "Racing + Ester"
+  }
+},
+{
+  "model": "catalog.modelproduct",
+  "pk": 46,
+  "fields": {
+    "name": "Vanilla & Chocolate"
+  }
+},
+{
+  "model": "catalog.modelproduct",
+  "pk": 47,
+  "fields": {
+    "name": "Elegance"
+  }
+},
+{
+  "model": "catalog.modelproduct",
+  "pk": 48,
+  "fields": {
+    "name": "Beverly Hills"
+  }
+},
+{
+  "model": "catalog.modelproduct",
+  "pk": 49,
+  "fields": {
+    "name": "Miami Beach"
+  }
+},
+{
+  "model": "catalog.modelproduct",
+  "pk": 50,
+  "fields": {
+    "name": "Coconut"
+  }
+},
+{
+  "model": "catalog.modelproduct",
+  "pk": 51,
+  "fields": {
+    "name": "Mojito"
+  }
+},
+{
+  "model": "catalog.modelproduct",
+  "pk": 52,
+  "fields": {
+    "name": "Party"
+  }
+},
+{
+  "model": "catalog.modelproduct",
+  "pk": 53,
+  "fields": {
+    "name": "Mountain Fresh"
+  }
+},
+{
+  "model": "catalog.modelproduct",
+  "pk": 54,
+  "fields": {
+    "name": "Summer Dream"
+  }
+},
+{
+  "model": "catalog.modelproduct",
+  "pk": 55,
+  "fields": {
+    "name": "Black Cristal"
+  }
+},
+{
+  "model": "catalog.modelproduct",
+  "pk": 56,
+  "fields": {
+    "name": "Apple & Cinnamon"
+  }
+},
+{
+  "model": "catalog.modelproduct",
+  "pk": 57,
+  "fields": {
+    "name": "New Car"
+  }
+},
+{
+  "model": "catalog.modelproduct",
+  "pk": 58,
+  "fields": {
+    "name": "Vanilla Bubble"
+  }
+},
+{
+  "model": "catalog.modelproduct",
+  "pk": 59,
+  "fields": {
+    "name": "Vanilla Mia"
   }
 },
 {
@@ -3518,7 +3575,7 @@
   "fields": {
     "sku": "012269",
     "article": "1100",
-    "manufacturer_number": "MN7501-1",
+    "manufacturer_number": "",
     "name": "7501-001 масло мот.п/синт. Classic 10W40 (1л.) MANNOL; SN/CH-4/A3/B4",
     "slug": "7501-001-масло-мотпсинт-classic-10w40-1л-mannol-snch-4a3b4",
     "brand": 8,
@@ -3532,7 +3589,7 @@
     "price": "536.65",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.356Z",
-    "updated_at": "2026-06-05T08:50:24.462Z"
+    "updated_at": "2026-06-09T05:25:08.991Z"
   }
 },
 {
@@ -3541,7 +3598,7 @@
   "fields": {
     "sku": "012270",
     "article": "1101",
-    "manufacturer_number": "MN7501-4",
+    "manufacturer_number": "",
     "name": "7501-004 масло мот.п/синт. Classic 10W40 (4л.) MANNOL; SN/CH-4/A3/B4",
     "slug": "7501-004-масло-мотпсинт-classic-10w40-4л-mannol-snch-4a3b4",
     "brand": 8,
@@ -3555,7 +3612,7 @@
     "price": "1899.21",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.358Z",
-    "updated_at": "2026-06-05T08:50:38.509Z"
+    "updated_at": "2026-06-09T05:25:08.997Z"
   }
 },
 {
@@ -3564,7 +3621,7 @@
   "fields": {
     "sku": "012818",
     "article": "1155",
-    "manufacturer_number": "MN7501-5",
+    "manufacturer_number": "",
     "name": "7501-005 масло мот.п/синт. Classic 10W40 (5л.) MANNOL; SN/CH-4/A3/B4",
     "slug": "7501-005-масло-мотпсинт-classic-10w40-5л-mannol-snch-4a3b4",
     "brand": 8,
@@ -3578,7 +3635,7 @@
     "price": "2319.32",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.360Z",
-    "updated_at": "2026-06-05T08:50:50.176Z"
+    "updated_at": "2026-06-09T05:25:09.007Z"
   }
 },
 {
@@ -3587,7 +3644,7 @@
   "fields": {
     "sku": "УТ000003514",
     "article": "1992",
-    "manufacturer_number": "MN7501-7",
+    "manufacturer_number": "",
     "name": "7501-007 масло мот.п/синт. Classic 10W40 (7л.) MANNOL; SN/CH-4/A3/B4",
     "slug": "7501-007-масло-мотпсинт-classic-10w40-7л-mannol-snch-4a3b4",
     "brand": 8,
@@ -3601,7 +3658,7 @@
     "price": "3252.53",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.362Z",
-    "updated_at": "2026-06-05T08:51:00.780Z"
+    "updated_at": "2026-06-09T05:25:09.021Z"
   }
 },
 {
@@ -3610,7 +3667,7 @@
   "fields": {
     "sku": "УТ000003515",
     "article": "1279",
-    "manufacturer_number": "MN7501-10",
+    "manufacturer_number": "",
     "name": "7501-010 масло мот.п/синт. Classic 10W40 (10л.) MANNOL; SN/CH-4/A3/B4",
     "slug": "7501-010-масло-мотпсинт-classic-10w40-10л-mannol-snch-4a3b4",
     "brand": 8,
@@ -3624,7 +3681,7 @@
     "price": "4156.11",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.364Z",
-    "updated_at": "2026-06-05T08:51:10.842Z"
+    "updated_at": "2026-06-09T05:25:09.031Z"
   }
 },
 {
@@ -3633,7 +3690,7 @@
   "fields": {
     "sku": "017202",
     "article": "1185",
-    "manufacturer_number": "MN7501-20",
+    "manufacturer_number": "",
     "name": "7501-020 масло мот.п/синт. Classic 10W40 (20л.) MANNOL; SN/CH-4/A3/B4",
     "slug": "7501-020-масло-мотпсинт-classic-10w40-20л-mannol-snch-4a3b4",
     "brand": 8,
@@ -3647,7 +3704,7 @@
     "price": "8312.22",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.366Z",
-    "updated_at": "2026-06-05T08:51:21.071Z"
+    "updated_at": "2026-06-09T05:25:09.040Z"
   }
 },
 {
@@ -3702,7 +3759,7 @@
   "fields": {
     "sku": "012271",
     "article": "1105",
-    "manufacturer_number": "MN7504-1",
+    "manufacturer_number": "",
     "name": "7504-001 масло мот.п/синт. Diesel Extra 10W40 (1л.) MANNOL; API CH-4/SN, ACEA A3/B4",
     "slug": "7504-001-масло-мотпсинт-diesel-extra-10w40-1л-mannol-api-ch-4sn-acea-a3b4",
     "brand": 8,
@@ -3716,7 +3773,7 @@
     "price": "556.86",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.371Z",
-    "updated_at": "2026-06-06T02:19:39.974Z"
+    "updated_at": "2026-06-09T05:25:09.049Z"
   }
 },
 {
@@ -3725,7 +3782,7 @@
   "fields": {
     "sku": "012272",
     "article": "1106",
-    "manufacturer_number": "MN7504-5",
+    "manufacturer_number": "",
     "name": "7504-005 масло мот.п/синт. Diesel Extra 10W40 (5л.) MANNOL; API CH-4/SN, ACEA A3/B4",
     "slug": "7504-005-масло-мотпсинт-diesel-extra-10w40-5л-mannol-api-ch-4sn-acea-a3b4",
     "brand": 8,
@@ -3739,7 +3796,7 @@
     "price": "2207.07",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.372Z",
-    "updated_at": "2026-06-06T02:20:13.925Z"
+    "updated_at": "2026-06-09T05:25:09.054Z"
   }
 },
 {
@@ -3748,7 +3805,7 @@
   "fields": {
     "sku": "УТ000003516",
     "article": "1280",
-    "manufacturer_number": "MN7504-7",
+    "manufacturer_number": "",
     "name": "7504-007 масло мот.п/синт. Diesel Extra 10W40 (7л.) MANNOL; API CH-4/SN, ACEA A3/B4",
     "slug": "7504-007-масло-мотпсинт-diesel-extra-10w40-7л-mannol-api-ch-4sn-acea-a3b4",
     "brand": 8,
@@ -3762,7 +3819,7 @@
     "price": "3089.90",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.374Z",
-    "updated_at": "2026-06-06T02:20:22.544Z"
+    "updated_at": "2026-06-09T05:25:09.064Z"
   }
 },
 {
@@ -3771,7 +3828,7 @@
   "fields": {
     "sku": "УТ000001909",
     "article": "1281",
-    "manufacturer_number": "MN7504-10",
+    "manufacturer_number": "",
     "name": "7504-010 масло мот.п/синт. Diesel Extra 10W40 (10л.) MANNOL; API CH-4/SN, ACEA A3/B4",
     "slug": "7504-010-масло-мотпсинт-diesel-extra-10w40-10л-mannol-api-ch-4sn-acea-a3b4",
     "brand": 8,
@@ -3785,7 +3842,7 @@
     "price": "4085.48",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.376Z",
-    "updated_at": "2026-06-06T02:20:30.542Z"
+    "updated_at": "2026-06-09T05:25:09.073Z"
   }
 },
 {
@@ -3794,7 +3851,7 @@
   "fields": {
     "sku": "017110",
     "article": "1186",
-    "manufacturer_number": "MN7504-20",
+    "manufacturer_number": "",
     "name": "7504-020 масло мот.п/синт. Diesel Extra 10W40 (20л.) MANNOL; API CH-4/SN, ACEA A3/B4",
     "slug": "7504-020-масло-мотпсинт-diesel-extra-10w40-20л-mannol-api-ch-4sn-acea-a3b4",
     "brand": 8,
@@ -3808,7 +3865,7 @@
     "price": "8081.45",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.377Z",
-    "updated_at": "2026-06-06T02:20:40.151Z"
+    "updated_at": "2026-06-09T05:25:09.086Z"
   }
 },
 {
@@ -3817,7 +3874,7 @@
   "fields": {
     "sku": "012652",
     "article": "1108",
-    "manufacturer_number": "MN7504-60",
+    "manufacturer_number": "",
     "name": "7504-060 масло мот.п/синт. Diesel Extra 10W40 (60л.) MANNOL; API CH-4/SN, ACEA A3/B4",
     "slug": "7504-060-масло-мотпсинт-diesel-extra-10w40-60л-mannol-api-ch-4sn-acea-a3b4",
     "brand": 8,
@@ -3831,7 +3888,7 @@
     "price": "22893.32",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.378Z",
-    "updated_at": "2026-06-06T02:20:49.249Z"
+    "updated_at": "2026-06-09T05:25:09.096Z"
   }
 },
 {
@@ -3863,7 +3920,7 @@
   "fields": {
     "sku": "УТ000012373",
     "article": "75051",
-    "manufacturer_number": "MN7505-1",
+    "manufacturer_number": "",
     "name": "7505-001 масло мот.п/синт. Molibden 10W40 (1л.) MANNOL; API SN/CH-4",
     "slug": "7505-001-масло-мотпсинт-molibden-10w40-1л-mannol-api-snch-4",
     "brand": 8,
@@ -3877,7 +3934,7 @@
     "price": "556.86",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.381Z",
-    "updated_at": "2026-06-06T02:34:22.511Z"
+    "updated_at": "2026-06-09T05:25:09.107Z"
   }
 },
 {
@@ -3886,7 +3943,7 @@
   "fields": {
     "sku": "УТ000012509",
     "article": "75054",
-    "manufacturer_number": "MN7505-4",
+    "manufacturer_number": "",
     "name": "7505-004 масло мот.п/синт. Molibden 10W40 (4л.) MANNOL; API SN/CH-4",
     "slug": "7505-004-масло-мотпсинт-molibden-10w40-4л-mannol-api-snch-4",
     "brand": 8,
@@ -3900,7 +3957,7 @@
     "price": "1808.07",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.383Z",
-    "updated_at": "2026-06-06T02:34:32.067Z"
+    "updated_at": "2026-06-09T05:25:09.116Z"
   }
 },
 {
@@ -3909,7 +3966,7 @@
   "fields": {
     "sku": "УТ000013452",
     "article": "750520",
-    "manufacturer_number": "MN7505-20",
+    "manufacturer_number": "",
     "name": "7505-020 масло мот.п/синт. Molibden 10W40 (20л.) MANNOL; API SN/CH-4",
     "slug": "7505-020-масло-мотпсинт-molibden-10w40-20л-mannol-api-snch-4",
     "brand": 8,
@@ -3923,7 +3980,7 @@
     "price": "8081.45",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.384Z",
-    "updated_at": "2026-06-06T02:34:40.179Z"
+    "updated_at": "2026-06-09T05:25:09.128Z"
   }
 },
 {
@@ -3932,7 +3989,7 @@
   "fields": {
     "sku": "УТ000013435",
     "article": "750560",
-    "manufacturer_number": "MN7505-60",
+    "manufacturer_number": "",
     "name": "7505-060 масло мот.п/синт. Molibden 10W40 (60л.) MANNOL; API SN/CH-4",
     "slug": "7505-060-масло-мотпсинт-molibden-10w40-60л-mannol-api-snch-4",
     "brand": 8,
@@ -3946,7 +4003,7 @@
     "price": "22893.32",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.386Z",
-    "updated_at": "2026-06-06T02:34:48.854Z"
+    "updated_at": "2026-06-09T05:23:15.210Z"
   }
 },
 {
@@ -3955,7 +4012,7 @@
   "fields": {
     "sku": "012497",
     "article": "1147",
-    "manufacturer_number": "MN7507-1",
+    "manufacturer_number": "",
     "name": "7507-001 масло мот.п/синт. Defender 10W40 (1л.) MANNOL; API SN, ACEA A3/B4",
     "slug": "7507-001-масло-мотпсинт-defender-10w40-1л-mannol-api-sn-acea-a3b4",
     "brand": 8,
@@ -3969,7 +4026,7 @@
     "price": "550.95",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.387Z",
-    "updated_at": "2026-06-06T02:37:30.641Z"
+    "updated_at": "2026-06-09T05:25:09.141Z"
   }
 },
 {
@@ -3978,7 +4035,7 @@
   "fields": {
     "sku": "012498",
     "article": "1148",
-    "manufacturer_number": "MN7507-4",
+    "manufacturer_number": "",
     "name": "7507-004 масло мот.п/синт. Defender 10W40 (4л.) MANNOL; API SN, ACEA A3/B4",
     "slug": "7507-004-масло-мотпсинт-defender-10w40-4л-mannol-api-sn-acea-a3b4",
     "brand": 8,
@@ -3992,7 +4049,7 @@
     "price": "1788.19",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.389Z",
-    "updated_at": "2026-06-06T02:37:40.249Z"
+    "updated_at": "2026-06-09T05:25:09.153Z"
   }
 },
 {
@@ -4001,7 +4058,7 @@
   "fields": {
     "sku": "УТ000008818",
     "article": "75075",
-    "manufacturer_number": "MN7507-5",
+    "manufacturer_number": "",
     "name": "7507-005 масло мот.п/синт. Defender 10W40 (5л.) MANNOL; API SN, ACEA A3/B4",
     "slug": "7507-005-масло-мотпсинт-defender-10w40-5л-mannol-api-sn-acea-a3b4",
     "brand": 8,
@@ -4015,7 +4072,7 @@
     "price": "2201.47",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.390Z",
-    "updated_at": "2026-06-06T02:37:47.739Z"
+    "updated_at": "2026-06-09T05:25:09.164Z"
   }
 },
 {
@@ -4024,7 +4081,7 @@
   "fields": {
     "sku": "УТ000003517",
     "article": "1191",
-    "manufacturer_number": "MN7507-20",
+    "manufacturer_number": "",
     "name": "7507-020 масло мот.п/синт. Defender 10W40 (20л.) MANNOL; API SN, ACEA A3/B4",
     "slug": "7507-020-масло-мотпсинт-defender-10w40-20л-mannol-api-sn-acea-a3b4",
     "brand": 8,
@@ -4038,7 +4095,7 @@
     "price": "8058.48",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.391Z",
-    "updated_at": "2026-06-06T02:37:55.646Z"
+    "updated_at": "2026-06-09T05:25:09.173Z"
   }
 },
 {
@@ -4047,7 +4104,7 @@
   "fields": {
     "sku": "УТ000003518",
     "article": "1151",
-    "manufacturer_number": "MN7507-DR",
+    "manufacturer_number": "",
     "name": "7507-208 масло мот.п/синт. Defender 10W40 (208л.) MANNOL; API SN, ACEA A3/B4",
     "slug": "7507-208-масло-мотпсинт-defender-10w40-208л-mannol-api-sn-acea-a3b4",
     "brand": 8,
@@ -4061,7 +4118,7 @@
     "price": "75739.14",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.392Z",
-    "updated_at": "2026-06-06T02:38:05.218Z"
+    "updated_at": "2026-06-09T05:23:15.258Z"
   }
 },
 {
@@ -4070,7 +4127,7 @@
   "fields": {
     "sku": "016411",
     "article": "1180",
-    "manufacturer_number": "MN7509-1",
+    "manufacturer_number": "",
     "name": "7509-001 масло мот.п/синт. Special 10W40 (1л.) MANNOL; API SN/CH-4, ACEA A3/B4",
     "slug": "7509-001-масло-мотпсинт-special-10w40-1л-mannol-api-snch-4-acea-a3b4",
     "brand": 8,
@@ -4084,7 +4141,7 @@
     "price": "521.19",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.394Z",
-    "updated_at": "2026-06-05T06:39:30.394Z"
+    "updated_at": "2026-06-09T05:23:15.267Z"
   }
 },
 {
@@ -4093,7 +4150,7 @@
   "fields": {
     "sku": "УТ000002477",
     "article": "4022",
-    "manufacturer_number": "MN7509-4",
+    "manufacturer_number": "",
     "name": "7509-004 масло мот.п/синт. Special 10W40 (4л.) MANNOL; API SN/CH-4, ACEA A3/B4",
     "slug": "7509-004-масло-мотпсинт-special-10w40-4л-mannol-api-snch-4-acea-a3b4",
     "brand": 8,
@@ -4107,7 +4164,7 @@
     "price": "1675.56",
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.395Z",
-    "updated_at": "2026-06-05T06:39:30.395Z"
+    "updated_at": "2026-06-09T05:23:15.273Z"
   }
 },
 {
@@ -4177,6 +4234,374 @@
     "is_active": true,
     "created_at": "2026-06-05T06:39:30.400Z",
     "updated_at": "2026-06-05T06:39:30.400Z"
+  }
+},
+{
+  "model": "catalog.product",
+  "pk": 172,
+  "fields": {
+    "sku": "016653",
+    "article": "704-043-304",
+    "manufacturer_number": "",
+    "name": "MA04 Ароматизатор Mon Areon Vanilla & Chocolate, AREON",
+    "slug": "ma04-ароматизатор-mon-areon-vanilla-chocolate-areon",
+    "brand": 7,
+    "category": 6,
+    "subcategory": 23,
+    "model_product": 46,
+    "weight": "0.014",
+    "volume": "0.014",
+    "picture": "products/ma04.jpeg",
+    "description": "Mon Areon — это современная коллекция освежителей воздуха, которая покоряет ваши чувства. Приятный дизайн и тщательно подобранные ароматы создают вокруг вас ощущение свежести, чистоты и комфорта.",
+    "price": "53.61",
+    "is_active": true,
+    "created_at": "2026-06-09T04:51:56.505Z",
+    "updated_at": "2026-06-09T05:08:22.051Z"
+  }
+},
+{
+  "model": "catalog.product",
+  "pk": 173,
+  "fields": {
+    "sku": "016654",
+    "article": "704-043-305",
+    "manufacturer_number": "",
+    "name": "MA05 Ароматизатор Mon Areon Elegance, AREON",
+    "slug": "ma05-ароматизатор-mon-areon-elegance-areon",
+    "brand": 7,
+    "category": 6,
+    "subcategory": 23,
+    "model_product": 47,
+    "weight": "0.014",
+    "volume": "0.014",
+    "picture": "products/ma05.jpeg",
+    "description": "Mon Areon — это современная коллекция освежителей воздуха, которая покоряет ваши чувства. Приятный дизайн и тщательно подобранные ароматы создают вокруг вас ощущение свежести, чистоты и комфорта.",
+    "price": "53.61",
+    "is_active": true,
+    "created_at": "2026-06-09T04:51:56.520Z",
+    "updated_at": "2026-06-09T05:08:22.055Z"
+  }
+},
+{
+  "model": "catalog.product",
+  "pk": 174,
+  "fields": {
+    "sku": "016655",
+    "article": "704-043-306",
+    "manufacturer_number": "",
+    "name": "MA06 Ароматизатор Mon Areon Beverly Hills, AREON",
+    "slug": "ma06-ароматизатор-mon-areon-beverly-hills-areon",
+    "brand": 7,
+    "category": 6,
+    "subcategory": 23,
+    "model_product": 48,
+    "weight": "0.014",
+    "volume": "0.014",
+    "picture": "products/Areon-Mon-Beverly-Hills-thumb.jpeg",
+    "description": "Mon Areon — это современная коллекция освежителей воздуха, которая покоряет ваши чувства. Приятный дизайн и тщательно подобранные ароматы создают вокруг вас ощущение свежести, чистоты и комфорта.",
+    "price": "53.61",
+    "is_active": true,
+    "created_at": "2026-06-09T04:51:56.527Z",
+    "updated_at": "2026-06-09T05:08:22.058Z"
+  }
+},
+{
+  "model": "catalog.product",
+  "pk": 175,
+  "fields": {
+    "sku": "016656",
+    "article": "704-043-308",
+    "manufacturer_number": "",
+    "name": "MA08 Ароматизатор Mon Areon Miami Beach, AREON",
+    "slug": "ma08-ароматизатор-mon-areon-miami-beach-areon",
+    "brand": 7,
+    "category": 6,
+    "subcategory": 23,
+    "model_product": 49,
+    "weight": "0.014",
+    "volume": "0.014",
+    "picture": "products/Areon-Mon-Miami-Beach-thumb.jpeg",
+    "description": "Mon Areon — это современная коллекция освежителей воздуха, которая покоряет ваши чувства. Приятный дизайн и тщательно подобранные ароматы создают вокруг вас ощущение свежести, чистоты и комфорта.",
+    "price": "53.61",
+    "is_active": true,
+    "created_at": "2026-06-09T04:51:56.536Z",
+    "updated_at": "2026-06-09T05:08:22.061Z"
+  }
+},
+{
+  "model": "catalog.product",
+  "pk": 176,
+  "fields": {
+    "sku": "016658",
+    "article": "704-043-311",
+    "manufacturer_number": "",
+    "name": "MA11 Ароматизатор Mon Areon Coconut, AREON",
+    "slug": "ma11-ароматизатор-mon-areon-coconut-areon",
+    "brand": 7,
+    "category": 6,
+    "subcategory": 23,
+    "model_product": 50,
+    "weight": "0.014",
+    "volume": "0.014",
+    "picture": "products/Areon-Mon-Coconut-thumb.jpeg",
+    "description": "Mon Areon — это современная коллекция освежителей воздуха, которая покоряет ваши чувства. Приятный дизайн и тщательно подобранные ароматы создают вокруг вас ощущение свежести, чистоты и комфорта.",
+    "price": "53.61",
+    "is_active": true,
+    "created_at": "2026-06-09T04:51:56.542Z",
+    "updated_at": "2026-06-09T05:08:22.065Z"
+  }
+},
+{
+  "model": "catalog.product",
+  "pk": 177,
+  "fields": {
+    "sku": "016659",
+    "article": "704-043-312",
+    "manufacturer_number": "",
+    "name": "MA12 Ароматизатор Mon Areon Mojito, AREON",
+    "slug": "ma12-ароматизатор-mon-areon-mojito-areon",
+    "brand": 7,
+    "category": 6,
+    "subcategory": 23,
+    "model_product": 51,
+    "weight": "0.014",
+    "volume": "0.014",
+    "picture": "products/Areon-Mon-Mojito-thumb.jpeg",
+    "description": "Mon Areon — это современная коллекция освежителей воздуха, которая покоряет ваши чувства. Приятный дизайн и тщательно подобранные ароматы создают вокруг вас ощущение свежести, чистоты и комфорта.",
+    "price": "53.61",
+    "is_active": true,
+    "created_at": "2026-06-09T04:51:56.549Z",
+    "updated_at": "2026-06-09T05:08:22.070Z"
+  }
+},
+{
+  "model": "catalog.product",
+  "pk": 178,
+  "fields": {
+    "sku": "016661",
+    "article": "704-043-315",
+    "manufacturer_number": "",
+    "name": "MA15 Ароматизатор Mon Areon Party, AREON",
+    "slug": "ma15-ароматизатор-mon-areon-party-areon",
+    "brand": 7,
+    "category": 6,
+    "subcategory": 23,
+    "model_product": 52,
+    "weight": "0.014",
+    "volume": "0.014",
+    "picture": "products/Areon-Mon-Party-thumb.jpeg",
+    "description": "Mon Areon — это современная коллекция освежителей воздуха, которая покоряет ваши чувства. Приятный дизайн и тщательно подобранные ароматы создают вокруг вас ощущение свежести, чистоты и комфорта.",
+    "price": "53.61",
+    "is_active": true,
+    "created_at": "2026-06-09T04:51:56.557Z",
+    "updated_at": "2026-06-09T05:08:22.074Z"
+  }
+},
+{
+  "model": "catalog.product",
+  "pk": 179,
+  "fields": {
+    "sku": "016662",
+    "article": "704-043-317",
+    "manufacturer_number": "",
+    "name": "MA17 Ароматизатор Mon Areon Mountain Fresh, AREON",
+    "slug": "ma17-ароматизатор-mon-areon-mountain-fresh-areon",
+    "brand": 7,
+    "category": 6,
+    "subcategory": 23,
+    "model_product": 53,
+    "weight": "0.014",
+    "volume": "0.014",
+    "picture": "products/Areon-Mon-Mountain-Fresh-thumb.jpeg",
+    "description": "Mon Areon — это современная коллекция освежителей воздуха, которая покоряет ваши чувства. Приятный дизайн и тщательно подобранные ароматы создают вокруг вас ощущение свежести, чистоты и комфорта.",
+    "price": "53.61",
+    "is_active": true,
+    "created_at": "2026-06-09T04:51:56.564Z",
+    "updated_at": "2026-06-09T05:08:22.080Z"
+  }
+},
+{
+  "model": "catalog.product",
+  "pk": 180,
+  "fields": {
+    "sku": "УТ000002047",
+    "article": "704-043-318",
+    "manufacturer_number": "",
+    "name": "MA18 Ароматизатор Mon Areon Summer Dream, AREON",
+    "slug": "ma18-ароматизатор-mon-areon-summer-dream-areon",
+    "brand": 7,
+    "category": 6,
+    "subcategory": 23,
+    "model_product": 54,
+    "weight": "0.014",
+    "volume": "0.014",
+    "picture": "products/Areon-Mon-Summer-Dream-thumb.jpeg",
+    "description": "Mon Areon — это современная коллекция освежителей воздуха, которая покоряет ваши чувства. Приятный дизайн и тщательно подобранные ароматы создают вокруг вас ощущение свежести, чистоты и комфорта.",
+    "price": "53.61",
+    "is_active": true,
+    "created_at": "2026-06-09T04:51:56.571Z",
+    "updated_at": "2026-06-09T05:08:22.084Z"
+  }
+},
+{
+  "model": "catalog.product",
+  "pk": 181,
+  "fields": {
+    "sku": "УТ000002048",
+    "article": "704-043-323",
+    "manufacturer_number": "",
+    "name": "MA23 Ароматизатор Mon Areon Black Cristal, AREON",
+    "slug": "ma23-ароматизатор-mon-areon-black-cristal-areon",
+    "brand": 7,
+    "category": 6,
+    "subcategory": 23,
+    "model_product": 55,
+    "weight": "0.014",
+    "volume": "0.014",
+    "picture": "products/Areon-Mon-Black-Crystal-thumb.jpeg",
+    "description": "Mon Areon — это современная коллекция освежителей воздуха, которая покоряет ваши чувства. Приятный дизайн и тщательно подобранные ароматы создают вокруг вас ощущение свежести, чистоты и комфорта.",
+    "price": "53.61",
+    "is_active": true,
+    "created_at": "2026-06-09T04:51:56.580Z",
+    "updated_at": "2026-06-09T05:08:22.090Z"
+  }
+},
+{
+  "model": "catalog.product",
+  "pk": 182,
+  "fields": {
+    "sku": "НФ-0012213",
+    "article": "704-043-324",
+    "manufacturer_number": "",
+    "name": "MA24 Ароматизатор Mon Areon Apple & Cinnamon, AREON",
+    "slug": "ma24-ароматизатор-mon-areon-apple-cinnamon-areon",
+    "brand": 7,
+    "category": 6,
+    "subcategory": 23,
+    "model_product": 56,
+    "weight": "0.014",
+    "volume": "0.014",
+    "picture": "products/Areon-Mon-Apple-Cinnamon-thumb.jpeg",
+    "description": "Mon Areon — это современная коллекция освежителей воздуха, которая покоряет ваши чувства. Приятный дизайн и тщательно подобранные ароматы создают вокруг вас ощущение свежести, чистоты и комфорта.",
+    "price": "53.61",
+    "is_active": true,
+    "created_at": "2026-06-09T04:51:56.587Z",
+    "updated_at": "2026-06-09T05:08:22.097Z"
+  }
+},
+{
+  "model": "catalog.product",
+  "pk": 183,
+  "fields": {
+    "sku": "НФ-0013092",
+    "article": "704-043-327",
+    "manufacturer_number": "",
+    "name": "MA27 Ароматизатор Mon Areon New Car, AREON",
+    "slug": "ma27-ароматизатор-mon-areon-new-car-areon",
+    "brand": 7,
+    "category": 6,
+    "subcategory": 23,
+    "model_product": 57,
+    "weight": "0.014",
+    "volume": "0.014",
+    "picture": "products/Areon-Mon-New-Car-thumb.jpeg",
+    "description": "Mon Areon — это современная коллекция освежителей воздуха, которая покоряет ваши чувства. Приятный дизайн и тщательно подобранные ароматы создают вокруг вас ощущение свежести, чистоты и комфорта.",
+    "price": "53.61",
+    "is_active": true,
+    "created_at": "2026-06-09T04:51:56.597Z",
+    "updated_at": "2026-06-09T05:08:22.103Z"
+  }
+},
+{
+  "model": "catalog.product",
+  "pk": 184,
+  "fields": {
+    "sku": "УТ000002782",
+    "article": "704-043-329",
+    "manufacturer_number": "",
+    "name": "MA29 Ароматизатор Mon Areon Vanilla Bubble, AREON",
+    "slug": "ma29-ароматизатор-mon-areon-vanilla-bubble-areon",
+    "brand": 7,
+    "category": 6,
+    "subcategory": 23,
+    "model_product": 58,
+    "weight": "0.014",
+    "volume": "0.014",
+    "picture": "products/Areon-Mon-Vanilla-Bubble-thumb.jpeg",
+    "description": "Mon Areon — это современная коллекция освежителей воздуха, которая покоряет ваши чувства. Приятный дизайн и тщательно подобранные ароматы создают вокруг вас ощущение свежести, чистоты и комфорта.",
+    "price": "53.61",
+    "is_active": true,
+    "created_at": "2026-06-09T04:51:56.604Z",
+    "updated_at": "2026-06-09T05:08:22.108Z"
+  }
+},
+{
+  "model": "catalog.product",
+  "pk": 185,
+  "fields": {
+    "sku": "УТ000002780",
+    "article": "704-043-330",
+    "manufacturer_number": "",
+    "name": "MA30 Ароматизатор Mon Areon Vanilla Mia, AREON",
+    "slug": "ma30-ароматизатор-mon-areon-vanilla-mia-areon",
+    "brand": 7,
+    "category": 6,
+    "subcategory": 23,
+    "model_product": 59,
+    "weight": "0.014",
+    "volume": "0.014",
+    "picture": "products/Areon-Mon-Vanilla-Mia-thumb.jpeg",
+    "description": "Mon Areon — это современная коллекция освежителей воздуха, которая покоряет ваши чувства. Приятный дизайн и тщательно подобранные ароматы создают вокруг вас ощущение свежести, чистоты и комфорта.",
+    "price": "53.61",
+    "is_active": true,
+    "created_at": "2026-06-09T04:51:56.611Z",
+    "updated_at": "2026-06-09T05:08:22.113Z"
+  }
+},
+{
+  "model": "catalog.product",
+  "pk": 186,
+  "fields": {
+    "sku": "УТ000014267",
+    "article": "7505208",
+    "manufacturer_number": "",
+    "name": "7505-208 масло мот.п/синт. Molibden 10W40 (208л.) MANNOL; API SN/CH-4",
+    "slug": "7505-208-масло-мотпсинт-molibden-10w40-208л-mannol-api-snch-4",
+    "brand": 8,
+    "category": 1,
+    "subcategory": 2,
+    "model_product": 41,
+    "weight": "208.000",
+    "volume": "208.000",
+    "picture": "",
+    "description": "",
+    "price": "75317.93",
+    "is_active": true,
+    "created_at": "2026-06-09T05:23:15.216Z",
+    "updated_at": "2026-06-09T05:23:15.216Z"
+  }
+},
+{
+  "model": "catalog.product",
+  "pk": 187,
+  "fields": {
+    "sku": "ТР3890",
+    "article": "1150",
+    "manufacturer_number": "",
+    "name": "7507-060 масло мот.п/синт. Defender 10W40 (60л.) MANNOL; API SN, ACEA A3/B4",
+    "slug": "7507-060-масло-мотпсинт-defender-10w40-60л-mannol-api-sn-acea-a3b4",
+    "brand": 8,
+    "category": 1,
+    "subcategory": 2,
+    "model_product": 42,
+    "weight": "60.000",
+    "volume": "60.000",
+    "picture": "",
+    "description": "",
+    "price": "23021.35",
+    "is_active": true,
+    "created_at": "2026-06-09T05:23:15.246Z",
+    "updated_at": "2026-06-09T05:23:15.246Z"
   }
 },
 {
@@ -5657,6 +6082,756 @@
     "warehouse": 2,
     "quantity": 17,
     "updated_at": "2026-06-05T06:39:30.400Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 183,
+  "fields": {
+    "product": 172,
+    "warehouse": 1,
+    "quantity": 31,
+    "updated_at": "2026-06-09T05:08:22.053Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 184,
+  "fields": {
+    "product": 173,
+    "warehouse": 1,
+    "quantity": 58,
+    "updated_at": "2026-06-09T05:08:22.056Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 185,
+  "fields": {
+    "product": 174,
+    "warehouse": 1,
+    "quantity": 15,
+    "updated_at": "2026-06-09T05:08:22.059Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 186,
+  "fields": {
+    "product": 175,
+    "warehouse": 1,
+    "quantity": 6,
+    "updated_at": "2026-06-09T05:08:22.063Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 187,
+  "fields": {
+    "product": 176,
+    "warehouse": 1,
+    "quantity": 11,
+    "updated_at": "2026-06-09T05:08:22.067Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 188,
+  "fields": {
+    "product": 177,
+    "warehouse": 1,
+    "quantity": 9,
+    "updated_at": "2026-06-09T05:08:22.072Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 189,
+  "fields": {
+    "product": 178,
+    "warehouse": 1,
+    "quantity": 9,
+    "updated_at": "2026-06-09T05:08:22.076Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 190,
+  "fields": {
+    "product": 179,
+    "warehouse": 1,
+    "quantity": 27,
+    "updated_at": "2026-06-09T05:08:22.082Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 191,
+  "fields": {
+    "product": 180,
+    "warehouse": 1,
+    "quantity": 11,
+    "updated_at": "2026-06-09T05:08:22.086Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 192,
+  "fields": {
+    "product": 181,
+    "warehouse": 1,
+    "quantity": 61,
+    "updated_at": "2026-06-09T05:08:22.094Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 193,
+  "fields": {
+    "product": 182,
+    "warehouse": 1,
+    "quantity": 26,
+    "updated_at": "2026-06-09T05:08:22.099Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 194,
+  "fields": {
+    "product": 183,
+    "warehouse": 1,
+    "quantity": 16,
+    "updated_at": "2026-06-09T05:08:22.106Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 195,
+  "fields": {
+    "product": 184,
+    "warehouse": 1,
+    "quantity": 5,
+    "updated_at": "2026-06-09T05:08:22.111Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 196,
+  "fields": {
+    "product": 185,
+    "warehouse": 1,
+    "quantity": 10,
+    "updated_at": "2026-06-09T05:08:22.116Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 197,
+  "fields": {
+    "product": 172,
+    "warehouse": 2,
+    "quantity": 91,
+    "updated_at": "2026-06-09T05:08:03.282Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 198,
+  "fields": {
+    "product": 174,
+    "warehouse": 2,
+    "quantity": 94,
+    "updated_at": "2026-06-09T05:08:03.292Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 199,
+  "fields": {
+    "product": 175,
+    "warehouse": 2,
+    "quantity": 9,
+    "updated_at": "2026-06-09T05:08:03.301Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 200,
+  "fields": {
+    "product": 176,
+    "warehouse": 2,
+    "quantity": 150,
+    "updated_at": "2026-06-09T05:08:03.308Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 201,
+  "fields": {
+    "product": 177,
+    "warehouse": 2,
+    "quantity": 96,
+    "updated_at": "2026-06-09T05:08:03.314Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 202,
+  "fields": {
+    "product": 178,
+    "warehouse": 2,
+    "quantity": 44,
+    "updated_at": "2026-06-09T05:08:03.321Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 203,
+  "fields": {
+    "product": 180,
+    "warehouse": 2,
+    "quantity": 116,
+    "updated_at": "2026-06-09T05:08:03.328Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 204,
+  "fields": {
+    "product": 181,
+    "warehouse": 2,
+    "quantity": 134,
+    "updated_at": "2026-06-09T05:08:03.334Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 205,
+  "fields": {
+    "product": 183,
+    "warehouse": 2,
+    "quantity": 40,
+    "updated_at": "2026-06-09T05:08:03.341Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 206,
+  "fields": {
+    "product": 185,
+    "warehouse": 2,
+    "quantity": 101,
+    "updated_at": "2026-06-09T05:08:03.348Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 207,
+  "fields": {
+    "product": 172,
+    "warehouse": 3,
+    "quantity": 151,
+    "updated_at": "2026-06-09T05:08:12.475Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 208,
+  "fields": {
+    "product": 174,
+    "warehouse": 3,
+    "quantity": 108,
+    "updated_at": "2026-06-09T05:08:12.480Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 209,
+  "fields": {
+    "product": 175,
+    "warehouse": 3,
+    "quantity": 119,
+    "updated_at": "2026-06-09T05:08:12.485Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 210,
+  "fields": {
+    "product": 176,
+    "warehouse": 3,
+    "quantity": 222,
+    "updated_at": "2026-06-09T05:08:12.490Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 211,
+  "fields": {
+    "product": 177,
+    "warehouse": 3,
+    "quantity": 129,
+    "updated_at": "2026-06-09T05:08:12.497Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 212,
+  "fields": {
+    "product": 178,
+    "warehouse": 3,
+    "quantity": 83,
+    "updated_at": "2026-06-09T05:08:12.502Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 213,
+  "fields": {
+    "product": 179,
+    "warehouse": 3,
+    "quantity": 120,
+    "updated_at": "2026-06-09T05:08:12.509Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 214,
+  "fields": {
+    "product": 180,
+    "warehouse": 3,
+    "quantity": 156,
+    "updated_at": "2026-06-09T05:08:12.518Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 215,
+  "fields": {
+    "product": 181,
+    "warehouse": 3,
+    "quantity": 210,
+    "updated_at": "2026-06-09T05:08:12.522Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 216,
+  "fields": {
+    "product": 183,
+    "warehouse": 3,
+    "quantity": 59,
+    "updated_at": "2026-06-09T05:08:12.528Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 217,
+  "fields": {
+    "product": 184,
+    "warehouse": 3,
+    "quantity": 377,
+    "updated_at": "2026-06-09T05:08:12.535Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 218,
+  "fields": {
+    "product": 185,
+    "warehouse": 3,
+    "quantity": 147,
+    "updated_at": "2026-06-09T05:08:12.545Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 219,
+  "fields": {
+    "product": 143,
+    "warehouse": 3,
+    "quantity": 40,
+    "updated_at": "2026-06-09T05:23:15.158Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 220,
+  "fields": {
+    "product": 144,
+    "warehouse": 3,
+    "quantity": 224,
+    "updated_at": "2026-06-09T05:23:15.163Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 221,
+  "fields": {
+    "product": 145,
+    "warehouse": 3,
+    "quantity": 14,
+    "updated_at": "2026-06-09T05:23:15.168Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 222,
+  "fields": {
+    "product": 147,
+    "warehouse": 3,
+    "quantity": 8,
+    "updated_at": "2026-06-09T05:23:15.172Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 223,
+  "fields": {
+    "product": 148,
+    "warehouse": 3,
+    "quantity": 2,
+    "updated_at": "2026-06-09T05:23:15.177Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 224,
+  "fields": {
+    "product": 151,
+    "warehouse": 3,
+    "quantity": 36,
+    "updated_at": "2026-06-09T05:23:15.181Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 225,
+  "fields": {
+    "product": 152,
+    "warehouse": 3,
+    "quantity": 29,
+    "updated_at": "2026-06-09T05:23:15.186Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 226,
+  "fields": {
+    "product": 154,
+    "warehouse": 3,
+    "quantity": 13,
+    "updated_at": "2026-06-09T05:23:15.190Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 227,
+  "fields": {
+    "product": 158,
+    "warehouse": 3,
+    "quantity": 201,
+    "updated_at": "2026-06-09T05:23:15.195Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 228,
+  "fields": {
+    "product": 159,
+    "warehouse": 3,
+    "quantity": 292,
+    "updated_at": "2026-06-09T05:23:15.201Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 229,
+  "fields": {
+    "product": 160,
+    "warehouse": 3,
+    "quantity": 1,
+    "updated_at": "2026-06-09T05:23:15.207Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 230,
+  "fields": {
+    "product": 161,
+    "warehouse": 3,
+    "quantity": 1,
+    "updated_at": "2026-06-09T05:23:15.213Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 231,
+  "fields": {
+    "product": 186,
+    "warehouse": 3,
+    "quantity": 1,
+    "updated_at": "2026-06-09T05:23:15.220Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 232,
+  "fields": {
+    "product": 162,
+    "warehouse": 3,
+    "quantity": 3,
+    "updated_at": "2026-06-09T05:23:15.228Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 233,
+  "fields": {
+    "product": 163,
+    "warehouse": 3,
+    "quantity": 24,
+    "updated_at": "2026-06-09T05:23:15.234Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 234,
+  "fields": {
+    "product": 164,
+    "warehouse": 3,
+    "quantity": 8,
+    "updated_at": "2026-06-09T05:23:15.241Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 235,
+  "fields": {
+    "product": 187,
+    "warehouse": 3,
+    "quantity": 2,
+    "updated_at": "2026-06-09T05:23:15.249Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 236,
+  "fields": {
+    "product": 166,
+    "warehouse": 3,
+    "quantity": 1,
+    "updated_at": "2026-06-09T05:23:15.263Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 237,
+  "fields": {
+    "product": 167,
+    "warehouse": 3,
+    "quantity": 2,
+    "updated_at": "2026-06-09T05:23:15.270Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 238,
+  "fields": {
+    "product": 168,
+    "warehouse": 3,
+    "quantity": 5,
+    "updated_at": "2026-06-09T05:23:15.277Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 239,
+  "fields": {
+    "product": 143,
+    "warehouse": 1,
+    "quantity": 15,
+    "updated_at": "2026-06-09T05:25:08.994Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 240,
+  "fields": {
+    "product": 144,
+    "warehouse": 1,
+    "quantity": 53,
+    "updated_at": "2026-06-09T05:25:09.003Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 241,
+  "fields": {
+    "product": 145,
+    "warehouse": 1,
+    "quantity": 8,
+    "updated_at": "2026-06-09T05:25:09.015Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 242,
+  "fields": {
+    "product": 146,
+    "warehouse": 1,
+    "quantity": 2,
+    "updated_at": "2026-06-09T05:25:09.027Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 243,
+  "fields": {
+    "product": 147,
+    "warehouse": 1,
+    "quantity": 6,
+    "updated_at": "2026-06-09T05:25:09.037Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 244,
+  "fields": {
+    "product": 148,
+    "warehouse": 1,
+    "quantity": 2,
+    "updated_at": "2026-06-09T05:25:09.046Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 245,
+  "fields": {
+    "product": 151,
+    "warehouse": 1,
+    "quantity": 17,
+    "updated_at": "2026-06-09T05:25:09.051Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 246,
+  "fields": {
+    "product": 152,
+    "warehouse": 1,
+    "quantity": 31,
+    "updated_at": "2026-06-09T05:25:09.058Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 247,
+  "fields": {
+    "product": 153,
+    "warehouse": 1,
+    "quantity": 6,
+    "updated_at": "2026-06-09T05:25:09.069Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 248,
+  "fields": {
+    "product": 154,
+    "warehouse": 1,
+    "quantity": 14,
+    "updated_at": "2026-06-09T05:25:09.081Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 249,
+  "fields": {
+    "product": 155,
+    "warehouse": 1,
+    "quantity": 19,
+    "updated_at": "2026-06-09T05:25:09.092Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 250,
+  "fields": {
+    "product": 156,
+    "warehouse": 1,
+    "quantity": 2,
+    "updated_at": "2026-06-09T05:25:09.101Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 251,
+  "fields": {
+    "product": 158,
+    "warehouse": 1,
+    "quantity": 177,
+    "updated_at": "2026-06-09T05:25:09.112Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 252,
+  "fields": {
+    "product": 159,
+    "warehouse": 1,
+    "quantity": 169,
+    "updated_at": "2026-06-09T05:25:09.120Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 253,
+  "fields": {
+    "product": 160,
+    "warehouse": 1,
+    "quantity": 1,
+    "updated_at": "2026-06-09T05:25:09.131Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 254,
+  "fields": {
+    "product": 162,
+    "warehouse": 1,
+    "quantity": 13,
+    "updated_at": "2026-06-09T05:25:09.147Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 255,
+  "fields": {
+    "product": 163,
+    "warehouse": 1,
+    "quantity": 10,
+    "updated_at": "2026-06-09T05:25:09.155Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 256,
+  "fields": {
+    "product": 164,
+    "warehouse": 1,
+    "quantity": 2,
+    "updated_at": "2026-06-09T05:25:09.169Z"
+  }
+},
+{
+  "model": "warehouses.stock",
+  "pk": 257,
+  "fields": {
+    "product": 165,
+    "warehouse": 1,
+    "quantity": 1,
+    "updated_at": "2026-06-09T05:25:09.181Z"
   }
 }
 ]
