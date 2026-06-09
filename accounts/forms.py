@@ -19,11 +19,12 @@ class BootstrapFormMixin:
 
 
 class RegisterForm(BootstrapFormMixin, UserCreationForm):
-    email = forms.EmailField(required=True)
+    email = forms.EmailField(required=True, label="Эл. почта")
 
     class Meta:
         model = User
         fields = ("username", "email", "company_name", "phone")
+        labels = {"company_name": "Компания", "phone": "Телефон"}
 
 
 class LoginForm(BootstrapFormMixin, AuthenticationForm):

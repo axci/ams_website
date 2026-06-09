@@ -1,26 +1,26 @@
 {% extends 'base.html' %}
-{% block title %}Checkout — AMS Store{% endblock %}
+{% block title %}Оформление заказа{% endblock %}
 
 {% block content %}
-<h1 class="h4 mb-3">Checkout</h1>
+<h1 class="h4 mb-3">Оформление заказа</h1>
 
 <div class="row g-4">
   <div class="col-lg-7">
     <div class="card shadow-sm">
-      <div class="card-header">Order summary — fulfilled from <strong>{{ warehouse.name }}</strong></div>
+      <div class="card-header">Состав заказа — со склада <strong>{{ warehouse.name }}</strong></div>
       <div class="table-responsive">
         <table class="table align-middle mb-0">
           <thead class="table-light">
-            <tr><th>Product</th><th class="text-center">Qty</th><th class="text-end">Subtotal</th></tr>
+            <tr><th>Товар</th><th class="text-center">Кол-во</th><th class="text-end">Сумма</th></tr>
           </thead>
           <tbody>
             {% for item in items %}
             <tr {% if item.quantity > item.available %}class="table-danger"{% endif %}>
               <td>
                 {{ item.product.name }}
-                <div class="small text-muted">Article: {{ item.product.article }}</div>
+                <div class="small text-muted">Артикул: {{ item.product.article }}</div>
                 {% if item.quantity > item.available %}
-                <div class="small text-danger">Only {{ item.available }} available in this warehouse</div>
+                <div class="small text-danger">На складе только {{ item.available }}</div>
                 {% endif %}
               </td>
               <td class="text-center">{{ item.quantity }}</td>
@@ -29,7 +29,7 @@
             {% endfor %}
           </tbody>
           <tfoot class="table-light">
-            <tr><th colspan="2" class="text-end">Total</th><th class="text-end">{{ cart.total|rubles }}</th></tr>
+            <tr><th colspan="2" class="text-end">Итого</th><th class="text-end">{{ cart.total|rubles }}</th></tr>
           </tfoot>
         </table>
       </div>
@@ -38,11 +38,11 @@
 
   <div class="col-lg-5">
     <div class="card shadow-sm">
-      <div class="card-header">Delivery details</div>
+      <div class="card-header">Данные доставки</div>
       <div class="card-body">
         {% if issues %}
         <div class="alert alert-danger">
-          Some items exceed available stock. Please <a href="{% url 'orders:cart' %}">edit your basket</a> before ordering.
+          Некоторых товаров не хватает на складе. <a href="{% url 'orders:cart' %}">Измените корзину</a> перед оформлением.
         </div>
         {% endif %}
         <form method="post">
@@ -55,9 +55,9 @@
           </div>
           {% endfor %}
           <button class="btn btn-primary w-100" type="submit" {% if issues %}disabled{% endif %}>
-            <i class="bi bi-bag-check"></i> Place order
+            <i class="bi bi-bag-check"></i> Оформить заказ
           </button>
-          <a href="{% url 'orders:cart' %}" class="btn btn-link w-100">Back to basket</a>
+          <a href="{% url 'orders:cart' %}" class="btn btn-link w-100">Назад в корзину</a>
         </form>
       </div>
     </div>

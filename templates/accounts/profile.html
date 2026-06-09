@@ -1,32 +1,32 @@
 {% extends 'base.html' %}
-{% block title %}Profile — AMS Store{% endblock %}
+{% block title %}Профиль{% endblock %}
 
 {% block content %}
-<h1 class="h4 mb-3">My profile</h1>
+<h1 class="h4 mb-3">Мой профиль</h1>
 <div class="row g-4">
   <div class="col-md-6">
     <div class="card shadow-sm h-100">
-      <div class="card-header">Account</div>
+      <div class="card-header">Аккаунт</div>
       <ul class="list-group list-group-flush">
-        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Username</span><span>{{ user.get_username }}</span></li>
-        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Name</span><span>{{ user.get_full_name|default:"—" }}</span></li>
-        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Email</span><span>{{ user.email|default:"—" }}</span></li>
-        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Company</span><span>{{ user.company_name|default:"—" }}</span></li>
-        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Phone</span><span>{{ user.phone|default:"—" }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Имя пользователя</span><span>{{ user.get_username }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Имя</span><span>{{ user.get_full_name|default:"—" }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Эл. почта</span><span>{{ user.email|default:"—" }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Компания</span><span>{{ user.company_name|default:"—" }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Телефон</span><span>{{ user.phone|default:"—" }}</span></li>
       </ul>
     </div>
   </div>
   <div class="col-md-6">
     <div class="card shadow-sm h-100">
-      <div class="card-header">My warehouses</div>
+      <div class="card-header">Мои склады</div>
       <ul class="list-group list-group-flush">
         {% for wh in accessible_warehouses %}
         <li class="list-group-item d-flex justify-content-between">
           <span>{{ wh.name }} <span class="text-muted small">({{ wh.code }})</span></span>
-          {% if current_warehouse and current_warehouse.pk == wh.pk %}<span class="badge text-bg-primary">current</span>{% endif %}
+          {% if current_warehouse and current_warehouse.pk == wh.pk %}<span class="badge text-bg-primary">текущий</span>{% endif %}
         </li>
         {% empty %}
-        <li class="list-group-item text-muted">No warehouses assigned yet. Please contact an administrator.</li>
+        <li class="list-group-item text-muted">Склады ещё не назначены. Обратитесь к администратору.</li>
         {% endfor %}
       </ul>
     </div>

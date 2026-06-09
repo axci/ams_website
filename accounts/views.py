@@ -16,7 +16,7 @@ def register(request):
             login(request, user)
             messages.info(
                 request,
-                "Welcome! An administrator will grant your warehouse access shortly.",
+                "Добро пожаловать! Администратор скоро откроет вам доступ к складам.",
             )
             return redirect("catalog:product_list")
     else:

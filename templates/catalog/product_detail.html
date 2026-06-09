@@ -1,5 +1,5 @@
 {% extends 'base.html' %}
-{% block title %}{{ product.name }} — AMS Store{% endblock %}
+{% block title %}{{ product.name }} — Автомеханика-Сибирь{% endblock %}
 
 {% block content %}
 <nav aria-label="breadcrumb">
@@ -31,32 +31,32 @@
     <h1 class="h3">{{ product.name }}</h1>
     <div class="text-muted mb-2">
       Артикул: <strong>{{ product.article }}</strong>
-      {% if product.manufacturer_number %}<span class="ms-3">Mfr. No.: <strong>{{ product.manufacturer_number }}</strong></span>{% endif %}
+      {% if product.manufacturer_number %}<span class="ms-3">Номер произв.: <strong>{{ product.manufacturer_number }}</strong></span>{% endif %}
     </div>
     <div class="h4 mb-3">{{ product.price|rubles }}</div>
 
     {% if product.model_product or product.weight or product.volume %}
     <ul class="list-unstyled small text-body-secondary mb-3">
       {% if product.model_product %}<li><strong>Модель:</strong> {{ product.model_product.name }}</li>{% endif %}
-      {% if product.weight %}<li><strong>Вес:</strong> {{ product.weight|floatformat:"-3" }} kg</li>{% endif %}
-      {% if product.volume %}<li><strong>Объём:</strong> {{ product.volume|floatformat:"-3" }} L</li>{% endif %}
+      {% if product.weight %}<li><strong>Вес:</strong> {{ product.weight|floatformat:"-3" }} кг</li>{% endif %}
+      {% if product.volume %}<li><strong>Объём:</strong> {{ product.volume|floatformat:"-3" }} л</li>{% endif %}
     </ul>
     {% endif %}
 
     {% if variants|length > 1 %}
     <div class="mb-3">
       <div class="small text-muted mb-1">
-        Other volumes{% if product.model_product %} — {{ product.model_product.name }}{% endif %}:
+        Другие объёмы{% if product.model_product %} — {{ product.model_product.name }}{% endif %}:
       </div>
       <div class="d-flex flex-wrap gap-2">
         {% for v in variants %}
           {% if v.pk == product.pk %}
           <span class="btn btn-sm btn-primary disabled" aria-current="true">
-            {% if v.volume %}{{ v.volume|floatformat:"-3" }} L{% else %}{{ v.name }}{% endif %} · {{ v.price|rubles }}
+            {% if v.volume %}{{ v.volume|floatformat:"-3" }} л{% else %}{{ v.name }}{% endif %} · {{ v.price|rubles }}
           </span>
           {% else %}
           <a class="btn btn-sm btn-outline-primary" href="{{ v.get_absolute_url }}">
-            {% if v.volume %}{{ v.volume|floatformat:"-3" }} L{% else %}{{ v.name }}{% endif %} · {{ v.price|rubles }}
+            {% if v.volume %}{{ v.volume|floatformat:"-3" }} л{% else %}{{ v.name }}{% endif %} · {{ v.price|rubles }}
           </a>
           {% endif %}
         {% endfor %}
@@ -68,13 +68,13 @@
       {% if show_stock %}
         {% if stock_qty > 0 %}
         <p><span class="badge text-bg-success">В наличии: {{ stock_qty }}</span>
-           <span class="text-muted small">в {{ current_warehouse.name }}</span></p>
+           <span class="text-muted small">на складе {{ current_warehouse.name }}</span></p>
         {% else %}
         <p><span class="badge text-bg-secondary">Закончился</span>
-           <span class="text-muted small">в {{ current_warehouse.name }}</span></p>
+           <span class="text-muted small">на складе {{ current_warehouse.name }}</span></p>
         {% endif %}
       {% else %}
-        <p class="text-muted"><i class="bi bi-info-circle"></i> No warehouse is assigned to your account yet.</p>
+        <p class="text-muted"><i class="bi bi-info-circle"></i> К вашему аккаунту ещё не привязан склад.</p>
       {% endif %}
 
       <form method="post" action="{% url 'orders:add_to_cart' product.pk %}" class="row g-2 align-items-end mb-4" style="max-width: 360px;">
@@ -91,9 +91,9 @@
         </div>
       </form>
     {% else %}
-      <p class="text-muted"><i class="bi bi-info-circle"></i> Log in to see availability and place an order.</p>
+      <p class="text-muted"><i class="bi bi-info-circle"></i> Войдите, чтобы увидеть наличие и оформить заказ.</p>
       <a class="btn btn-primary mb-4" href="{% url 'login' %}?next={{ request.get_full_path|urlencode }}">
-        <i class="bi bi-box-arrow-in-right"></i> Log in to buy
+        <i class="bi bi-box-arrow-in-right"></i> Войти, чтобы купить
       </a>
     {% endif %}
 

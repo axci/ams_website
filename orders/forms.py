@@ -9,11 +9,15 @@ class CheckoutForm(BootstrapFormMixin, forms.ModelForm):
     class Meta:
         model = Order
         fields = ("shipping_address", "comment")
+        labels = {
+            "shipping_address": "Адрес доставки",
+            "comment": "Примечание к заказу",
+        }
         widgets = {
             "shipping_address": forms.TextInput(
-                attrs={"placeholder": "Delivery address"}
+                attrs={"placeholder": "Город, улица, дом"}
             ),
             "comment": forms.Textarea(
-                attrs={"rows": 3, "placeholder": "Optional note for this order"}
+                attrs={"rows": 3, "placeholder": "Необязательно"}
             ),
         }

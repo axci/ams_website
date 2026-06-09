@@ -56,7 +56,7 @@ def add_to_cart(request, product_id):
     if not created:
         item.quantity += quantity
         item.save(update_fields=["quantity"])
-    messages.success(request, f"Added {product.name} to your basket.")
+    messages.success(request, f"{product.name} добавлен в корзину.")
     return redirect(request.POST.get("next") or "catalog:product_list")
 
 
@@ -71,11 +71,11 @@ def update_cart_item(request, item_id):
         quantity = 1
     if quantity <= 0:
         item.delete()
-        messages.info(request, "Item removed from your basket.")
+        messages.info(request, "Товар удалён из корзины.")
     else:
         item.quantity = quantity
         item.save(update_fields=["quantity"])
-        messages.success(request, "Basket updated.")
+        messages.success(request, "Корзина обновлена.")
     return redirect("orders:cart")
 
 
@@ -95,10 +95,10 @@ def checkout(request):
     items = list(cart.items.select_related("product"))
 
     if not items:
-        messages.warning(request, "Your basket is empty.")
+        messages.warning(request, "Корзина пуста.")
         return redirect("orders:cart")
     if warehouse is None:
-        messages.error(request, "No warehouse is assigned to your account yet.")
+        messages.error(request, "К вашему аккаунту ещё не привязан склад.")
         return redirect("orders:cart")
 
     stock_map = _stock_map(warehouse, items)
@@ -113,8 +113,8 @@ def checkout(request):
         if issues:
             messages.error(
                 request,
-                "Some items exceed the stock available in this warehouse. "
-                "Please adjust your basket.",
+                "Некоторых товаров не хватает на складе. "
+                "Измените количество в корзине.",
             )
         elif form.is_valid():
             try:
@@ -146,10 +146,10 @@ def checkout(request):
             except (ValueError, Stock.DoesNotExist):
                 messages.error(
                     request,
-                    "Stock changed while placing your order. Please review your basket.",
+                    "Остатки изменились при оформлении заказа. Проверьте корзину.",
                 )
                 return redirect("orders:cart")
-            messages.success(request, f"Order #{order.pk} placed successfully.")
+            messages.success(request, f"Заказ №{order.pk} успешно оформлен.")
             send_order_emails(order)
             return redirect("orders:order_detail", pk=order.pk)
     else:

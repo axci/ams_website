@@ -26,13 +26,13 @@
             <form method="post" action="{% url 'orders:update_cart_item' item.pk %}" class="d-inline-flex">
               {% csrf_token %}
               <input type="number" name="quantity" value="{{ item.quantity }}" min="1" class="form-control form-control-sm me-1" style="width: 80px;">
-              <button class="btn btn-sm btn-outline-secondary" title="Update"><i class="bi bi-arrow-repeat"></i></button>
+              <button class="btn btn-sm btn-outline-secondary" title="Обновить"><i class="bi bi-arrow-repeat"></i></button>
             </form>
           </td>
           <td class="text-center">
             {% if warehouse %}
               {% if item.quantity > item.available %}
-              <span class="badge text-bg-danger">Only {{ item.available }} left</span>
+              <span class="badge text-bg-danger">Осталось {{ item.available }}</span>
               {% else %}
               <span class="badge text-bg-success">{{ item.available }} в наличии</span>
               {% endif %}
@@ -44,7 +44,7 @@
           <td class="text-end">
             <form method="post" action="{% url 'orders:remove_from_cart' item.pk %}">
               {% csrf_token %}
-              <button class="btn btn-sm btn-outline-danger" title="Remove"><i class="bi bi-trash"></i></button>
+              <button class="btn btn-sm btn-outline-danger" title="Удалить"><i class="bi bi-trash"></i></button>
             </form>
           </td>
         </tr>
@@ -58,10 +58,10 @@
 </div>
 
 <div class="d-flex justify-content-between">
-  <a href="{% url 'catalog:product_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i>Продолжить покупки</a>
+  <a href="{% url 'catalog:product_list' %}" class="btn btn-outline-secondary"><i class="bi bi-arrow-left"></i> Продолжить покупки</a>
   <a href="{% url 'orders:checkout' %}" class="btn btn-primary">К оформлению заказа <i class="bi bi-arrow-right"></i></a>
 </div>
 {% else %}
-<div class="alert alert-info">Корзина пуста. <a href="{% url 'catalog:product_list' %}">Browse the catalog</a>.</div>
+<div class="alert alert-info">Корзина пуста. <a href="{% url 'catalog:product_list' %}">Перейти в каталог</a>.</div>
 {% endif %}
 {% endblock %}

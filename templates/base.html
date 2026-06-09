@@ -1,6 +1,6 @@
 {% load static %}
 <!doctype html>
-<html lang="en">
+<html lang="ru">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -33,7 +33,7 @@
         <li class="nav-item dropdown me-lg-2">
           <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
             <i class="bi bi-geo-alt"></i>
-            {% if current_warehouse %}{{ current_warehouse.name }}{% else %}Select warehouse{% endif %}
+            {% if current_warehouse %}{{ current_warehouse.name }}{% else %}Выберите склад{% endif %}
           </a>
           <ul class="dropdown-menu dropdown-menu-end">
             {% for wh in accessible_warehouses %}
@@ -68,23 +68,23 @@
             <i class="bi bi-person-circle"></i> {{ user.get_username }}
           </a>
           <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="bi bi-person"></i> Profile</a></li>
-            <li><a class="dropdown-item" href="{% url 'orders:order_list' %}"><i class="bi bi-receipt"></i> My orders</a></li>
+            <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="bi bi-person"></i> Профиль</a></li>
+            <li><a class="dropdown-item" href="{% url 'orders:order_list' %}"><i class="bi bi-receipt"></i> Мои заказы</a></li>
             {% if user.is_staff %}
-            <li><a class="dropdown-item" href="/admin/"><i class="bi bi-gear"></i> Admin</a></li>
+            <li><a class="dropdown-item" href="/admin/"><i class="bi bi-gear"></i> Админка</a></li>
             {% endif %}
             <li><hr class="dropdown-divider"></li>
             <li>
               <form method="post" action="{% url 'logout' %}">
                 {% csrf_token %}
-                <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right"></i> Log out</button>
+                <button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right"></i> Выйти</button>
               </form>
             </li>
           </ul>
         </li>
         {% else %}
-        <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Log in</a></li>
-        <li class="nav-item"><a class="nav-link" href="{% url 'register' %}">Register</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'login' %}">Войти</a></li>
+        <li class="nav-item"><a class="nav-link" href="{% url 'register' %}">Регистрация</a></li>
         {% endif %}
       </ul>
     </div>

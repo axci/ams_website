@@ -22,10 +22,12 @@ PYEOF
 echo "Applying migrations..."
 python manage.py migrate --noinput
 
-if [ "${SEED_DEMO}" = "true" ] || [ "${SEED_DEMO}" = "1" ]; then
-  echo "Seeding demo content..."
-  python manage.py bootstrap_demo
-fi
+case "$(printf '%s' "${SEED_DEMO:-}" | tr '[:upper:]' '[:lower:]')" in
+  1 | true | yes | on)
+    echo "Seeding demo content..."
+    python manage.py bootstrap_demo
+    ;;
+esac
 
 echo "Collecting static files..."
 python manage.py collectstatic --noinput

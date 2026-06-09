@@ -11,7 +11,7 @@ from .selection import set_current_warehouse
 def switch_warehouse(request):
     warehouse = set_current_warehouse(request, request.POST.get("warehouse_id"))
     if warehouse:
-        messages.success(request, f"Showing stock for {warehouse.name}.")
+        messages.success(request, f"Показаны остатки склада {warehouse.name}.")
     else:
-        messages.error(request, "You do not have access to that warehouse.")
+        messages.error(request, "У вас нет доступа к этому складу.")
     return redirect(request.POST.get("next") or "catalog:product_list")
