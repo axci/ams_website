@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% block title %}{{ warehouse.name }} — Контакты{% endblock %}
+
+{% block content %}
+<nav aria-label="breadcrumb">
+  <ol class="breadcrumb">
+    <li class="breadcrumb-item"><a href="{% url 'warehouses:contacts' %}">Контакты</a></li>
+    <li class="breadcrumb-item active">{{ warehouse.name }}</li>
+  </ol>
+</nav>
+
+<div class="row g-4 mb-4">
+  <div class="col-md-5">
+    <div class="card shadow-sm">
+      {% if warehouse.picture %}
+      <img src="{{ warehouse.picture.url }}" class="card-img-top warehouse-img" alt="{{ warehouse.name }}">
+      {% else %}
+      <div class="warehouse-img-placeholder"><i class="bi bi-building"></i></div>
+      {% endif %}
+    </div>
+  </div>
+  <div class="col-md-7">
+    <h1 class="h3">{{ warehouse.name }}</h1>
+    {% if warehouse.address %}
+    <p class="mb-2"><i class="bi bi-geo-alt text-primary"></i> {{ warehouse.address }}</p>
+    {% endif %}
+    {% if warehouse.opening_hours %}
+    <p class="text-body-secondary" style="white-space: pre-line;"><i class="bi bi-clock text-primary"></i> {{ warehouse.opening_hours }}</p>
+    {% endif %}
+  </div>
+</div>
+
+<h2 class="h5 mb-3">Менеджеры</h2>
+{% if warehouse.managers.all %}
+<div class="row row-cols-1 row-cols-sm-2 row-cols-lg-3 g-3">
+  {% for m in warehouse.managers.all %}
+  <div class="col">
+    <div class="card h-100 shadow-sm">
+      <div class="card-body d-flex align-items-center gap-3">
+        {% if m.photo %}
+        <img src="{{ m.photo.url }}" class="manager-photo" alt="{{ m.surname }} {{ m.name }}">
+        {% else %}
+        <div class="manager-photo-placeholder"><i class="bi bi-person"></i></div>
+        {% endif %}
+        <div class="min-w-0">
+          <div class="fw-bold">{{ m.surname }} {{ m.name }}</div>
+          {% if m.position %}<div class="small text-muted">{{ m.position }}</div>{% endif %}
+          {% if m.phone %}<div class="small"><i class="bi bi-telephone text-primary"></i> <a href="tel:{{ m.phone }}" class="text-decoration-none">{{ m.phone }}</a></div>{% endif %}
+          {% if m.email %}<div class="small text-truncate"><i class="bi bi-envelope text-primary"></i> <a href="mailto:{{ m.email }}" class="text-decoration-none">{{ m.email }}</a></div>{% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">Для этого склада менеджеры пока не указаны.</div>
+{% endif %}
+
+<a href="{% url 'warehouses:contacts' %}" class="btn btn-link mt-3"><i class="bi bi-arrow-left"></i> Все склады</a>
+{% endblock %}

@@ -28,6 +28,7 @@
       </form>
 
       <ul class="navbar-nav ms-auto align-items-lg-center">
+        <li class="nav-item me-lg-2"><a class="nav-link" href="{% url 'warehouses:contacts' %}">Контакты</a></li>
         {% if user.is_authenticated %}
         {% if accessible_warehouses %}
         <li class="nav-item dropdown me-lg-2">

@@ -1,3 +1,4 @@
+import re
 from decimal import Decimal, InvalidOperation
 
 from django.core.paginator import Paginator
@@ -8,7 +9,13 @@ from django.shortcuts import get_object_or_404, render
 from warehouses.models import Stock
 from warehouses.selection import get_current_warehouse
 
-from .models import BannerSlide, Brand, Category, Product
+from .models import BannerSlide, Brand, Category, Product, SubCategory
+
+
+def _viscosity_key(value):
+    """Sort viscosities numerically (0W20, 5W30, 10W40) rather than as text."""
+    match = re.match(r"(\d+)W(\d+)", value)
+    return (int(match.group(1)), int(match.group(2))) if match else (10**6, 10**6)
 
 
 def product_list(request):
@@ -25,6 +32,7 @@ def product_list(request):
     category_id = request.GET.get("category", "")
     subcategory_id = request.GET.get("subcategory", "")
     volume_value = request.GET.get("volume", "")
+    viscosity_value = request.GET.get("viscosity", "")
 
     if query:
         products = products.filter(
@@ -35,17 +43,63 @@ def product_list(request):
             | Q(brand__name__icontains=query)
             | Q(description__icontains=query)
         )
+    # Brand → categories cascade. Which categories a brand offers is set in the
+    # admin (Brand.categories); empty means "all categories".
+    brand_obj = Brand.objects.filter(slug=brand_slug).first() if brand_slug else None
+    categories_qs = Category.objects.prefetch_related("subcategories")
+    if brand_obj and brand_obj.categories.exists():
+        categories_qs = categories_qs.filter(brands=brand_obj)
+    categories = list(categories_qs)
+    allowed_cat_ids = {c.id for c in categories}
+
+    # Drop selections that no longer fit the cascade (e.g. a category not sold by
+    # the chosen brand, or a subcategory outside the chosen category).
+    if category_id.isdigit() and int(category_id) not in allowed_cat_ids:
+        category_id = ""
+    if subcategory_id.isdigit():
+        sub = SubCategory.objects.filter(pk=subcategory_id).first()
+        if sub is None:
+            subcategory_id = ""
+        elif category_id.isdigit():
+            if str(sub.category_id) != category_id:
+                subcategory_id = ""
+        elif sub.category_id not in allowed_cat_ids:
+            subcategory_id = ""
+
     if brand_slug:
         products = products.filter(brand__slug=brand_slug)
     if category_id.isdigit():
         products = products.filter(category_id=category_id)
     if subcategory_id.isdigit():
         products = products.filter(subcategory_id=subcategory_id)
+
+    # Volumes and viscosities available for the current brand/category/subcategory.
+    volumes = list(
+        products.filter(volume__isnull=False)
+        .order_by("volume")
+        .values_list("volume", flat=True)
+        .distinct()
+    )
+    viscosities = sorted(
+        set(products.exclude(viscosity="").values_list("viscosity", flat=True)),
+        key=_viscosity_key,
+    )
+    # Apply the volume filter only if that volume is actually available.
     if volume_value:
         try:
-            products = products.filter(volume=Decimal(volume_value))
+            volume_decimal = Decimal(volume_value)
         except (InvalidOperation, ValueError):
+            volume_decimal = None
+        if volume_decimal is not None and volume_decimal in volumes:
+            products = products.filter(volume=volume_decimal)
+        else:
             volume_value = ""
+    # Apply the viscosity filter only if that viscosity is actually available.
+    if viscosity_value:
+        if viscosity_value in viscosities:
+            products = products.filter(viscosity=viscosity_value)
+        else:
+            viscosity_value = ""
 
     # Annotate each product with the quantity available in the current warehouse.
     if show_stock:
@@ -65,17 +119,10 @@ def product_list(request):
 
     # Show the rotating banner only on the clean landing page (no search/filter).
     is_landing = not any(
-        [query, brand_slug, category_id, subcategory_id, volume_value, request.GET.get("page")]
+        [query, brand_slug, category_id, subcategory_id, volume_value, viscosity_value, request.GET.get("page")]
     )
     banner_slides = (
         BannerSlide.objects.filter(is_active=True)[:7] if is_landing else []
-    )
-
-    volumes = (
-        Product.objects.filter(is_active=True, volume__isnull=False)
-        .values_list("volume", flat=True)
-        .distinct()
-        .order_by("volume")
     )
 
     context = {
@@ -84,13 +131,15 @@ def product_list(request):
         "warehouse": warehouse,
         "show_stock": show_stock,
         "brands": Brand.objects.all(),
-        "categories": Category.objects.prefetch_related("subcategories"),
+        "categories": categories,
         "volumes": volumes,
+        "viscosities": viscosities,
         "query": query,
         "selected_brand": brand_slug,
         "selected_category": category_id,
         "selected_subcategory": subcategory_id,
         "selected_volume": volume_value,
+        "selected_viscosity": viscosity_value,
     }
     return render(request, "catalog/product_list.html", context)
 

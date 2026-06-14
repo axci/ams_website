@@ -34,13 +34,14 @@ FIELD_ALIASES = {
     "model": "model_product",
     "weight": "weight",
     "volume": "volume",
+    "viscosity": "viscosity",
     "manufacturer number": "manufacturer_number",
     "manufacturer_number": "manufacturer_number",
     "price": "price",
     "brand": "brand",
 }
 
-TEXT_LIMITS = {"sku": 64, "article": 64, "manufacturer_number": 64, "name": 200}
+TEXT_LIMITS = {"sku": 64, "article": 64, "manufacturer_number": 64, "name": 200, "viscosity": 20}
 
 
 @dataclass
@@ -238,6 +239,8 @@ def import_products(file_obj, default_brand=None):
                 defaults["weight"] = _decimal(values.get("weight"))
             if "volume" in values:
                 defaults["volume"] = _decimal(values.get("volume"))
+            if "viscosity" in values:
+                defaults["viscosity"] = _text(values.get("viscosity"), 20)
 
             # A new product needs a name even if the file omits the column.
             if "name" not in defaults and not Product.objects.filter(sku=sku).exists():

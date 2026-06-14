@@ -83,12 +83,14 @@
       <select name="subcategory" class="form-select form-select-sm mb-3" onchange="this.form.submit()">
         <option value="">Все подкатегории</option>
         {% for c in categories %}
+          {% if not selected_category or selected_category == c.pk|stringformat:'s' %}
           {% if c.subcategories.all %}
           <optgroup label="{{ c.name }}">
             {% for s in c.subcategories.all %}
             <option value="{{ s.pk }}" {% if selected_subcategory == s.pk|stringformat:'s' %}selected{% endif %}>{{ s.name }}</option>
             {% endfor %}
           </optgroup>
+          {% endif %}
           {% endif %}
         {% endfor %}
       </select>
@@ -97,6 +99,13 @@
         <option value="">Все объёмы</option>
         {% for vol in volumes %}
         <option value="{{ vol|stringformat:'s' }}" {% if selected_volume == vol|stringformat:'s' %}selected{% endif %}>{{ vol|floatformat:"-3" }} л</option>
+        {% endfor %}
+      </select>
+      <label class="form-label small fw-bold mb-1">Вязкость</label>
+      <select name="viscosity" class="form-select form-select-sm mb-3" onchange="this.form.submit()">
+        <option value="">Все вязкости</option>
+        {% for v in viscosities %}
+        <option value="{{ v }}" {% if selected_viscosity == v %}selected{% endif %}>{{ v }}</option>
         {% endfor %}
       </select>
       <button class="btn btn-sm btn-primary">Применить</button>
@@ -153,7 +162,7 @@
     </div>
 
     {% if page_obj.paginator.num_pages > 1 %}
-    {% with qs="q="|add:query|add:"&brand="|add:selected_brand|add:"&category="|add:selected_category|add:"&subcategory="|add:selected_subcategory|add:"&volume="|add:selected_volume %}
+    {% with qs="q="|add:query|add:"&brand="|add:selected_brand|add:"&category="|add:selected_category|add:"&subcategory="|add:selected_subcategory|add:"&volume="|add:selected_volume|add:"&viscosity="|add:selected_viscosity %}
     <nav class="mt-4">
       <ul class="pagination justify-content-center">
         {% if page_obj.has_previous %}

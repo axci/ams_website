@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+{% block title %}Контакты — Автомеханика-Сибирь{% endblock %}
+
+{% block content %}
+<h1 class="h4 mb-3">Контакты</h1>
+<p class="text-body-secondary mb-4">Наши склады. Нажмите на склад, чтобы посмотреть менеджеров.</p>
+
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+  {% for w in warehouses %}
+  <div class="col">
+    <div class="card h-100 shadow-sm position-relative">
+      {% if w.picture %}
+      <img src="{{ w.picture.url }}" class="card-img-top warehouse-img" alt="{{ w.name }}">
+      {% else %}
+      <div class="warehouse-img-placeholder"><i class="bi bi-building"></i></div>
+      {% endif %}
+      <div class="card-body d-flex flex-column">
+        <h2 class="h5">{{ w.name }}</h2>
+        {% if w.address %}
+        <p class="text-body-secondary mb-2"><i class="bi bi-geo-alt"></i> {{ w.address }}</p>
+        {% endif %}
+        {% if w.opening_hours %}
+        <p class="small text-body-secondary mb-3" style="white-space: pre-line;"><i class="bi bi-clock"></i> {{ w.opening_hours }}</p>
+        {% endif %}
+        <a href="{% url 'warehouses:detail' w.pk %}" class="btn btn-outline-primary mt-auto stretched-link">
+          Менеджеры
+          {% with n=w.managers.all|length %}{% if n %}<span class="badge text-bg-secondary ms-1">{{ n }}</span>{% endif %}{% endwith %}
+        </a>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="col-12"><div class="alert alert-info">Склады не найдены.</div></div>
+  {% endfor %}
+</div>
+{% endblock %}

@@ -11,6 +11,12 @@ class Brand(models.Model):
     order = models.PositiveIntegerField(
         default=0, help_text="Display order on the site (lower numbers first)."
     )
+    categories = models.ManyToManyField(
+        "Category",
+        related_name="brands",
+        blank=True,
+        help_text="Категории, доступные для этого бренда (пусто = все категории).",
+    )
 
     class Meta:
         ordering = ["order", "name"]
@@ -124,6 +130,12 @@ class Product(models.Model):
         blank=True,
         null=True,
         help_text="Volume in litres.",
+    )
+    viscosity = models.CharField(
+        max_length=20,
+        blank=True,
+        db_index=True,
+        help_text="Например: 5W-30, 0W-20 (только для подходящих товаров).",
     )
     picture = models.ImageField(upload_to="products/", blank=True, null=True)
     description = models.TextField(blank=True)

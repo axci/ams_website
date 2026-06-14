@@ -35,6 +35,7 @@ class BrandAdmin(admin.ModelAdmin):
     list_editable = ("order",)
     prepopulated_fields = {"slug": ("name",)}
     search_fields = ("name",)
+    filter_horizontal = ("categories",)
 
 
 @admin.register(Category)
@@ -76,11 +77,16 @@ class ProductAdmin(admin.ModelAdmin):
         "model_product",
         "weight",
         "volume",
+        "viscosity",
         "price",
         "is_active",
     )
-    list_filter = ("brand", "category", "subcategory", "model_product", "is_active")
-    search_fields = ("sku", "article", "manufacturer_number", "name", "description")
+    list_filter = (
+        "brand", "category", "subcategory", "model_product", "viscosity", "is_active"
+    )
+    search_fields = (
+        "sku", "article", "manufacturer_number", "viscosity", "name", "description"
+    )
     autocomplete_fields = ("brand", "category", "subcategory", "model_product")
     inlines = [ProductStockInline]
 
