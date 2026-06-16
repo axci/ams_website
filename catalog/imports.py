@@ -11,6 +11,7 @@ cells as the stock quantity for that warehouse. Rows are matched/created by
 case-insensitively (Unicode-aware) and created on demand.
 """
 
+import re
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 
@@ -35,6 +36,7 @@ FIELD_ALIASES = {
     "weight": "weight",
     "volume": "volume",
     "viscosity": "viscosity",
+    "вязкость": "viscosity",
     "manufacturer number": "manufacturer_number",
     "manufacturer_number": "manufacturer_number",
     "price": "price",
@@ -81,6 +83,16 @@ def _int(value):
         return max(0, int(d))
     except (ValueError, TypeError):
         return None
+
+
+_VISCOSITY_RE = re.compile(r"(\d{1,2})W[\s\-/]?(\d{1,3})", re.IGNORECASE)
+
+
+def _viscosity(value):
+    """Normalise a viscosity cell to a symbol-free grade, e.g. 5W-30 -> 5W30."""
+    text = _text(value, 20)
+    match = _VISCOSITY_RE.search(text)
+    return f"{match.group(1)}W{match.group(2)}" if match else text
 
 
 class _Resolver:
@@ -240,7 +252,7 @@ def import_products(file_obj, default_brand=None):
             if "volume" in values:
                 defaults["volume"] = _decimal(values.get("volume"))
             if "viscosity" in values:
-                defaults["viscosity"] = _text(values.get("viscosity"), 20)
+                defaults["viscosity"] = _viscosity(values.get("viscosity"))
 
             # A new product needs a name even if the file omits the column.
             if "name" not in defaults and not Product.objects.filter(sku=sku).exists():
