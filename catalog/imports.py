@@ -34,7 +34,13 @@ FIELD_ALIASES = {
     "model_product": "model_product",
     "model": "model_product",
     "weight": "weight",
+    "weight unit": "weight_unit",
+    "weight_unit": "weight_unit",
+    "единица веса": "weight_unit",
     "volume": "volume",
+    "volume unit": "volume_unit",
+    "volume_unit": "volume_unit",
+    "единица объёма": "volume_unit",
     "viscosity": "viscosity",
     "вязкость": "viscosity",
     "manufacturer number": "manufacturer_number",
@@ -43,7 +49,7 @@ FIELD_ALIASES = {
     "brand": "brand",
 }
 
-TEXT_LIMITS = {"sku": 64, "article": 64, "manufacturer_number": 64, "name": 200, "viscosity": 20}
+TEXT_LIMITS = {"sku": 64, "article": 64, "manufacturer_number": 64, "name": 200, "viscosity": 20, "weight_unit": 16, "volume_unit": 16}
 
 
 @dataclass
@@ -249,8 +255,16 @@ def import_products(file_obj, default_brand=None):
                 defaults["price"] = d if d is not None else Decimal("0")
             if "weight" in values:
                 defaults["weight"] = _decimal(values.get("weight"))
+            if "weight_unit" in values:
+                wu = _text(values.get("weight_unit"), 16)
+                if wu:
+                    defaults["weight_unit"] = wu
             if "volume" in values:
                 defaults["volume"] = _decimal(values.get("volume"))
+            if "volume_unit" in values:
+                vu = _text(values.get("volume_unit"), 16)
+                if vu:
+                    defaults["volume_unit"] = vu
             if "viscosity" in values:
                 defaults["viscosity"] = _viscosity(values.get("viscosity"))
 

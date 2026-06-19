@@ -38,8 +38,8 @@
     {% if product.model_product or product.weight or product.volume %}
     <ul class="list-unstyled small text-body-secondary mb-3">
       {% if product.model_product %}<li><strong>Модель:</strong> {{ product.model_product.name }}</li>{% endif %}
-      {% if product.weight %}<li><strong>Вес:</strong> {{ product.weight|floatformat:"-3" }} кг</li>{% endif %}
-      {% if product.volume %}<li><strong>Объём:</strong> {{ product.volume|floatformat:"-3" }} л</li>{% endif %}
+      {% if product.weight %}<li><strong>Вес:</strong> {{ product.weight|floatformat:"-3" }} {{ product.weight_unit }}</li>{% endif %}
+      {% if product.volume %}<li><strong>Объём:</strong> {{ product.volume|floatformat:"-3" }} {{ product.volume_unit }}</li>{% endif %}
     </ul>
     {% endif %}
 
@@ -52,11 +52,11 @@
         {% for v in variants %}
           {% if v.pk == product.pk %}
           <span class="btn btn-sm btn-primary disabled" aria-current="true">
-            {% if v.volume %}{{ v.volume|floatformat:"-3" }} л{% else %}{{ v.name }}{% endif %} · {{ v.price|rubles }}
+            {% if v.volume %}{{ v.volume|floatformat:"-3" }} {{ v.volume_unit }}{% else %}{{ v.name }}{% endif %} · {{ v.price|rubles }}
           </span>
           {% else %}
           <a class="btn btn-sm btn-outline-primary" href="{{ v.get_absolute_url }}">
-            {% if v.volume %}{{ v.volume|floatformat:"-3" }} л{% else %}{{ v.name }}{% endif %} · {{ v.price|rubles }}
+            {% if v.volume %}{{ v.volume|floatformat:"-3" }} {{ v.volume_unit }}{% else %}{{ v.name }}{% endif %} · {{ v.price|rubles }}
           </a>
           {% endif %}
         {% endfor %}

@@ -124,12 +124,18 @@ class Product(models.Model):
         null=True,
         help_text="Weight in kg.",
     )
+    weight_unit = models.CharField(
+        "единица измерения веса", max_length=16, default="кг", blank=True
+    )
     volume = models.DecimalField(
         max_digits=10,
         decimal_places=3,
         blank=True,
         null=True,
         help_text="Volume in litres.",
+    )
+    volume_unit = models.CharField(
+        "единица измерения объёма", max_length=16, default="л", blank=True
     )
     viscosity = models.CharField(
         max_length=20,
