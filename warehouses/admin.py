@@ -1,22 +1,34 @@
 from django.contrib import admin
+from django.urls import reverse
 from django.utils.html import format_html
 
 from .models import Manager, Stock, Warehouse
 
 
-class StockInline(admin.TabularInline):
-    model = Stock
-    extra = 1
-    autocomplete_fields = ("product",)
-
-
 @admin.register(Warehouse)
 class WarehouseAdmin(admin.ModelAdmin):
-    list_display = ("name", "code", "email", "is_active")
+    list_display = ("name", "code", "email", "stock_count", "is_active")
     list_filter = ("is_active",)
     search_fields = ("name", "code")
     filter_horizontal = ("managers",)
-    inlines = [StockInline]
+    readonly_fields = ("stock_link",)
+
+    @admin.display(description="Позиций")
+    def stock_count(self, obj):
+        return obj.stocks.count()
+
+    @admin.display(description="Остатки")
+    def stock_link(self, obj):
+        # Editing stock inline here doesn't scale: a warehouse can hold
+        # thousands of rows (Новосибирск has ~1500), which froze this page.
+        # Manage stock on the paginated Stock changelist instead.
+        if obj.pk is None:
+            return "Сохраните склад, затем добавляйте остатки на странице «Запасы»."
+        url = reverse("admin:warehouses_stock_changelist") + f"?warehouse__id__exact={obj.pk}"
+        return format_html(
+            '<a class="button" href="{}">Открыть остатки склада ({} поз.)</a>',
+            url, obj.stocks.count(),
+        )
 
 
 @admin.register(Stock)
