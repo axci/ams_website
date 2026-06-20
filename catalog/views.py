@@ -1,5 +1,5 @@
 import re
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal
 
 from django.core.paginator import Paginator
 from django.db.models import IntegerField, OuterRef, Q, Subquery, Value
@@ -74,24 +74,24 @@ def product_list(request):
         products = products.filter(subcategory_id=subcategory_id)
 
     # Volumes and viscosities available for the current brand/category/subcategory.
-    volumes = list(
-        products.filter(volume__isnull=False)
-        .order_by("volume")
-        .values_list("volume", flat=True)
+    # Distinct (volume, unit) pairs so the filter shows the real unit per size
+    # (e.g. "450 мл" and "5 л"), now that units are per-product.
+    volumes = [
+        {"token": f"{v}|{u}", "value": v, "unit": u}
+        for v, u in products.filter(volume__isnull=False)
+        .values_list("volume", "volume_unit")
         .distinct()
-    )
+        .order_by("volume_unit", "volume")
+    ]
     viscosities = sorted(
         set(products.exclude(viscosity="").values_list("viscosity", flat=True)),
         key=_viscosity_key,
     )
-    # Apply the volume filter only if that volume is actually available.
+    # Apply the volume filter only if that (volume, unit) option is available.
     if volume_value:
-        try:
-            volume_decimal = Decimal(volume_value)
-        except (InvalidOperation, ValueError):
-            volume_decimal = None
-        if volume_decimal is not None and volume_decimal in volumes:
-            products = products.filter(volume=volume_decimal)
+        if volume_value in {opt["token"] for opt in volumes}:
+            raw_value, _, raw_unit = volume_value.partition("|")
+            products = products.filter(volume=Decimal(raw_value), volume_unit=raw_unit)
         else:
             volume_value = ""
     # Apply the viscosity filter only if that viscosity is actually available.

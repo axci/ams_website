@@ -97,8 +97,8 @@
       <label class="form-label small fw-bold mb-1">Объём</label>
       <select name="volume" class="form-select form-select-sm mb-3" onchange="this.form.submit()">
         <option value="">Все объёмы</option>
-        {% for vol in volumes %}
-        <option value="{{ vol|stringformat:'s' }}" {% if selected_volume == vol|stringformat:'s' %}selected{% endif %}>{{ vol|floatformat:"-3" }} л</option>
+        {% for opt in volumes %}
+        <option value="{{ opt.token }}" {% if selected_volume == opt.token %}selected{% endif %}>{{ opt.value|floatformat:"-3" }} {{ opt.unit }}</option>
         {% endfor %}
       </select>
       <label class="form-label small fw-bold mb-1">Вязкость</label>
