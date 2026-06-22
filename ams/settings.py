@@ -270,3 +270,11 @@ EMAIL_BACKEND = os.environ.get(
     if EMAIL_HOST
     else "django.core.mail.backends.console.EmailBackend",
 )
+
+# HTTP email APIs (django-anymail), used where outbound SMTP is blocked
+# (e.g. Render free tier blocks ports 25/465/587). To enable, set
+# EMAIL_BACKEND="anymail.backends.brevo.EmailBackend" (or resend) and the key.
+ANYMAIL = {
+    "BREVO_API_KEY": os.environ.get("BREVO_API_KEY", ""),
+    "RESEND_API_KEY": os.environ.get("RESEND_API_KEY", ""),
+}

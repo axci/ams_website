@@ -16,11 +16,17 @@ served by **WhiteNoise**, and media by Django (back it with a **Volume**).
    | `DATABASE_URL` | `${{Postgres.DATABASE_URL}}` (reference the Postgres service) |
    | `SECRET_KEY` | a long random value (`python -c "import secrets; print(secrets.token_urlsafe(50))"`) |
    | `DEBUG` | `False` |
-   | `EMAIL_HOST` | `smtp.yandex.ru` |
+   | `SEED_DEMO` | `true` (loads the demo catalog, images, and `admin`/`buyer` logins on deploy) |
+   | `EMAIL_HOST` | `smtp.gmail.com` |
    | `EMAIL_PORT` | `465` |
    | `EMAIL_USE_SSL` | `true` |
    | `EMAIL_USE_TLS` | `false` |
-   | `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` / `DEFAULT_FROM_EMAIL` | your Yandex mailbox + app password |
+   | `EMAIL_HOST_USER` / `EMAIL_HOST_PASSWORD` / `DEFAULT_FROM_EMAIL` | your Gmail + 16-char app password |
+
+   Unlike Render's free tier, **Railway does not block outbound SMTP**, so Gmail/Yandex
+   SMTP work directly here — no HTTP email API needed. After seeding, log in with
+   `admin` / `demo12345` and `buyer` / `demo12345` (override via `DEMO_ADMIN_PASSWORD` /
+   `DEMO_BUYER_PASSWORD`).
 
    `ALLOWED_HOSTS` and `CSRF_TRUSTED_ORIGINS` are filled automatically from
    Railway's domain. For HTTPS hardening also add:
