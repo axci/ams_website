@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% block title %}Новости — Автомеханика-Сибирь{% endblock %}
+
+{% block content %}
+<h1 class="h4 mb-4">Новости</h1>
+
+{% if news_items %}
+<div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+  {% for item in news_items %}
+  <div class="col">
+    <div class="card h-100 shadow-sm">
+      {% if item.picture %}
+      <a href="{{ item.get_absolute_url }}">
+        <img src="{{ item.picture.url }}" class="card-img-top" style="height:200px;object-fit:cover;" alt="{{ item.title }}">
+      </a>
+      {% endif %}
+      <div class="card-body d-flex flex-column">
+        <div class="small text-muted mb-1"><i class="bi bi-calendar3"></i> {{ item.date|date:"d.m.Y" }}</div>
+        <h2 class="h6"><a href="{{ item.get_absolute_url }}" class="text-decoration-none text-dark">{{ item.title }}</a></h2>
+        <p class="small text-body-secondary mb-3">{{ item.text|truncatewords:24 }}</p>
+        <a href="{{ item.get_absolute_url }}" class="btn btn-sm btn-outline-primary mt-auto align-self-start">Читать далее</a>
+      </div>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">Новостей пока нет.</div>
+{% endif %}
+{% endblock %}

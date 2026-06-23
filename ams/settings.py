@@ -94,6 +94,7 @@ INSTALLED_APPS = [
     "catalog",
     "warehouses",
     "orders",
+    "news",
 ]
 
 # Custom user model (buyers). Set before the first migration.
