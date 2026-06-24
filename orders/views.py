@@ -1,6 +1,9 @@
+from urllib.parse import quote
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -10,6 +13,7 @@ from warehouses.selection import get_current_warehouse
 
 from .emails import send_order_emails
 from .forms import CheckoutForm
+from .invoices import build_invoice_xlsx
 from .models import CartItem, Order, OrderItem
 from .utils import get_or_create_cart
 
@@ -182,3 +186,22 @@ def order_detail(request, pk):
         user=request.user,
     )
     return render(request, "orders/order_detail.html", {"order": order})
+
+
+@login_required
+def order_invoice(request, pk):
+    qs = Order.objects.all() if request.user.is_staff else request.user.orders.all()
+    order = get_object_or_404(
+        qs.select_related("user", "warehouse").prefetch_related("items__product"),
+        pk=pk,
+    )
+    content = build_invoice_xlsx(order)
+    response = HttpResponse(
+        content,
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    filename = f"Счёт №{order.pk}.xlsx"
+    response["Content-Disposition"] = (
+        f"attachment; filename=invoice_{order.pk}.xlsx; filename*=UTF-8''{quote(filename)}"
+    )
+    return response

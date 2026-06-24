@@ -24,7 +24,10 @@
           <td>{{ order.warehouse.name }}</td>
           <td><span class="badge text-bg-secondary">{{ order.get_status_display }}</span></td>
           <td class="text-end">{{ order.total|rubles }}</td>
-          <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="{% url 'orders:order_detail' order.pk %}">Открыть</a></td>
+          <td class="text-end">
+            <a class="btn btn-sm btn-outline-success" href="{% url 'orders:order_invoice' order.pk %}" title="Скачать счёт"><i class="bi bi-download"></i></a>
+            <a class="btn btn-sm btn-outline-primary" href="{% url 'orders:order_detail' order.pk %}">Открыть</a>
+          </td>
         </tr>
         {% endfor %}
       </tbody>

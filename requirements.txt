@@ -7,3 +7,4 @@ gunicorn>=21.2
 whitenoise>=6.6
 dj-database-url>=2.1
 django-anymail>=10
+num2words>=0.5

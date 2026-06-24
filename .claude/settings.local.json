@@ -78,7 +78,9 @@
       "WebFetch(domain:api.github.com)",
       "WebFetch(domain:ams-demo-hck2.onrender.com)",
       "Bash(sh -n deploy/entrypoint.sh)",
-      "Bash(sed -n '/Applying migrations/,/Collecting static/p' deploy/entrypoint.sh)"
+      "Bash(sed -n '/Applying migrations/,/Collecting static/p' deploy/entrypoint.sh)",
+      "Bash(cd /Users/maxim/Downloads && ls -1b *.xlsx 2>/dev/null | cat -v | head -20)",
+      "Bash(./venv/bin/pip install *)"
     ]
   }
 }
