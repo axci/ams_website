@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+{% block title %}О компании — Автомеханика-Сибирь{% endblock %}
+
+{% block content %}
+<h1 class="h4 mb-4">О компании</h1>
+
+{% if blocks %}
+{% for block in blocks %}
+<div class="row align-items-center g-4 mb-4">
+  {% if block.picture %}
+  <div class="col-md-5 {% cycle '' 'order-md-2' %}">
+    <img src="{{ block.picture.url }}" class="img-fluid rounded shadow-sm" alt="">
+  </div>
+  <div class="col-md-7">
+    {% if block.title %}<h2 class="h5">{{ block.title }}</h2>{% endif %}
+    <div style="white-space: pre-line;">{{ block.text }}</div>
+    {% if block.file %}<p class="mt-2"><a href="{{ block.file.url }}" class="btn btn-sm btn-outline-secondary" download><i class="bi bi-download"></i> Скачать {{ block.filename }}</a></p>{% endif %}
+  </div>
+  {% else %}
+  <div class="col-12">
+    {% if block.title %}<h2 class="h5">{{ block.title }}</h2>{% endif %}
+    <div style="white-space: pre-line;">{{ block.text }}</div>
+    {% if block.file %}<p class="mt-2"><a href="{{ block.file.url }}" class="btn btn-sm btn-outline-secondary" download><i class="bi bi-download"></i> Скачать {{ block.filename }}</a></p>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endfor %}
+{% else %}
+<div class="alert alert-info">Информация о компании скоро появится.</div>
+{% endif %}
+{% endblock %}
