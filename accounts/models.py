@@ -15,6 +15,10 @@ class User(AbstractUser):
     )
     inn = models.CharField("ИНН", max_length=12, blank=True, default="")
     address = models.CharField("адрес", max_length=255, blank=True, default="")
+    debt = models.DecimalField(
+        "задолженность", max_digits=12, decimal_places=2, default=0,
+        help_text="Заполняется выгрузкой/синхронизацией с ERP.",
+    )
     company_name = models.CharField(max_length=200, blank=True)
     phone = models.CharField(max_length=40, blank=True)
     warehouses = models.ManyToManyField(

@@ -12,6 +12,7 @@ class UserAdmin(BaseUserAdmin):
         "email",
         "company_name",
         "type",
+        "debt",
         "is_staff",
         "is_active",
     )
@@ -34,6 +35,7 @@ class UserAdmin(BaseUserAdmin):
                     "type",
                     "inn",
                     "address",
+                    "debt",
                     "company_name",
                     "phone",
                     "warehouses",
