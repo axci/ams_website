@@ -24,6 +24,7 @@ class UserAdmin(BaseUserAdmin):
         "last_name",
         "code",
         "inn",
+        "kpp",
     )
     filter_horizontal = BaseUserAdmin.filter_horizontal + ("warehouses",)
     autocomplete_fields = ("manager",)
@@ -35,6 +36,7 @@ class UserAdmin(BaseUserAdmin):
                     "code",
                     "type",
                     "inn",
+                    "kpp",
                     "address",
                     "debt",
                     "company_name",

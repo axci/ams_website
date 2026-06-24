@@ -14,6 +14,7 @@ class User(AbstractUser):
         "тип", max_length=16, choices=Type.choices, default=Type.LEGAL, blank=True
     )
     inn = models.CharField("ИНН", max_length=12, blank=True, default="")
+    kpp = models.CharField("КПП", max_length=9, blank=True, default="")
     address = models.CharField("адрес", max_length=255, blank=True, default="")
     debt = models.DecimalField(
         "задолженность", max_digits=12, decimal_places=2, default=0,
