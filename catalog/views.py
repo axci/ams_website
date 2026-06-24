@@ -33,6 +33,7 @@ def product_list(request):
     subcategory_id = request.GET.get("subcategory", "")
     volume_value = request.GET.get("volume", "")
     viscosity_value = request.GET.get("viscosity", "")
+    in_stock = request.GET.get("in_stock") == "1"
 
     if query:
         products = products.filter(
@@ -114,12 +115,16 @@ def product_list(request):
     else:
         products = products.annotate(stock_qty=Value(0, output_field=IntegerField()))
 
+    # "Show in stock only" — only meaningful when the buyer can see stock.
+    if in_stock and show_stock:
+        products = products.filter(stock_qty__gt=0)
+
     paginator = Paginator(products, 12)
     page_obj = paginator.get_page(request.GET.get("page"))
 
     # Show the rotating banner only on the clean landing page (no search/filter).
     is_landing = not any(
-        [query, brand_slug, category_id, subcategory_id, volume_value, viscosity_value, request.GET.get("page")]
+        [query, brand_slug, category_id, subcategory_id, volume_value, viscosity_value, in_stock, request.GET.get("page")]
     )
     banner_slides = (
         BannerSlide.objects.filter(is_active=True)[:7] if is_landing else []
@@ -140,6 +145,7 @@ def product_list(request):
         "selected_subcategory": subcategory_id,
         "selected_volume": volume_value,
         "selected_viscosity": viscosity_value,
+        "selected_in_stock": "1" if in_stock else "",
     }
     return render(request, "catalog/product_list.html", context)
 
