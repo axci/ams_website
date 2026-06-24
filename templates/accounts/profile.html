@@ -13,7 +13,11 @@
         <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Эл. почта</span><span>{{ user.email|default:"—" }}</span></li>
         <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Компания</span><span>{{ user.company_name|default:"—" }}</span></li>
         <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Телефон</span><span>{{ user.phone|default:"—" }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Задолженность</span><span class="fw-bold {% if user.debt > 0 %}text-danger{% endif %}">{{ user.debt|rubles }}</span></li>
       </ul>
+      <div class="card-footer">
+        <a href="{% url 'orders:order_list' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-receipt"></i> Мои заказы</a>
+      </div>
     </div>
   </div>
   <div class="col-md-6">
