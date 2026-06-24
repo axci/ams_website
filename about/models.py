@@ -34,3 +34,55 @@ class AboutBlock(models.Model):
     @property
     def filename(self):
         return self.file.name.rsplit("/", 1)[-1] if self.file else ""
+
+
+class CompanyDetails(models.Model):
+    """Company requisites (реквизиты) — a single, admin-editable record."""
+
+    name = models.CharField(
+        "наименование",
+        max_length=255,
+        default="Общество с ограниченной ответственностью «Автомеханика-Сибирь»",
+    )
+    inn = models.CharField("ИНН", max_length=12, blank=True, default="4205361870")
+    kpp = models.CharField("КПП", max_length=9, blank=True, default="420501001")
+    bank = models.CharField(
+        "банк",
+        max_length=255,
+        blank=True,
+        default='ФИЛИАЛ ПАО "БАНК УРАЛСИБ" В Г. НОВОСИБИРСК',
+    )
+    bank_bic = models.CharField(
+        "БИК банка", max_length=9, blank=True, default="045004725"
+    )
+    corr_account = models.CharField(
+        "корр. счёт", max_length=20, blank=True, default="30101810400000000725"
+    )
+    settlement_account = models.CharField(
+        "расчётный счёт", max_length=20, blank=True, default="40702810232210003010"
+    )
+    address = models.CharField(
+        "адрес",
+        max_length=255,
+        blank=True,
+        default="650903, Россия, Кемеровская область, г. Кемерово, ул. Тухачевского 52В",
+    )
+    director = models.CharField(
+        "директор", max_length=255, blank=True, default="Моисеенко Константин Владимирович"
+    )
+
+    class Meta:
+        verbose_name = "реквизиты компании"
+        verbose_name_plural = "реквизиты компании"
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        self.pk = 1  # enforce a single row
+        super().save(*args, **kwargs)
+
+    @classmethod
+    def load(cls):
+        obj, _ = cls.objects.get_or_create(pk=1)
+        return obj

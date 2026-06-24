@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.utils.html import format_html
 
-from .models import AboutBlock
+from .models import AboutBlock, CompanyDetails
 
 
 @admin.register(AboutBlock)
@@ -30,3 +30,15 @@ class AboutBlockAdmin(admin.ModelAdmin):
     @admin.display(description="Файл", boolean=True)
     def has_file(self, obj):
         return bool(obj.file)
+
+
+@admin.register(CompanyDetails)
+class CompanyDetailsAdmin(admin.ModelAdmin):
+    list_display = ("name", "inn", "kpp")
+
+    def has_add_permission(self, request):
+        # Singleton: only one record allowed.
+        return not CompanyDetails.objects.exists()
+
+    def has_delete_permission(self, request, obj=None):
+        return False
