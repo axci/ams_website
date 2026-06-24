@@ -8,16 +8,36 @@ from .models import User
 class UserAdmin(BaseUserAdmin):
     list_display = (
         "username",
+        "code",
         "email",
         "company_name",
+        "type",
         "is_staff",
         "is_active",
     )
-    search_fields = ("username", "email", "company_name", "first_name", "last_name")
+    search_fields = (
+        "username",
+        "email",
+        "company_name",
+        "first_name",
+        "last_name",
+        "code",
+        "inn",
+    )
     filter_horizontal = BaseUserAdmin.filter_horizontal + ("warehouses",)
     fieldsets = BaseUserAdmin.fieldsets + (
         (
             "Buyer info",
-            {"fields": ("company_name", "phone", "warehouses")},
+            {
+                "fields": (
+                    "code",
+                    "type",
+                    "inn",
+                    "address",
+                    "company_name",
+                    "phone",
+                    "warehouses",
+                )
+            },
         ),
     )
