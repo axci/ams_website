@@ -48,6 +48,10 @@ FIELD_ALIASES = {
     "manufacturer number": "manufacturer_number",
     "manufacturer_number": "manufacturer_number",
     "price": "price",
+    "vat": "vat_rate",
+    "vat_rate": "vat_rate",
+    "ндс": "vat_rate",
+    "ставка ндс": "vat_rate",
     "brand": "brand",
 }
 
@@ -255,6 +259,10 @@ def import_products(file_obj, default_brand=None):
             if "price" in values:
                 d = _decimal(values.get("price"))
                 defaults["price"] = d if d is not None else Decimal("0")
+            if "vat_rate" in values:
+                d = _decimal(values.get("vat_rate"))
+                if d is not None:
+                    defaults["vat_rate"] = d
             if "weight" in values:
                 defaults["weight"] = _decimal(values.get("weight"))
             if "weight_unit" in values:

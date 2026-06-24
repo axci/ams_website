@@ -146,6 +146,9 @@ class Product(models.Model):
     picture = models.ImageField(upload_to="products/", blank=True, null=True)
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    vat_rate = models.DecimalField(
+        "ставка НДС, %", max_digits=5, decimal_places=2, default=22
+    )
     is_active = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

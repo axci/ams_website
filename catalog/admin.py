@@ -79,10 +79,11 @@ class ProductAdmin(admin.ModelAdmin):
         "volume",
         "viscosity",
         "price",
+        "vat_rate",
         "is_active",
     )
     list_filter = (
-        "brand", "category", "subcategory", "model_product", "viscosity", "is_active"
+        "brand", "category", "subcategory", "model_product", "viscosity", "vat_rate", "is_active"
     )
     search_fields = (
         "sku", "article", "manufacturer_number", "viscosity", "name", "description"
