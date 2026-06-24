@@ -31,5 +31,28 @@
       </ul>
     </div>
   </div>
+
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header">Мой менеджер</div>
+      {% if user.manager %}
+      <div class="card-body d-flex align-items-center gap-3">
+        {% if user.manager.photo %}
+        <img src="{{ user.manager.photo.url }}" class="manager-photo" alt="{{ user.manager }}">
+        {% else %}
+        <div class="manager-photo-placeholder"><i class="bi bi-person"></i></div>
+        {% endif %}
+        <div class="min-w-0">
+          <div class="fw-bold">{{ user.manager.surname }} {{ user.manager.name }}</div>
+          {% if user.manager.position %}<div class="small text-muted">{{ user.manager.position }}</div>{% endif %}
+          {% if user.manager.phone %}<div class="small"><i class="bi bi-telephone text-primary"></i> <a href="tel:{{ user.manager.phone }}" class="text-decoration-none">{{ user.manager.phone }}</a></div>{% endif %}
+          {% if user.manager.email %}<div class="small text-truncate"><i class="bi bi-envelope text-primary"></i> <a href="mailto:{{ user.manager.email }}" class="text-decoration-none">{{ user.manager.email }}</a></div>{% endif %}
+        </div>
+      </div>
+      {% else %}
+      <div class="card-body text-muted">Персональный менеджер ещё не назначен.</div>
+      {% endif %}
+    </div>
+  </div>
 </div>
 {% endblock %}

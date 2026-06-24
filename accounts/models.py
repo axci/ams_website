@@ -21,6 +21,15 @@ class User(AbstractUser):
     )
     company_name = models.CharField(max_length=200, blank=True)
     phone = models.CharField(max_length=40, blank=True)
+    manager = models.ForeignKey(
+        "warehouses.Manager",
+        on_delete=models.SET_NULL,
+        related_name="clients",
+        blank=True,
+        null=True,
+        verbose_name="менеджер",
+        help_text="Персональный менеджер покупателя.",
+    )
     warehouses = models.ManyToManyField(
         "warehouses.Warehouse",
         related_name="buyers",

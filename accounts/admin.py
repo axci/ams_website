@@ -26,6 +26,7 @@ class UserAdmin(BaseUserAdmin):
         "inn",
     )
     filter_horizontal = BaseUserAdmin.filter_horizontal + ("warehouses",)
+    autocomplete_fields = ("manager",)
     fieldsets = BaseUserAdmin.fieldsets + (
         (
             "Buyer info",
@@ -38,6 +39,7 @@ class UserAdmin(BaseUserAdmin):
                     "debt",
                     "company_name",
                     "phone",
+                    "manager",
                     "warehouses",
                 )
             },
