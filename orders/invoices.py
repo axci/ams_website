@@ -6,6 +6,8 @@ from io import BytesIO
 from django.utils import timezone
 from openpyxl import Workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.worksheet.page import PageMargins
+from openpyxl.worksheet.properties import PageSetupProperties
 
 from about.models import CompanyDetails
 
@@ -58,6 +60,14 @@ def build_invoice_xlsx(order):
     for col, w in {"A": 5, "B": 42, "C": 16, "D": 9, "E": 7, "F": 14, "G": 16}.items():
         ws.column_dimensions[col].width = w
 
+    # A4 portrait, scaled to fit the page width — convenient to print.
+    ws.page_setup.orientation = "portrait"
+    ws.page_setup.paperSize = 9  # A4
+    ws.page_setup.fitToWidth = 1
+    ws.page_setup.fitToHeight = 0
+    ws.sheet_properties.pageSetUpPr = PageSetupProperties(fitToPage=True)
+    ws.page_margins = PageMargins(left=0.4, right=0.4, top=0.4, bottom=0.4)
+
     base = Font(name="Arial", size=9)
     bold = Font(name="Arial", size=9, bold=True)
     title = Font(name="Arial", size=12, bold=True)
@@ -88,7 +98,7 @@ def build_invoice_xlsx(order):
 
     # Title
     ws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=7)
-    t = ws.cell(r, 1, f"Счёт на оплату № {order.pk} от {_date_str(order.created_at)}")
+    t = ws.cell(r, 1, f"Счёт на оплату № {order.invoice_number} от {_date_str(order.created_at)}")
     t.font, t.alignment = title, Alignment(horizontal="center")
     r += 2
 

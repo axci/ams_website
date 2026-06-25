@@ -200,8 +200,9 @@ def order_invoice(request, pk):
         content,
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
-    filename = f"Счёт №{order.pk}.xlsx"
+    filename = f"Счёт №{order.invoice_number}.xlsx"
     response["Content-Disposition"] = (
-        f"attachment; filename=invoice_{order.pk}.xlsx; filename*=UTF-8''{quote(filename)}"
+        f"attachment; filename=invoice_{order.invoice_number}.xlsx; "
+        f"filename*=UTF-8''{quote(filename)}"
     )
     return response

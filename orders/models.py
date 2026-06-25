@@ -74,6 +74,10 @@ class Order(models.Model):
     def __str__(self):
         return f"Order #{self.pk} ({self.get_status_display()})"
 
+    @property
+    def invoice_number(self):
+        return f"W{self.pk}"
+
     def recalculate_total(self, save=True):
         self.total = sum((item.subtotal for item in self.items.all()), start=0)
         if save:
