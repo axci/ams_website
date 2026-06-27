@@ -1,14 +1,17 @@
-New order #{{ order.pk }} — {{ order.created_at|date:"Y-m-d H:i" }}
+Новый заказ №{{ order.pk }} от {{ order.created_at|date:"d.m.Y H:i" }}
 
-Warehouse: {{ order.warehouse.name }} ({{ order.warehouse.code }})
+Склад: {{ order.warehouse.name }} ({{ order.warehouse.code }})
 
-Buyer: {{ order.user.get_full_name|default:order.user.username }}{% if order.user.company_name %} ({{ order.user.company_name }}){% endif %}
-Buyer email: {{ order.user.email|default:"—" }}
-Buyer phone: {{ order.user.phone|default:"—" }}
-{% if order.shipping_address %}Delivery address: {{ order.shipping_address }}
-{% endif %}{% if order.comment %}Comment: {{ order.comment }}
+Покупатель: {{ order.user.get_full_name|default:order.user.username }}{% if order.user.company_name %} ({{ order.user.company_name }}){% endif %}
+ИНН: {{ order.user.inn|default:"—" }}{% if order.user.kpp %} · КПП: {{ order.user.kpp }}{% endif %}
+Эл. почта: {{ order.user.email|default:"—" }}
+Телефон: {{ order.user.phone|default:"—" }}
+{% if order.shipping_address %}Адрес доставки: {{ order.shipping_address }}
+{% endif %}{% if order.comment %}Комментарий: {{ order.comment }}
 {% endif %}
-Items:
-{% for item in order.items.all %}  - {{ item.name }} | art. {{ item.product.article }} | SKU {{ item.sku }} | {{ item.quantity }} x {{ item.price|rubles }} = {{ item.subtotal|rubles }}
+Состав заказа:
+{% for item in order.items.all %}  — {{ item.name }} | арт. {{ item.product.article }} | SKU {{ item.sku }} | {{ item.quantity }} × {{ item.price|rubles }} = {{ item.subtotal|rubles }}
 {% endfor %}
-Total: {{ order.total|rubles }}
+Итого: {{ order.total|rubles }}
+
+Состав заказа также во вложенном файле Excel.

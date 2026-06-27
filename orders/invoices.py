@@ -181,3 +181,51 @@ def build_invoice_xlsx(order):
     bio = BytesIO()
     wb.save(bio)
     return bio.getvalue()
+
+
+def build_order_items_xlsx(order):
+    """Order line-items table: SKU, name, article, brand, qty, price, sum."""
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Заказ"
+    for col, w in {"A": 16, "B": 50, "C": 18, "D": 18, "E": 9, "F": 14, "G": 16}.items():
+        ws.column_dimensions[col].width = w
+
+    bold = Font(name="Arial", size=10, bold=True)
+    base = Font(name="Arial", size=10)
+    thin = Side(style="thin")
+    border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    right = Alignment(horizontal="right")
+    center = Alignment(horizontal="center")
+
+    headers = ["SKU", "Наименование", "Артикул", "Бренд", "Кол-во", "Цена", "Сумма"]
+    for i, h in enumerate(headers, start=1):
+        cell = ws.cell(1, i, h)
+        cell.font, cell.border, cell.alignment = bold, border, center
+        cell.fill = PatternFill("solid", fgColor="EFEFEF")
+
+    row = 2
+    for item in order.items.select_related("product", "product__brand").all():
+        article = item.product.article if item.product else ""
+        brand = item.product.brand.name if item.product and item.product.brand_id else ""
+        values = [
+            item.sku, item.name, article, brand, item.quantity,
+            float(item.price), float(item.subtotal or 0),
+        ]
+        for i, v in enumerate(values, start=1):
+            cell = ws.cell(row, i, v)
+            cell.font, cell.border = base, border
+            if i in (6, 7):
+                cell.alignment, cell.number_format = right, "#,##0.00"
+            elif i == 5:
+                cell.alignment = center
+        row += 1
+
+    label = ws.cell(row, 6, "Итого:")
+    label.font, label.alignment = bold, right
+    total = ws.cell(row, 7, float(order.total))
+    total.font, total.alignment, total.number_format = bold, right, "#,##0.00"
+
+    bio = BytesIO()
+    wb.save(bio)
+    return bio.getvalue()

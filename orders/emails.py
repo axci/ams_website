@@ -4,6 +4,8 @@ from django.conf import settings
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 
+from .invoices import build_order_items_xlsx
+
 logger = logging.getLogger(__name__)
 
 
@@ -21,16 +23,22 @@ def send_order_notification(order):
         )
         return False
 
-    subject = f"New order #{order.pk} — {warehouse.name}"
+    subject = f"Новый заказ №{order.pk} — {warehouse.name}"
     body = render_to_string("orders/email/order_email.txt", {"order": order})
     reply_to = [order.user.email] if order.user.email else None
-    EmailMessage(
+    email = EmailMessage(
         subject=subject,
         body=body,
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=[warehouse.email],
         reply_to=reply_to,
-    ).send()
+    )
+    email.attach(
+        f"Заказ №{order.pk}.xlsx",
+        build_order_items_xlsx(order),
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    email.send()
     return True
 
 
