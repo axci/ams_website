@@ -235,6 +235,22 @@ STORAGES = {
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 
+# Object storage for media (S3-compatible, e.g. Cloudflare R2 / AWS S3).
+# Active only when a bucket is configured; otherwise media stays on the local
+# filesystem, so local development needs no bucket.
+AWS_STORAGE_BUCKET_NAME = os.environ.get("AWS_STORAGE_BUCKET_NAME", "")
+if AWS_STORAGE_BUCKET_NAME:
+    AWS_ACCESS_KEY_ID = os.environ.get("AWS_ACCESS_KEY_ID", "")
+    AWS_SECRET_ACCESS_KEY = os.environ.get("AWS_SECRET_ACCESS_KEY", "")
+    AWS_S3_ENDPOINT_URL = os.environ.get("AWS_S3_ENDPOINT_URL", "") or None
+    AWS_S3_REGION_NAME = os.environ.get("AWS_S3_REGION_NAME", "auto")
+    # Public host that serves the files (R2 public r2.dev URL or a custom domain).
+    AWS_S3_CUSTOM_DOMAIN = os.environ.get("AWS_S3_CUSTOM_DOMAIN", "") or None
+    AWS_QUERYSTRING_AUTH = False  # public, unsigned URLs
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = None  # R2 ignores ACLs
+    STORAGES["default"] = {"BACKEND": "storages.backends.s3.S3Storage"}
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
