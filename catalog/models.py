@@ -144,6 +144,9 @@ class Product(models.Model):
         help_text="Например: 5W-30, 0W-20 (только для подходящих товаров).",
     )
     picture = models.ImageField(upload_to="products/", blank=True, null=True)
+    picture_thumb = models.ImageField(
+        upload_to="products/thumbs/", blank=True, null=True, editable=False
+    )
     description = models.TextField(blank=True)
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     vat_rate = models.DecimalField(
@@ -173,7 +176,46 @@ class Product(models.Model):
     def save(self, *args, **kwargs):
         if not self.slug:
             self.slug = slugify(self.name, allow_unicode=True)[:220]
+        if self.picture and (not self.picture_thumb or self._picture_changed()):
+            self.generate_thumbnail()
         super().save(*args, **kwargs)
+
+    def _picture_changed(self):
+        if not self.pk:
+            return True
+        old = (
+            type(self).objects.filter(pk=self.pk)
+            .values_list("picture", flat=True)
+            .first()
+        )
+        return old != self.picture.name
+
+    def generate_thumbnail(self):
+        """Build a small JPEG thumbnail of `picture` into `picture_thumb`."""
+        from io import BytesIO
+
+        from django.core.files.base import ContentFile
+        from PIL import Image
+
+        try:
+            self.picture.open("rb")
+            img = Image.open(self.picture)
+            if img.mode in ("RGBA", "LA", "P"):
+                img = img.convert("RGBA")
+                background = Image.new("RGB", img.size, (255, 255, 255))
+                background.paste(img, mask=img.split()[-1])
+                img = background
+            else:
+                img = img.convert("RGB")
+            img.thumbnail((400, 400))
+            buf = BytesIO()
+            img.save(buf, format="JPEG", quality=82, optimize=True)
+        except Exception:
+            return
+        finally:
+            self.picture.close()
+        stem = self.picture.name.rsplit("/", 1)[-1].rsplit(".", 1)[0]
+        self.picture_thumb.save(f"{stem}.jpg", ContentFile(buf.getvalue()), save=False)
 
     def get_absolute_url(self):
         return reverse("catalog:product_detail", args=[self.pk])

@@ -80,7 +80,15 @@
       "Bash(sh -n deploy/entrypoint.sh)",
       "Bash(sed -n '/Applying migrations/,/Collecting static/p' deploy/entrypoint.sh)",
       "Bash(cd /Users/maxim/Downloads && ls -1b *.xlsx 2>/dev/null | cat -v | head -20)",
-      "Bash(./venv/bin/pip install *)"
+      "Bash(./venv/bin/pip install *)",
+      "Bash(DEBUG=false SECRET_KEY=dummy ALLOWED_HOSTS=example.com ./venv/bin/python manage.py check --deploy)",
+      "Bash(./venv/bin/python -c \"import os,django; os.environ['DJANGO_SETTINGS_MODULE']='ams.settings'; django.setup\\(\\); from django.core.files.storage import default_storage; print\\('default \\(no bucket\\):', type\\(default_storage\\).__name__\\)\")",
+      "Bash(AWS_STORAGE_BUCKET_NAME=testbucket AWS_S3_ENDPOINT_URL=https://acct.r2.cloudflarestorage.com AWS_S3_CUSTOM_DOMAIN=pub-x.r2.dev ./venv/bin/python -c \"import os,django; os.environ['DJANGO_SETTINGS_MODULE']='ams.settings'; django.setup\\(\\); from django.core.files.storage import default_storage; import storages.backends.s3; print\\('default \\(bucket set\\):', type\\(default_storage\\).__name__, '| s3 backend import OK'\\)\")",
+      "Bash(./venv/bin/python manage.py sync_media --help)",
+      "Bash(./venv/bin/python -c \"import os,django; os.environ['DJANGO_SETTINGS_MODULE']='ams.settings'; django.setup\\(\\); from django.core.files.storage import storages; print\\('no bucket  ->', type\\(storages['default']\\).__name__\\)\")",
+      "Bash(AWS_STORAGE_BUCKET_NAME=testbucket AWS_S3_ENDPOINT_URL=https://acct.r2.cloudflarestorage.com AWS_S3_CUSTOM_DOMAIN=pub-x.r2.dev ./venv/bin/python -c \"import os,django; os.environ['DJANGO_SETTINGS_MODULE']='ams.settings'; django.setup\\(\\); from django.core.files.storage import storages; s=storages['default']; print\\('with bucket ->', type\\(s\\).__name__, '| endpoint:', s.endpoint_url, '| custom_domain:', s.custom_domain, '| signed:', s.querystring_auth\\)\")",
+      "Bash(./venv/bin/python manage.py sync_media)",
+      "Bash(curl -sS -o /dev/null -w \"status=%{http_code}  type=%{content_type}  size=%{size_download}\\\\n\" \"https://pub-6e81181811eb489190876d89edf7f873.r2.dev/products/9440.jpg\")"
     ]
   }
 }

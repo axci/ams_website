@@ -126,8 +126,10 @@
       {% for product in page_obj %}
       <div class="col">
         <div class="card h-100 shadow-sm">
-          {% if product.picture %}
-          <img src="{{ product.picture.url }}" class="card-img-top product-thumb p-2" alt="{{ product.name }}">
+          {% if product.picture_thumb %}
+          <img src="{{ product.picture_thumb.url }}" class="card-img-top product-thumb p-2" alt="{{ product.name }}" loading="lazy">
+          {% elif product.picture %}
+          <img src="{{ product.picture.url }}" class="card-img-top product-thumb p-2" alt="{{ product.name }}" loading="lazy">
           {% else %}
           <div class="product-thumb-placeholder"><i class="bi bi-image"></i></div>
           {% endif %}
