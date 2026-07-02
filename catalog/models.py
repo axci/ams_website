@@ -197,23 +197,35 @@ class Product(models.Model):
         from django.core.files.base import ContentFile
         from PIL import Image
 
+        # Read the original bytes once, then rewind (do NOT close) the picture:
+        # on an admin upload the same file object is read again by the storage
+        # backend during the following save(), so closing it here would raise
+        # "I/O operation on closed file".
         try:
             self.picture.open("rb")
-            img = Image.open(self.picture)
-            if img.mode in ("RGBA", "LA", "P"):
-                img = img.convert("RGBA")
-                background = Image.new("RGB", img.size, (255, 255, 255))
-                background.paste(img, mask=img.split()[-1])
-                img = background
-            else:
-                img = img.convert("RGB")
-            img.thumbnail((400, 400))
-            buf = BytesIO()
-            img.save(buf, format="JPEG", quality=82, optimize=True)
+            raw = self.picture.read()
         except Exception:
             return
         finally:
-            self.picture.close()
+            try:
+                self.picture.seek(0)
+            except (ValueError, OSError):
+                pass
+
+        try:
+            with Image.open(BytesIO(raw)) as img:
+                if img.mode in ("RGBA", "LA", "P"):
+                    img = img.convert("RGBA")
+                    background = Image.new("RGB", img.size, (255, 255, 255))
+                    background.paste(img, mask=img.split()[-1])
+                    img = background
+                else:
+                    img = img.convert("RGB")
+                img.thumbnail((400, 400))
+                buf = BytesIO()
+                img.save(buf, format="JPEG", quality=82, optimize=True)
+        except Exception:
+            return
         stem = self.picture.name.rsplit("/", 1)[-1].rsplit(".", 1)[0]
         self.picture_thumb.save(f"{stem}.jpg", ContentFile(buf.getvalue()), save=False)
 
