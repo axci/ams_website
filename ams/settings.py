@@ -89,6 +89,8 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    # Third-party
+    "tinymce",
     # Local apps
     "accounts",
     "catalog",
@@ -97,6 +99,23 @@ INSTALLED_APPS = [
     "news",
     "about",
 ]
+
+# TinyMCE rich-text editor (admin only). Static is self-hosted (served from our
+# own domain via WhiteNoise), which matters because CDNs are throttled in RU.
+TINYMCE_DEFAULT_CONFIG = {
+    "height": 360,
+    "menubar": False,
+    "language": "ru",
+    "plugins": "lists link autolink",
+    "toolbar": (
+        "undo redo | blocks | bold italic underline | "
+        "bullist numlist | link | removeformat"
+    ),
+    "block_formats": "Абзац=p; Заголовок=h3; Подзаголовок=h4",
+    "convert_urls": False,
+    "branding": False,
+    "promotion": False,
+}
 
 # Custom user model (buyers). Set before the first migration.
 AUTH_USER_MODEL = "accounts.User"

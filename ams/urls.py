@@ -10,6 +10,7 @@ from accounts.forms import LoginForm
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("tinymce/", include("tinymce.urls")),
     # Styled login view; remaining auth views (logout, password) from contrib.
     path(
         "accounts/login/",

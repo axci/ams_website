@@ -1,5 +1,7 @@
 from django.contrib import admin
+from django.db import models
 from django.utils.html import format_html
+from tinymce.widgets import TinyMCE
 
 from .models import News
 
@@ -12,6 +14,7 @@ class NewsAdmin(admin.ModelAdmin):
     list_filter = ("is_published", "date")
     search_fields = ("title", "text")
     date_hierarchy = "date"
+    formfield_overrides = {models.TextField: {"widget": TinyMCE()}}
 
     @admin.display(description="Изображение")
     def thumbnail(self, obj):

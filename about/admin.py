@@ -1,5 +1,7 @@
 from django.contrib import admin
-from django.utils.html import format_html
+from django.db import models
+from django.utils.html import format_html, strip_tags
+from tinymce.widgets import TinyMCE
 
 from .models import AboutBlock, CompanyDetails
 
@@ -10,6 +12,7 @@ class AboutBlockAdmin(admin.ModelAdmin):
     list_display_links = ("preview",)
     list_editable = ("order", "is_published")
     search_fields = ("title", "text")
+    formfield_overrides = {models.TextField: {"widget": TinyMCE()}}
 
     @admin.display(description="Изображение")
     def thumbnail(self, obj):
@@ -23,9 +26,10 @@ class AboutBlockAdmin(admin.ModelAdmin):
 
     @admin.display(description="Текст")
     def preview(self, obj):
-        if not obj.text:
+        text = strip_tags(obj.text or "").strip()
+        if not text:
             return "—"
-        return (obj.text[:80] + "…") if len(obj.text) > 80 else obj.text
+        return (text[:80] + "…") if len(text) > 80 else text
 
     @admin.display(description="Файл", boolean=True)
     def has_file(self, obj):
