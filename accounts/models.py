@@ -31,6 +31,15 @@ class User(AbstractUser):
         verbose_name="менеджер",
         help_text="Персональный менеджер покупателя.",
     )
+    price_type = models.ForeignKey(
+        "catalog.PriceType",
+        on_delete=models.SET_NULL,
+        related_name="users",
+        blank=True,
+        null=True,
+        verbose_name="тип цены",
+        help_text="Пусто = тип по умолчанию (Крупный ОПТ).",
+    )
     warehouses = models.ManyToManyField(
         "warehouses.Warehouse",
         related_name="buyers",

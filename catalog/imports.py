@@ -5,10 +5,12 @@ The first row is the header. Recognised product columns (case-insensitive):
     sku, article, name, category, subcategory, model product (model_product),
     weight, volume, manufacturer number (manufacturer_number), price, brand
 
-Any other non-empty header is treated as a WAREHOUSE name, and that column's
-cells as the stock quantity for that warehouse. Rows are matched/created by
-``sku``. Categories, subcategories, models, brands and warehouses are matched
-case-insensitively (Unicode-aware) and created on demand.
+A header that matches a price type name («Розничные», «Крупный ОПТ», …) fills
+that type's per-product price. Any other non-empty header is treated as a
+WAREHOUSE name, and that column's cells as the stock quantity for that
+warehouse. Rows are matched/created by ``sku``. Categories, subcategories,
+models, brands and warehouses are matched case-insensitively (Unicode-aware)
+and created on demand.
 """
 
 import re
@@ -21,7 +23,15 @@ from django.utils.text import slugify
 
 from warehouses.models import Stock, Warehouse
 
-from .models import Brand, Category, ModelProduct, Product, SubCategory
+from .models import (
+    Brand,
+    Category,
+    ModelProduct,
+    PriceType,
+    Product,
+    ProductPrice,
+    SubCategory,
+)
 
 FIELD_ALIASES = {
     "sku": "sku",
@@ -187,13 +197,19 @@ def import_products(file_obj, default_brand=None):
         result.errors.append((0, "The file is empty."))
         return result
 
-    field_cols, warehouse_cols = {}, {}
+    # Columns named after a price type («Розничные», «Крупный ОПТ», …) fill
+    # that type's per-product price; anything else unrecognised is a warehouse.
+    price_types = {_norm(pt.name): pt for pt in PriceType.objects.all()}
+
+    field_cols, warehouse_cols, price_type_cols = {}, {}, {}
     for idx, raw in enumerate(all_rows[0]):
         key = _norm(raw)
         if not key:
             continue
         if key in FIELD_ALIASES:
             field_cols[idx] = FIELD_ALIASES[key]
+        elif key in price_types:
+            price_type_cols[idx] = price_types[key]
         else:
             warehouse_cols[idx] = str(raw).strip()
 
@@ -288,6 +304,14 @@ def import_products(file_obj, default_brand=None):
                 )
                 result.created += 1 if created else 0
                 result.updated += 0 if created else 1
+
+                for i, price_type in price_type_cols.items():
+                    d = _decimal(cell(i))
+                    if d is None:
+                        continue
+                    ProductPrice.objects.update_or_create(
+                        product=product, price_type=price_type, defaults={"price": d}
+                    )
 
                 for i, warehouse in warehouses.items():
                     qty = _int(cell(i))

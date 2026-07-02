@@ -12,7 +12,9 @@ from .models import (
     Brand,
     Category,
     ModelProduct,
+    PriceType,
     Product,
+    ProductPrice,
     SubCategory,
 )
 
@@ -27,6 +29,19 @@ class ProductStockInline(admin.TabularInline):
     model = Stock
     extra = 1
     autocomplete_fields = ("warehouse",)
+
+
+class ProductPriceInline(admin.TabularInline):
+    model = ProductPrice
+    extra = 0
+    fields = ("price_type", "price")
+
+
+@admin.register(PriceType)
+class PriceTypeAdmin(admin.ModelAdmin):
+    list_display = ("name", "order", "is_public", "is_default")
+    list_editable = ("order", "is_public", "is_default")
+    search_fields = ("name",)
 
 
 @admin.register(Brand)
@@ -89,7 +104,7 @@ class ProductAdmin(admin.ModelAdmin):
         "sku", "article", "manufacturer_number", "viscosity", "name", "description"
     )
     autocomplete_fields = ("brand", "category", "subcategory", "model_product")
-    inlines = [ProductStockInline]
+    inlines = [ProductPriceInline, ProductStockInline]
 
     def get_urls(self):
         custom = [

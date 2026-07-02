@@ -41,8 +41,15 @@ class CartItem(models.Model):
         return f"{self.quantity} × {self.product.sku}"
 
     @property
+    def unit_price(self):
+        """Unit price for the cart owner's price type."""
+        from catalog.pricing import price_type_for_user
+
+        return self.product.price_for(price_type_for_user(self.cart.user))
+
+    @property
     def subtotal(self):
-        return self.product.price * self.quantity
+        return self.unit_price * self.quantity
 
 
 class Order(models.Model):

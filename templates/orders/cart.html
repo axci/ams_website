@@ -21,7 +21,7 @@
             <a href="{{ item.product.get_absolute_url }}" class="text-decoration-none">{{ item.product.name }}</a>
             <div class="small text-muted">Артикул: {{ item.product.article }} · {{ item.product.brand.name }}</div>
           </td>
-          <td class="text-end">{{ item.product.price|rubles }}</td>
+          <td class="text-end">{{ item.unit_price|rubles }}</td>
           <td class="text-center">
             <form method="post" action="{% url 'orders:update_cart_item' item.pk %}" class="d-inline-flex">
               {% csrf_token %}

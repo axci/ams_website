@@ -2,20 +2,40 @@ import re
 from decimal import Decimal
 
 from django.core.paginator import Paginator
-from django.db.models import IntegerField, OuterRef, Q, Subquery, Value
+from django.db.models import DecimalField, F, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, render
 
 from warehouses.models import Stock
 from warehouses.selection import get_current_warehouse
 
-from .models import BannerSlide, Brand, Category, Product, SubCategory
+from .models import BannerSlide, Brand, Category, Product, ProductPrice, SubCategory
+from .pricing import price_type_for_user
 
 
 def _viscosity_key(value):
     """Sort viscosities numerically (0W20, 5W30, 10W40) rather than as text."""
     match = re.match(r"(\d+)W(\d+)", value)
     return (int(match.group(1)), int(match.group(2))) if match else (10**6, 10**6)
+
+
+def _with_effective_price(products, price_type):
+    """Annotate each product with `effective_price` for the given price type,
+    falling back to the product's base `price` when no per-type price exists."""
+    if price_type is not None:
+        price_sub = ProductPrice.objects.filter(
+            product=OuterRef("pk"), price_type=price_type
+        ).values("price")[:1]
+        return products.annotate(
+            effective_price=Coalesce(
+                Subquery(
+                    price_sub,
+                    output_field=DecimalField(max_digits=12, decimal_places=2),
+                ),
+                F("price"),
+            )
+        )
+    return products.annotate(effective_price=F("price"))
 
 
 def product_list(request):
@@ -119,6 +139,10 @@ def product_list(request):
     if in_stock and show_stock:
         products = products.filter(stock_qty__gt=0)
 
+    # Prices shown depend on the viewer's price type (guests → «Розничные»).
+    price_type = price_type_for_user(request.user)
+    products = _with_effective_price(products, price_type)
+
     paginator = Paginator(products, 12)
     page_obj = paginator.get_page(request.GET.get("page"))
 
@@ -146,6 +170,7 @@ def product_list(request):
         "selected_volume": volume_value,
         "selected_viscosity": viscosity_value,
         "selected_in_stock": "1" if in_stock else "",
+        "price_type": price_type,
     }
     return render(request, "catalog/product_list.html", context)
 
@@ -164,12 +189,18 @@ def product_detail(request, pk):
     if show_stock:
         stock = Stock.objects.filter(product=product, warehouse=warehouse).first()
         stock_qty = stock.quantity if stock else 0
+    # Price shown depends on the viewer's price type (guests → «Розничные»).
+    price_type = price_type_for_user(request.user)
+    price = product.price_for(price_type)
     # Other products of the same model (e.g. different volumes), ordered by volume.
     variants = []
     if product.model_product_id:
         variants = list(
-            Product.objects.filter(
-                model_product_id=product.model_product_id, is_active=True
+            _with_effective_price(
+                Product.objects.filter(
+                    model_product_id=product.model_product_id, is_active=True
+                ),
+                price_type,
             ).order_by("volume", "name")
         )
 
@@ -179,5 +210,7 @@ def product_detail(request, pk):
         "show_stock": show_stock,
         "stock_qty": stock_qty,
         "variants": variants,
+        "price": price,
+        "price_type": price_type,
     }
     return render(request, "catalog/product_detail.html", context)

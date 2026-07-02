@@ -220,6 +220,84 @@ class Product(models.Model):
     def get_absolute_url(self):
         return reverse("catalog:product_detail", args=[self.pk])
 
+    def price_for(self, price_type):
+        """Effective price for the given price type, falling back to `price`."""
+        if price_type is not None:
+            pp = self.prices.filter(price_type=price_type).first()
+            if pp is not None:
+                return pp.price
+        return self.price
+
+
+class PriceType(models.Model):
+    """A price tier such as «Розничные» or «Крупный ОПТ»."""
+
+    name = models.CharField("название", max_length=100, unique=True)
+    order = models.PositiveIntegerField("порядок", default=0)
+    is_public = models.BooleanField(
+        "цена для гостей",
+        default=False,
+        help_text="Показывается неавторизованным посетителям.",
+    )
+    is_default = models.BooleanField(
+        "по умолчанию для покупателей",
+        default=False,
+        help_text="Используется, если у покупателя не задан тип цены.",
+    )
+
+    class Meta:
+        ordering = ["order", "name"]
+        verbose_name = "тип цены"
+        verbose_name_plural = "типы цен"
+
+    def __str__(self):
+        return self.name
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Keep the "public" and "default" flags single-valued.
+        if self.is_public:
+            PriceType.objects.exclude(pk=self.pk).filter(is_public=True).update(
+                is_public=False
+            )
+        if self.is_default:
+            PriceType.objects.exclude(pk=self.pk).filter(is_default=True).update(
+                is_default=False
+            )
+
+    @classmethod
+    def public_type(cls):
+        """Price type shown to guests (or the first one as a fallback)."""
+        return cls.objects.filter(is_public=True).first() or cls.objects.first()
+
+    @classmethod
+    def default_type(cls):
+        """Price type for buyers without an explicit one."""
+        return cls.objects.filter(is_default=True).first() or cls.public_type()
+
+
+class ProductPrice(models.Model):
+    """Price of a product for a particular price type."""
+
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name="prices"
+    )
+    price_type = models.ForeignKey(PriceType, on_delete=models.CASCADE, related_name="+")
+    price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["product", "price_type"], name="unique_product_price_type"
+            )
+        ]
+        ordering = ["price_type__order"]
+        verbose_name = "цена"
+        verbose_name_plural = "цены"
+
+    def __str__(self):
+        return f"{self.product.sku} — {self.price_type}: {self.price}"
+
 
 class BannerSlide(models.Model):
     """A full-width banner image shown on the main page (uploaded in the admin)."""

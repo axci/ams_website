@@ -21,10 +21,12 @@ class UserAdmin(BaseUserAdmin):
         "email",
         "company_name",
         "type",
+        "price_type",
         "debt",
         "is_staff",
         "is_active",
     )
+    list_filter = BaseUserAdmin.list_filter + ("price_type",)
     search_fields = (
         "username",
         "email",
@@ -51,6 +53,7 @@ class UserAdmin(BaseUserAdmin):
                     "company_name",
                     "phone",
                     "manager",
+                    "price_type",
                     "warehouses",
                 )
             },

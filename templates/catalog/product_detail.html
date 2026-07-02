@@ -33,7 +33,9 @@
       Артикул: <strong>{{ product.article }}</strong>
       {% if product.manufacturer_number %}<span class="ms-3">Номер произв.: <strong>{{ product.manufacturer_number }}</strong></span>{% endif %}
     </div>
-    <div class="h4 mb-3">{{ product.price|rubles }}</div>
+    <div class="h4 mb-3">{{ price|rubles }}
+      {% if price_type %}<span class="badge text-bg-light text-muted fw-normal align-middle small">{{ price_type.name }}</span>{% endif %}
+    </div>
 
     {% if product.model_product or product.weight or product.volume %}
     <ul class="list-unstyled small text-body-secondary mb-3">
@@ -52,11 +54,11 @@
         {% for v in variants %}
           {% if v.pk == product.pk %}
           <span class="btn btn-sm btn-primary disabled" aria-current="true">
-            {% if v.volume %}{{ v.volume|floatformat:"-3" }} {{ v.volume_unit }}{% else %}{{ v.name }}{% endif %} · {{ v.price|rubles }}
+            {% if v.volume %}{{ v.volume|floatformat:"-3" }} {{ v.volume_unit }}{% else %}{{ v.name }}{% endif %} · {{ v.effective_price|rubles }}
           </span>
           {% else %}
           <a class="btn btn-sm btn-outline-primary" href="{{ v.get_absolute_url }}">
-            {% if v.volume %}{{ v.volume|floatformat:"-3" }} {{ v.volume_unit }}{% else %}{{ v.name }}{% endif %} · {{ v.price|rubles }}
+            {% if v.volume %}{{ v.volume|floatformat:"-3" }} {{ v.volume_unit }}{% else %}{{ v.name }}{% endif %} · {{ v.effective_price|rubles }}
           </a>
           {% endif %}
         {% endfor %}

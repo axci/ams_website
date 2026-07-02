@@ -44,9 +44,10 @@
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1 class="h4 mb-0">Каталог</h1>
-  {% if current_warehouse %}
-  <span class="text-muted"><i class="bi bi-geo-alt"></i> Наличие в <strong>{{ current_warehouse.name }}</strong></span>
-  {% endif %}
+  <div class="text-muted small text-end">
+    {% if price_type %}<div><i class="bi bi-tag"></i> Цены: <strong>{{ price_type.name }}</strong></div>{% endif %}
+    {% if current_warehouse %}<div><i class="bi bi-geo-alt"></i> Наличие в <strong>{{ current_warehouse.name }}</strong></div>{% endif %}
+  </div>
 </div>
 
 {% if not user.is_authenticated %}
@@ -139,7 +140,7 @@
             <div class="small text-muted mb-2">Артикул: {{ product.article }}</div>
             <div class="mt-auto">
               <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="fw-bold">{{ product.price|rubles }}</span>
+                <span class="fw-bold">{{ product.effective_price|rubles }}</span>
                 {% if show_stock %}
                   {% if product.stock_qty > 0 %}
                   <span class="badge text-bg-success">В наличии: {{ product.stock_qty }}</span>

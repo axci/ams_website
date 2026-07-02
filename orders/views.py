@@ -142,7 +142,7 @@ def checkout(request):
                             product=item.product,
                             sku=item.product.sku,
                             name=item.product.name,
-                            price=item.product.price,
+                            price=item.unit_price,
                             quantity=item.quantity,
                         )
                     order.recalculate_total()
