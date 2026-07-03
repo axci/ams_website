@@ -68,13 +68,8 @@
 
     {% if user.is_authenticated %}
       {% if show_stock %}
-        {% if stock_qty > 0 %}
-        <p><span class="badge text-bg-success">В наличии: {{ stock_qty }}</span>
+        <p>{% stock_badge stock_qty %}
            <span class="text-muted small">на складе {{ current_warehouse.name }}</span></p>
-        {% else %}
-        <p><span class="badge text-bg-secondary">Закончился</span>
-           <span class="text-muted small">на складе {{ current_warehouse.name }}</span></p>
-        {% endif %}
       {% else %}
         <p class="text-muted"><i class="bi bi-info-circle"></i> К вашему аккаунту ещё не привязан склад.</p>
       {% endif %}

@@ -34,7 +34,7 @@
               {% if item.quantity > item.available %}
               <span class="badge text-bg-danger">Осталось {{ item.available }}</span>
               {% else %}
-              <span class="badge text-bg-success">{{ item.available }} в наличии</span>
+              {% stock_badge item.available %}
               {% endif %}
             {% else %}
               <span class="text-muted small">—</span>

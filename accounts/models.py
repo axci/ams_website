@@ -40,6 +40,12 @@ class User(AbstractUser):
         verbose_name="тип цены",
         help_text="Пусто = тип по умолчанию (Крупный ОПТ).",
     )
+    show_stock = models.BooleanField(
+        "показывать точный остаток",
+        default=False,
+        help_text="Если выключено, покупатель видит «много / мало / только N» "
+        "вместо точного количества.",
+    )
     warehouses = models.ManyToManyField(
         "warehouses.Warehouse",
         related_name="buyers",
