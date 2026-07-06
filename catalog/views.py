@@ -38,6 +38,38 @@ def _with_effective_price(products, price_type):
     return products.annotate(effective_price=F("price"))
 
 
+RECENT_KEY = "recently_viewed"
+RECENT_STORE = 20  # product ids kept in the session
+RECENT_SHOW = 6  # products shown in the block
+
+
+def _remember_viewed(request, pk):
+    """Record a product as recently viewed (newest first, deduped, capped)."""
+    ids = [i for i in request.session.get(RECENT_KEY, []) if i != pk]
+    ids.insert(0, pk)
+    request.session[RECENT_KEY] = ids[:RECENT_STORE]
+
+
+def _recently_viewed(request, price_type, exclude_pk=None, limit=RECENT_SHOW):
+    """Recently viewed products (session-based), newest first, price-annotated."""
+    ids = [i for i in request.session.get(RECENT_KEY, []) if i != exclude_pk]
+    if not ids:
+        return []
+    products = _with_effective_price(
+        Product.objects.filter(pk__in=ids, is_active=True).select_related("brand"),
+        price_type,
+    )
+    by_id = {p.pk: p for p in products}
+    result = []
+    for i in ids:
+        product = by_id.get(i)
+        if product is not None:
+            result.append(product)
+        if len(result) >= limit:
+            break
+    return result
+
+
 def product_list(request):
     # Public page: anyone may browse. Stock is only revealed to a logged-in
     # buyer who has a current (assigned) warehouse.
@@ -171,6 +203,7 @@ def product_list(request):
         "selected_viscosity": viscosity_value,
         "selected_in_stock": "1" if in_stock else "",
         "price_type": price_type,
+        "recently_viewed": _recently_viewed(request, price_type),
     }
     return render(request, "catalog/product_list.html", context)
 
@@ -204,6 +237,10 @@ def product_detail(request, pk):
             ).order_by("volume", "name")
         )
 
+    # Recently viewed (excluding this product), then record this view.
+    recently_viewed = _recently_viewed(request, price_type, exclude_pk=product.pk)
+    _remember_viewed(request, product.pk)
+
     context = {
         "product": product,
         "warehouse": warehouse,
@@ -212,5 +249,6 @@ def product_detail(request, pk):
         "variants": variants,
         "price": price,
         "price_type": price_type,
+        "recently_viewed": recently_viewed,
     }
     return render(request, "catalog/product_detail.html", context)

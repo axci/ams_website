@@ -1,0 +1,27 @@
+{% if recently_viewed %}
+<section class="mt-5">
+  <h2 class="h5 mb-3"><i class="bi bi-clock-history"></i> Вы ранее смотрели</h2>
+  <div class="row row-cols-2 row-cols-sm-3 row-cols-lg-6 g-2">
+    {% for product in recently_viewed %}
+    <div class="col">
+      <div class="card h-100 shadow-sm">
+        <a href="{{ product.get_absolute_url }}" class="d-block text-center pt-2">
+          {% if product.picture_thumb %}
+          <img src="{{ product.picture_thumb.url }}" class="card-img-top p-1" style="height:100px;object-fit:contain;" alt="{{ product.name }}" loading="lazy">
+          {% elif product.picture %}
+          <img src="{{ product.picture.url }}" class="card-img-top p-1" style="height:100px;object-fit:contain;" alt="{{ product.name }}" loading="lazy">
+          {% else %}
+          <div class="product-thumb-placeholder" style="height:100px;"><i class="bi bi-image"></i></div>
+          {% endif %}
+        </a>
+        <div class="card-body p-2 d-flex flex-column">
+          <div class="small text-muted text-truncate">{{ product.brand.name }}</div>
+          <a href="{{ product.get_absolute_url }}" class="small text-decoration-none text-dark mb-2">{{ product.name|truncatechars:44 }}</a>
+          <span class="fw-bold small mt-auto">{{ product.effective_price|rubles }}</span>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</section>
+{% endif %}
