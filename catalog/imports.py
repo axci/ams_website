@@ -127,7 +127,9 @@ class _Resolver:
     def __init__(self):
         self.brands = {b.name.casefold(): b for b in Brand.objects.all()}
         self.categories = {c.name.casefold(): c for c in Category.objects.all()}
-        self.models = {m.name.casefold(): m for m in ModelProduct.objects.all()}
+        self.models = {
+            (m.brand_id, m.name.casefold()): m for m in ModelProduct.objects.all()
+        }
         self.subcats = {
             (s.category_id, s.name.casefold()): s for s in SubCategory.objects.all()
         }
@@ -153,13 +155,15 @@ class _Resolver:
             self.categories[key] = obj
         return obj
 
-    def model(self, name):
+    def model(self, brand, name):
+        """Find-or-create a model scoped to its brand (same name may exist
+        under different brands)."""
         if not name:
             return None
-        key = name.casefold()
+        key = (brand.pk if brand else None, name.casefold())
         obj = self.models.get(key)
         if obj is None:
-            obj = ModelProduct.objects.create(name=name[:200])
+            obj = ModelProduct.objects.create(name=name[:200], brand=brand)
             self.models[key] = obj
         return obj
 
@@ -254,7 +258,7 @@ def import_products(file_obj, default_brand=None):
                 else None
             )
             model_product = (
-                resolver.model(_text(values.get("model_product"), 200))
+                resolver.model(brand, _text(values.get("model_product"), 200))
                 if "model_product" in values
                 else None
             )

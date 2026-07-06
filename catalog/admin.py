@@ -75,8 +75,11 @@ class SubCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(ModelProduct)
 class ModelProductAdmin(admin.ModelAdmin):
-    list_display = ("name",)
-    search_fields = ("name",)
+    list_display = ("name", "brand")
+    list_filter = ("brand",)
+    list_select_related = ("brand",)
+    search_fields = ("name", "brand__name")
+    autocomplete_fields = ("brand",)
 
 
 @admin.register(Product)

@@ -71,17 +71,35 @@ class SubCategory(models.Model):
 
 
 class ModelProduct(models.Model):
-    """A product model / line a product may belong to (optional)."""
+    """A product model / line a product may belong to (optional).
 
-    name = models.CharField(max_length=200, unique=True)
+    Scoped to a brand: the same model name may exist under different brands
+    (identified by id), so «Selection» for one brand is a distinct model from
+    «Selection» for another.
+    """
+
+    name = models.CharField(max_length=200)
+    brand = models.ForeignKey(
+        "Brand",
+        on_delete=models.CASCADE,
+        related_name="product_models",
+        null=True,
+        blank=True,
+        verbose_name="бренд",
+    )
 
     class Meta:
         ordering = ["name"]
         verbose_name = "product model"
         verbose_name_plural = "product models"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["brand", "name"], name="unique_brand_model_name"
+            )
+        ]
 
     def __str__(self):
-        return self.name
+        return f"{self.name} ({self.brand})" if self.brand_id else self.name
 
 
 class Product(models.Model):
