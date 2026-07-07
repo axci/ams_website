@@ -8,6 +8,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from catalog.models import Product
+from warehouses.availability import available_map, own_warehouse_ids
 from warehouses.models import Stock
 from warehouses.selection import get_current_warehouse
 
@@ -18,22 +19,13 @@ from .models import CartItem, Order, OrderItem
 from .utils import get_or_create_cart
 
 
-def _stock_map(warehouse, products):
-    """Map of product_id -> available quantity in the given warehouse."""
-    if not warehouse:
-        return {}
-    rows = Stock.objects.filter(
-        warehouse=warehouse, product__in=[p.product_id for p in products]
-    )
-    return {row.product_id: row.quantity for row in rows}
-
-
 @login_required
 def cart_detail(request):
     cart = get_or_create_cart(request.user)
     warehouse = get_current_warehouse(request)
     items = list(cart.items.select_related("product", "product__brand"))
-    stock_map = _stock_map(warehouse, items)
+    # Availability = total stock across all warehouses (own + 7-day delivery).
+    stock_map = available_map([i.product_id for i in items])
     for item in items:
         item.available = stock_map.get(item.product_id, 0)
     return render(
@@ -105,7 +97,9 @@ def checkout(request):
         messages.error(request, "К вашему аккаунту ещё не привязан склад.")
         return redirect("orders:cart")
 
-    stock_map = _stock_map(warehouse, items)
+    # Availability = total stock across all warehouses (own + 7-day delivery),
+    # so an order can be placed as long as the total covers it.
+    stock_map = available_map([i.product_id for i in items])
     issues = []
     for item in items:
         item.available = stock_map.get(item.product_id, 0)
@@ -129,14 +123,29 @@ def checkout(request):
                         shipping_address=form.cleaned_data["shipping_address"],
                         comment=form.cleaned_data["comment"],
                     )
+                    own_ids = own_warehouse_ids(request.user)
                     for item in items:
-                        stock = Stock.objects.select_for_update().get(
-                            product=item.product, warehouse=warehouse
+                        stock_rows = list(
+                            Stock.objects.select_for_update().filter(
+                                product=item.product, warehouse__is_active=True
+                            )
                         )
-                        if stock.quantity < item.quantity:
+                        if sum(s.quantity for s in stock_rows) < item.quantity:
                             raise ValueError("stock changed")
-                        stock.quantity -= item.quantity
-                        stock.save(update_fields=["quantity"])
+                        # Fulfil from own warehouses first, then others (7-day),
+                        # taking from the largest holdings first.
+                        stock_rows.sort(
+                            key=lambda s: (s.warehouse_id not in own_ids, -s.quantity)
+                        )
+                        remaining = item.quantity
+                        for stock in stock_rows:
+                            if remaining <= 0:
+                                break
+                            take = min(stock.quantity, remaining)
+                            if take:
+                                stock.quantity -= take
+                                stock.save(update_fields=["quantity"])
+                                remaining -= take
                         OrderItem.objects.create(
                             order=order,
                             product=item.product,

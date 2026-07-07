@@ -7,7 +7,7 @@
 <div class="row g-4">
   <div class="col-lg-7">
     <div class="card shadow-sm">
-      <div class="card-header">Состав заказа — со склада <strong>{{ warehouse.name }}</strong></div>
+      <div class="card-header">Состав заказа</div>
       <div class="table-responsive">
         <table class="table align-middle mb-0">
           <thead class="table-light">
@@ -20,7 +20,7 @@
                 {{ item.product.name }}
                 <div class="small text-muted">Артикул: {{ item.product.article }}</div>
                 {% if item.quantity > item.available %}
-                <div class="small text-danger">На складе только {{ item.available }}</div>
+                <div class="small text-danger">Доступно только {{ item.available }}</div>
                 {% endif %}
               </td>
               <td class="text-center">{{ item.quantity }}</td>

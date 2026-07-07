@@ -6,7 +6,11 @@ from django.db.models import DecimalField, F, IntegerField, OuterRef, Q, Subquer
 from django.db.models.functions import Coalesce
 from django.shortcuts import get_object_or_404, render
 
-from warehouses.models import Stock
+from warehouses.availability import (
+    annotate_availability,
+    own_warehouse_ids,
+    warehouse_breakdown,
+)
 from warehouses.selection import get_current_warehouse
 
 from .models import BannerSlide, Brand, Category, Product, ProductPrice, SubCategory
@@ -71,10 +75,11 @@ def _recently_viewed(request, price_type, exclude_pk=None, limit=RECENT_SHOW):
 
 
 def product_list(request):
-    # Public page: anyone may browse. Stock is only revealed to a logged-in
-    # buyer who has a current (assigned) warehouse.
+    # Public page: anyone may browse. Stock (across all warehouses) is revealed
+    # to any logged-in buyer; `warehouse` is their own warehouse for ordering.
     warehouse = get_current_warehouse(request)
-    show_stock = warehouse is not None
+    show_stock = request.user.is_authenticated
+    own_ids = own_warehouse_ids(request.user)
     products = Product.objects.filter(is_active=True).select_related(
         "brand", "category", "subcategory"
     )
@@ -154,22 +159,14 @@ def product_list(request):
         else:
             viscosity_value = ""
 
-    # Annotate each product with the quantity available in the current warehouse.
+    # Buyers see stock across all warehouses: own warehouses (immediate) plus
+    # every other warehouse (7-day delivery). Availability = the total.
     if show_stock:
-        stock_subquery = Stock.objects.filter(
-            product=OuterRef("pk"), warehouse=warehouse
-        ).values("quantity")[:1]
-        products = products.annotate(
-            stock_qty=Coalesce(
-                Subquery(stock_subquery, output_field=IntegerField()), Value(0)
-            )
-        )
-    else:
-        products = products.annotate(stock_qty=Value(0, output_field=IntegerField()))
+        products = annotate_availability(products, own_ids)
 
-    # "Show in stock only" — only meaningful when the buyer can see stock.
+    # "Show in stock only" — available anywhere (own or 7-day).
     if in_stock and show_stock:
-        products = products.filter(stock_qty__gt=0)
+        products = products.filter(total_qty__gt=0)
 
     # Prices shown depend on the viewer's price type (guests → «Розничные»).
     price_type = price_type_for_user(request.user)
@@ -217,11 +214,11 @@ def product_detail(request, pk):
         is_active=True,
     )
     warehouse = get_current_warehouse(request)
-    show_stock = warehouse is not None
-    stock_qty = 0
-    if show_stock:
-        stock = Stock.objects.filter(product=product, warehouse=warehouse).first()
-        stock_qty = stock.quantity if stock else 0
+    show_stock = request.user.is_authenticated
+    own_ids = own_warehouse_ids(request.user)
+    # Stock per warehouse: own warehouses (immediate) + others (7-day delivery).
+    warehouse_stock = warehouse_breakdown(product, own_ids) if show_stock else []
+    total_available = sum(row["qty"] for row in warehouse_stock)
     # Price shown depends on the viewer's price type (guests → «Розничные»).
     price_type = price_type_for_user(request.user)
     price = product.price_for(price_type)
@@ -245,7 +242,8 @@ def product_detail(request, pk):
         "product": product,
         "warehouse": warehouse,
         "show_stock": show_stock,
-        "stock_qty": stock_qty,
+        "warehouse_stock": warehouse_stock,
+        "total_available": total_available,
         "variants": variants,
         "price": price,
         "price_type": price_type,

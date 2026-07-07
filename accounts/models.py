@@ -50,7 +50,10 @@ class User(AbstractUser):
         "warehouses.Warehouse",
         related_name="buyers",
         blank=True,
-        help_text="Warehouses whose stock this buyer is allowed to see.",
+        help_text=(
+            "Склады, с которых покупатель заказывает сразу («его» склады). "
+            "Остаток на других складах доступен с пометкой «Доставка 7 дней»."
+        ),
     )
 
     def save(self, *args, **kwargs):

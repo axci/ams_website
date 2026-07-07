@@ -141,13 +141,17 @@
             <div class="mt-auto">
               <div class="d-flex justify-content-between align-items-center mb-2">
                 <span class="fw-bold">{{ product.effective_price|rubles }}</span>
-                {% if show_stock %}{% stock_badge product.stock_qty %}{% endif %}
+                {% if show_stock %}
+                  {% if product.own_qty > 0 %}{% stock_badge product.own_qty %}
+                  {% elif product.total_qty > 0 %}<span class="badge text-bg-info"><i class="bi bi-truck"></i> Доставка 7 дней</span>
+                  {% else %}<span class="badge text-bg-secondary">Нет в наличии</span>{% endif %}
+                {% endif %}
               </div>
               {% if user.is_authenticated %}
               <form method="post" action="{% url 'orders:add_to_cart' product.pk %}">
                 {% csrf_token %}
                 <input type="hidden" name="next" value="{{ request.get_full_path }}">
-                <button class="btn btn-sm btn-outline-primary w-100" {% if not show_stock or product.stock_qty <= 0 %}disabled{% endif %}>
+                <button class="btn btn-sm btn-outline-primary w-100" {% if product.total_qty <= 0 %}disabled{% endif %}>
                   <i class="bi bi-cart-plus"></i> Добавить в корзину
                 </button>
               </form>

@@ -30,14 +30,10 @@
             </form>
           </td>
           <td class="text-center">
-            {% if warehouse %}
-              {% if item.quantity > item.available %}
-              <span class="badge text-bg-danger">Осталось {{ item.available }}</span>
-              {% else %}
-              {% stock_badge item.available %}
-              {% endif %}
+            {% if item.quantity > item.available %}
+            <span class="badge text-bg-danger">Осталось {{ item.available }}</span>
             {% else %}
-              <span class="text-muted small">—</span>
+            {% stock_badge item.available %}
             {% endif %}
           </td>
           <td class="text-end">{{ item.subtotal|rubles }}</td>
