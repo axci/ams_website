@@ -20,11 +20,23 @@ class BootstrapFormMixin:
 
 class RegisterForm(BootstrapFormMixin, UserCreationForm):
     email = forms.EmailField(required=True, label="Эл. почта")
+    company_name = forms.CharField(required=False, max_length=200, label="Компания")
+    phone = forms.CharField(required=False, max_length=40, label="Телефон")
 
     class Meta:
         model = User
-        fields = ("username", "email", "company_name", "phone")
-        labels = {"company_name": "Компания", "phone": "Телефон"}
+        fields = ("username", "email")
+
+    def save(self, commit=True):
+        user = super().save(commit=commit)
+        if commit:
+            name = self.cleaned_data.get("company_name") or ""
+            phone = self.cleaned_data.get("phone") or ""
+            if name or phone:
+                from .models import Company
+
+                Company.objects.create(user=user, company_name=name, phone=phone)
+        return user
 
 
 class LoginForm(BootstrapFormMixin, AuthenticationForm):

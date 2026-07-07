@@ -66,6 +66,14 @@ class Order(models.Model):
     warehouse = models.ForeignKey(
         "warehouses.Warehouse", on_delete=models.PROTECT, related_name="orders"
     )
+    company = models.ForeignKey(
+        "accounts.Company",
+        on_delete=models.PROTECT,
+        related_name="orders",
+        blank=True,
+        null=True,
+        verbose_name="компания",
+    )
     status = models.CharField(
         max_length=20, choices=Status.choices, default=Status.PENDING
     )

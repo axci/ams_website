@@ -7,6 +7,7 @@ from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
+from accounts.models import DeliveryAddress
 from catalog.models import Product
 from warehouses.availability import available_map, own_warehouse_ids
 from warehouses.models import Stock
@@ -96,6 +97,11 @@ def checkout(request):
     if warehouse is None:
         messages.error(request, "К вашему аккаунту ещё не привязан склад.")
         return redirect("orders:cart")
+    if not request.user.companies.exists():
+        messages.error(
+            request, "Добавьте компанию в профиле или обратитесь к менеджеру."
+        )
+        return redirect("orders:cart")
 
     # Availability = total stock across all warehouses (own + 7-day delivery),
     # so an order can be placed as long as the total covers it.
@@ -107,7 +113,7 @@ def checkout(request):
             issues.append(item)
 
     if request.method == "POST":
-        form = CheckoutForm(request.POST)
+        form = CheckoutForm(request.POST, user=request.user)
         if issues:
             messages.error(
                 request,
@@ -117,10 +123,18 @@ def checkout(request):
         elif form.is_valid():
             try:
                 with transaction.atomic():
+                    new_addr = form.cleaned_data["new_delivery_address"].strip()
+                    if new_addr:
+                        address = DeliveryAddress.objects.create(
+                            user=request.user, address=new_addr[:255]
+                        ).address
+                    else:
+                        address = form.cleaned_data["delivery_address"].address
                     order = Order.objects.create(
                         user=request.user,
                         warehouse=warehouse,
-                        shipping_address=form.cleaned_data["shipping_address"],
+                        company=form.cleaned_data["company"],
+                        shipping_address=address,
                         comment=form.cleaned_data["comment"],
                     )
                     own_ids = own_warehouse_ids(request.user)
@@ -166,7 +180,7 @@ def checkout(request):
             send_order_emails(order)
             return redirect("orders:order_detail", pk=order.pk)
     else:
-        form = CheckoutForm(initial={"shipping_address": request.user.company_name})
+        form = CheckoutForm(user=request.user)
 
     return render(
         request,

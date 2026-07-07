@@ -12,7 +12,7 @@ from django.core.files.base import ContentFile
 from django.core.management.base import BaseCommand
 from django.db import transaction
 
-from accounts.models import User
+from accounts.models import Company, User
 from catalog.models import Brand, Category, ModelProduct, Product, SubCategory
 from warehouses.models import Stock, Warehouse
 
@@ -317,15 +317,16 @@ class Command(BaseCommand):
         for data in BUYERS:
             buyer, created = User.objects.get_or_create(
                 username=data["username"],
-                defaults={
-                    "email": data["email"],
-                    "company_name": data["company_name"],
-                },
+                defaults={"email": data["email"]},
             )
             if created:
                 buyer.set_password(data["password"])
                 buyer.save()
             buyer.warehouses.set([warehouses[c] for c in data["warehouses"]])
+            if not buyer.companies.exists():
+                Company.objects.create(
+                    user=buyer, company_name=data["company_name"]
+                )
         self.stdout.write(f"Buyers: {len(BUYERS)}")
 
         # Convenience admin for local development only.

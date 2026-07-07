@@ -2,10 +2,10 @@
 
 Склад: {{ order.warehouse.name }} ({{ order.warehouse.code }})
 
-Покупатель: {{ order.user.get_full_name|default:order.user.username }}{% if order.user.company_name %} ({{ order.user.company_name }}){% endif %}
-ИНН: {{ order.user.inn|default:"—" }}{% if order.user.kpp %} · КПП: {{ order.user.kpp }}{% endif %}
+Покупатель: {{ order.user.get_full_name|default:order.user.username }}{% if order.company %} ({{ order.company.company_name }}){% endif %}
+ИНН: {{ order.company.inn|default:"—" }}{% if order.company.kpp %} · КПП: {{ order.company.kpp }}{% endif %}
 Эл. почта: {{ order.user.email|default:"—" }}
-Телефон: {{ order.user.phone|default:"—" }}
+Телефон: {{ order.company.phone|default:"—" }}
 {% if order.shipping_address %}Адрес доставки: {{ order.shipping_address }}
 {% endif %}{% if order.comment %}Комментарий: {{ order.comment }}
 {% endif %}

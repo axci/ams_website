@@ -52,7 +52,12 @@ def _date_str(dt):
 def build_invoice_xlsx(order):
     co = CompanyDetails.load()
     user = order.user
-    buyer = user.company_name or user.get_full_name() or user.username
+    bco = order.company  # buyer's company (None on pre-feature orders)
+    buyer = (bco.company_name if bco else "") or user.get_full_name() or user.username
+    buyer_inn = bco.inn if bco else ""
+    buyer_kpp = bco.kpp if bco else ""
+    buyer_addr = bco.address if bco else ""
+    buyer_phone = bco.phone if bco else ""
 
     wb = Workbook()
     ws = wb.active
@@ -108,10 +113,10 @@ def build_invoice_xlsx(order):
         base, height=45,
     )
     buyer_line = (
-        f"Покупатель (Заказчик): {buyer}, ИНН {user.inn}, КПП {user.kpp}, {user.address}"
+        f"Покупатель (Заказчик): {buyer}, ИНН {buyer_inn}, КПП {buyer_kpp}, {buyer_addr}"
     )
-    if user.phone:
-        buyer_line += f", тел.: {user.phone}"
+    if buyer_phone:
+        buyer_line += f", тел.: {buyer_phone}"
     wide(buyer_line, base, height=45)
     r += 1
 

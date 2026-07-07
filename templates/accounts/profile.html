@@ -11,9 +11,9 @@
         <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Имя пользователя</span><span>{{ user.get_username }}</span></li>
         <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Имя</span><span>{{ user.get_full_name|default:"—" }}</span></li>
         <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Эл. почта</span><span>{{ user.email|default:"—" }}</span></li>
-        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Компания</span><span>{{ user.company_name|default:"—" }}</span></li>
-        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Телефон</span><span>{{ user.phone|default:"—" }}</span></li>
-        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Задолженность</span><span class="fw-bold {% if user.debt > 0 %}text-danger{% endif %}">{{ user.debt|rubles }}</span></li>
+        {% with debt=user.total_debt %}
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Задолженность</span><span class="fw-bold {% if debt > 0 %}text-danger{% endif %}">{{ debt|rubles }}</span></li>
+        {% endwith %}
       </ul>
       <div class="card-footer">
         <a href="{% url 'orders:order_list' %}" class="btn btn-outline-primary btn-sm"><i class="bi bi-receipt"></i> Мои заказы</a>
@@ -56,6 +56,41 @@
       {% else %}
       <div class="card-body text-muted">Персональный менеджер ещё не назначен.</div>
       {% endif %}
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header">Мои компании</div>
+      <ul class="list-group list-group-flush">
+        {% for c in user.companies.all %}
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between">
+            <span class="fw-bold">{{ c.company_name|default:c.code|default:"—" }}</span>
+            {% if c.debt > 0 %}<span class="badge text-bg-warning text-dark">Долг: {{ c.debt|rubles }}</span>{% endif %}
+          </div>
+          <div class="small text-muted">
+            {% if c.code %}Код: {{ c.code }}{% endif %}{% if c.inn %} · ИНН: {{ c.inn }}{% endif %}{% if c.kpp %} · КПП: {{ c.kpp }}{% endif %}
+          </div>
+          {% if c.address %}<div class="small text-muted">{{ c.address }}</div>{% endif %}
+        </li>
+        {% empty %}
+        <li class="list-group-item text-muted">Компании не добавлены. Обратитесь к менеджеру.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header">Адреса доставки</div>
+      <ul class="list-group list-group-flush">
+        {% for a in user.delivery_addresses.all %}
+        <li class="list-group-item">{% if a.label %}<span class="fw-bold">{{ a.label }}:</span> {% endif %}{{ a.address }}</li>
+        {% empty %}
+        <li class="list-group-item text-muted">Адреса не добавлены — можно указать при оформлении заказа.</li>
+        {% endfor %}
+      </ul>
     </div>
   </div>
 </div>

@@ -1,15 +1,18 @@
-"""Import / update Users from an Excel file (e.g. a debt export from 1C)."""
+"""Import / update Companies from an Excel file (e.g. a debt export from 1C).
+
+Rows are matched by ``Контрагент.Код`` and create/update a Company. Imported
+companies are not linked to a login account — that is done in the admin.
+"""
 
 import re
 from dataclasses import dataclass, field
 from decimal import Decimal, InvalidOperation
 
 import openpyxl
-from django.contrib.auth import get_user_model
 
-User = get_user_model()
+from .models import Company
 
-# Normalised header -> User field. Only "code" is required.
+# Normalised header -> Company field. Only "code" is required.
 COLUMN_ALIASES = {
     "контрагент.код": "code",
     "код": "code",
@@ -27,7 +30,7 @@ COLUMN_ALIASES = {
 
 
 @dataclass
-class UserImportResult:
+class ImportResult:
     created: int = 0
     updated: int = 0
     skipped: int = 0
@@ -61,8 +64,8 @@ def _decimal(value):
         return None
 
 
-def import_users(file):
-    result = UserImportResult()
+def import_companies(file):
+    result = ImportResult()
     ws = openpyxl.load_workbook(file, data_only=True).active
     rows = ws.iter_rows(values_only=True)
     try:
@@ -87,35 +90,31 @@ def import_users(file):
             result.skipped += 1
             continue
         try:
-            user = User.objects.filter(code=code).first()
-            creating = user is None
+            company = Company.objects.filter(code=code).first()
+            creating = company is None
             if creating:
-                username = code
-                suffix = 1
-                while User.objects.filter(username=username).exists():
-                    suffix += 1
-                    username = f"{code}-{suffix}"
-                user = User(username=username, code=code)
-                user.set_unusable_password()
+                company = Company(code=code)
 
             if "company_name" in values:
-                user.company_name = _text(values.get("company_name"))[:200]
+                company.company_name = _text(values.get("company_name"))[:200]
             if "inn" in values:
                 inn = re.sub(r"\D", "", _text(values.get("inn")))
                 if inn:
-                    user.inn = inn[:12]
-                    user.type = (
-                        User.Type.LEGAL if len(inn) == 10 else User.Type.INDIVIDUAL
+                    company.inn = inn[:12]
+                    company.type = (
+                        Company.Type.LEGAL
+                        if len(inn) == 10
+                        else Company.Type.INDIVIDUAL
                     )
             if "kpp" in values:
-                user.kpp = re.sub(r"\D", "", _text(values.get("kpp")))[:9]
+                company.kpp = re.sub(r"\D", "", _text(values.get("kpp")))[:9]
             if "address" in values:
-                user.address = _text(values.get("address"))[:255]
+                company.address = _text(values.get("address"))[:255]
             if "debt" in values:
                 d = _decimal(values.get("debt"))
-                user.debt = d if d is not None else Decimal("0")
+                company.debt = d if d is not None else Decimal("0")
 
-            user.save()
+            company.save()
             if creating:
                 result.created += 1
             else:

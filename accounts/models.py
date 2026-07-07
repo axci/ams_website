@@ -1,27 +1,16 @@
+from decimal import Decimal
+
 from django.contrib.auth.models import AbstractUser
 from django.db import models
 
 
 class User(AbstractUser):
-    """Site user. Buyers are non-staff users granted access to warehouses."""
+    """Site user. Buyers are non-staff users granted access to warehouses.
 
-    class Type(models.TextChoices):
-        LEGAL = "legal", "Юридическое лицо"
-        INDIVIDUAL = "individual", "Физическое лицо"
+    Buyer requisites (Код, ИНН, задолженность, …) live on related `Company`
+    records — a user may have several.
+    """
 
-    code = models.CharField("код", max_length=32, unique=True, blank=True, null=True)
-    type = models.CharField(
-        "тип", max_length=16, choices=Type.choices, default=Type.LEGAL, blank=True
-    )
-    inn = models.CharField("ИНН", max_length=12, blank=True, default="")
-    kpp = models.CharField("КПП", max_length=9, blank=True, default="")
-    address = models.CharField("адрес", max_length=255, blank=True, default="")
-    debt = models.DecimalField(
-        "задолженность", max_digits=12, decimal_places=2, default=0,
-        help_text="Заполняется выгрузкой/синхронизацией с ERP.",
-    )
-    company_name = models.CharField(max_length=200, blank=True)
-    phone = models.CharField(max_length=40, blank=True)
     manager = models.ForeignKey(
         "warehouses.Manager",
         on_delete=models.SET_NULL,
@@ -56,13 +45,6 @@ class User(AbstractUser):
         ),
     )
 
-    def save(self, *args, **kwargs):
-        # Store an empty code as NULL so multiple blank codes don't collide on
-        # the unique constraint.
-        if not self.code:
-            self.code = None
-        super().save(*args, **kwargs)
-
     def __str__(self):
         return self.get_full_name() or self.username
 
@@ -77,3 +59,70 @@ class User(AbstractUser):
         if self.is_staff or self.is_superuser:
             return Warehouse.objects.filter(is_active=True)
         return self.warehouses.filter(is_active=True)
+
+    def total_debt(self):
+        """Combined debt across all of the user's companies."""
+        return sum((c.debt for c in self.companies.all()), Decimal("0"))
+
+
+class Company(models.Model):
+    """A buyer's company / counterparty (Контрагент). One login (User) may have
+    several; imported companies may not be linked to a login yet."""
+
+    class Type(models.TextChoices):
+        LEGAL = "legal", "Юридическое лицо"
+        INDIVIDUAL = "individual", "Физическое лицо"
+
+    user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name="companies",
+        blank=True,
+        null=True,
+        verbose_name="аккаунт",
+        help_text="Личный кабинет, которому принадлежит компания.",
+    )
+    code = models.CharField("код", max_length=32, unique=True, blank=True, null=True)
+    type = models.CharField(
+        "тип", max_length=16, choices=Type.choices, default=Type.LEGAL, blank=True
+    )
+    inn = models.CharField("ИНН", max_length=12, blank=True, default="")
+    kpp = models.CharField("КПП", max_length=9, blank=True, default="")
+    address = models.CharField("адрес", max_length=255, blank=True, default="")
+    debt = models.DecimalField(
+        "задолженность", max_digits=12, decimal_places=2, default=0,
+        help_text="Заполняется выгрузкой/синхронизацией с ERP.",
+    )
+    company_name = models.CharField("название", max_length=200, blank=True)
+    phone = models.CharField("телефон", max_length=40, blank=True)
+
+    class Meta:
+        verbose_name = "компания"
+        verbose_name_plural = "компании"
+        ordering = ["company_name", "code"]
+
+    def save(self, *args, **kwargs):
+        if not self.code:
+            self.code = None
+        super().save(*args, **kwargs)
+
+    def __str__(self):
+        return self.company_name or self.code or f"Компания #{self.pk}"
+
+
+class DeliveryAddress(models.Model):
+    """A saved delivery address a buyer can pick at checkout."""
+
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name="delivery_addresses"
+    )
+    label = models.CharField("название", max_length=100, blank=True)
+    address = models.CharField("адрес", max_length=255)
+
+    class Meta:
+        verbose_name = "адрес доставки"
+        verbose_name_plural = "адреса доставки"
+        ordering = ["label", "address"]
+
+    def __str__(self):
+        return f"{self.label}: {self.address}" if self.label else self.address

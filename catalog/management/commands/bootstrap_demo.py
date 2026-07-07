@@ -45,12 +45,16 @@ class Command(BaseCommand):
 
         buyer, _ = User.objects.get_or_create(
             username="buyer",
-            defaults={"email": "buyer@example.com", "company_name": "Demo Buyer"},
+            defaults={"email": "buyer@example.com"},
         )
         buyer.set_password(buyer_pw)
         buyer.save()
         # Assign every warehouse so the demo buyer can see stock anywhere.
         buyer.warehouses.set(Warehouse.objects.all())
+        from accounts.models import Company
+
+        if not buyer.companies.exists():
+            Company.objects.create(user=buyer, company_name="Demo Buyer")
 
         self.stdout.write(self.style.SUCCESS("Demo bootstrap complete."))
         self.stdout.write(f"  admin / {admin_pw}  (staff)")
