@@ -96,13 +96,21 @@ class ProductAdmin(admin.ModelAdmin):
         "weight",
         "volume",
         "viscosity",
-        "price",
-        "vat_rate",
+        "is_picture",
+        "is_description",
         "is_active",
     )
     list_filter = (
         "brand", "category", "subcategory", "model_product", "viscosity", "vat_rate", "is_active"
     )
+
+    @admin.display(description="Фото", boolean=True)
+    def is_picture(self, obj):
+        return bool(obj.picture)
+
+    @admin.display(description="Описание", boolean=True)
+    def is_description(self, obj):
+        return bool(obj.description)
     search_fields = (
         "sku", "article", "manufacturer_number", "viscosity", "name", "description"
     )
