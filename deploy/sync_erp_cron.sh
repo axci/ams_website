@@ -1,7 +1,7 @@
 #!/bin/sh
-# Scheduled 1C (УНФ) -> catalog sync. Runs `manage.py sync_erp` and appends a
-# timestamped log. Must run on a machine on the office LAN (the one that can
-# reach the 1C service); the cloud cannot.
+# Scheduled 1C (УНФ) sync. Runs the product sync (sync_erp) and the debt sync
+# (sync_debts) and appends a timestamped log. Must run on a machine on the
+# office LAN (the one that can reach the 1C service); the cloud cannot.
 #
 # Schedule it at 08/10/12/14/16 every day, e.g. via crontab:
 #   0 8,10,12,14,16 * * * /full/path/to/deploy/sync_erp_cron.sh
@@ -22,6 +22,10 @@ LOG="$LOG_DIR/sync_erp.log"
 
 echo "===== $(date '+%Y-%m-%d %H:%M:%S %z') start =====" >> "$LOG"
 "$PROJECT_DIR/venv/bin/python" manage.py sync_erp "$@" >> "$LOG" 2>&1
-status=$?
-echo "===== $(date '+%Y-%m-%d %H:%M:%S %z') end (exit $status) =====" >> "$LOG"
+erp=$?
+"$PROJECT_DIR/venv/bin/python" manage.py sync_debts "$@" >> "$LOG" 2>&1
+debts=$?
+status=$erp
+[ "$debts" -ne 0 ] && status=$debts
+echo "===== $(date '+%Y-%m-%d %H:%M:%S %z') end (sync_erp=$erp sync_debts=$debts) =====" >> "$LOG"
 exit $status
