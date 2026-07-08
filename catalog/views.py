@@ -1,10 +1,18 @@
 import re
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
+from io import BytesIO
+from urllib.parse import quote
 
+import openpyxl
+from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import DecimalField, F, IntegerField, OuterRef, Q, Subquery, Value
 from django.db.models.functions import Coalesce
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
+from django.utils import timezone
+from openpyxl.styles import Alignment, Font
+from openpyxl.utils import get_column_letter
 
 from warehouses.availability import (
     annotate_availability,
@@ -172,6 +180,9 @@ def product_list(request):
     price_type = price_type_for_user(request.user)
     products = _with_effective_price(products, price_type)
 
+    # Explicit ordering: the Sum annotations above drop the model's default
+    # ordering, which would make pagination inconsistent.
+    products = products.order_by("name")
     paginator = Paginator(products, 12)
     page_obj = paginator.get_page(request.GET.get("page"))
 
@@ -250,3 +261,108 @@ def product_detail(request, pk):
         "recently_viewed": recently_viewed,
     }
     return render(request, "catalog/product_detail.html", context)
+
+
+def _filtered_products(request):
+    """Active products with the catalog GET-param filters applied."""
+    products = Product.objects.filter(is_active=True).select_related(
+        "brand", "category", "subcategory"
+    )
+    query = request.GET.get("q", "").strip()
+    if query:
+        products = products.filter(
+            Q(name__icontains=query)
+            | Q(sku__icontains=query)
+            | Q(article__icontains=query)
+            | Q(manufacturer_number__icontains=query)
+            | Q(brand__name__icontains=query)
+            | Q(description__icontains=query)
+        )
+    brand_slug = request.GET.get("brand", "")
+    if brand_slug:
+        products = products.filter(brand__slug=brand_slug)
+    category_id = request.GET.get("category", "")
+    if category_id.isdigit():
+        products = products.filter(category_id=category_id)
+    subcategory_id = request.GET.get("subcategory", "")
+    if subcategory_id.isdigit():
+        products = products.filter(subcategory_id=subcategory_id)
+    volume_value = request.GET.get("volume", "")
+    if volume_value and "|" in volume_value:
+        raw_value, _, raw_unit = volume_value.partition("|")
+        try:
+            products = products.filter(volume=Decimal(raw_value), volume_unit=raw_unit)
+        except (InvalidOperation, ValueError):
+            pass
+    viscosity_value = request.GET.get("viscosity", "")
+    if viscosity_value:
+        products = products.filter(viscosity=viscosity_value)
+    return products
+
+
+@login_required
+def product_price_xlsx(request):
+    """Download the (optionally filtered) catalog as an Excel price list.
+
+    Columns: Наименование, Артикул, Бренд, Категория, Подкатегория,
+    Количество (stock in the buyer's own warehouse), Цена (their price type).
+    """
+    own_ids = own_warehouse_ids(request.user)
+    price_type = price_type_for_user(request.user)
+    products = _filtered_products(request)
+    products = annotate_availability(products, own_ids)
+    products = _with_effective_price(products, price_type)
+    if request.GET.get("in_stock") == "1":
+        products = products.filter(total_qty__gt=0)
+    products = products.order_by(
+        "brand__name", "category__name", "subcategory__name", "name"
+    )
+
+    today = timezone.localdate().strftime("%d.%m.%Y")
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Прайс"
+    headers = [
+        "Наименование", "Артикул", "Бренд", "Категория",
+        "Подкатегория", "Количество", "Цена",
+    ]
+    # Title row spanning all columns.
+    ws.append([f"Прайс Автомеханика-Сибирь по состоянию на {today}"])
+    ws.merge_cells(start_row=1, start_column=1, end_row=1, end_column=len(headers))
+    title = ws.cell(row=1, column=1)
+    title.font = Font(bold=True, size=14)
+    title.alignment = Alignment(horizontal="left", vertical="center")
+    ws.row_dimensions[1].height = 22
+    # Column headers on the second row.
+    ws.append(headers)
+    for cell in ws[2]:
+        cell.font = Font(bold=True)
+    ws.freeze_panes = "A3"
+
+    for p in products.iterator():
+        ws.append([
+            p.name,
+            p.article,
+            p.brand.name if p.brand_id else "",
+            p.category.name if p.category_id else "",
+            p.subcategory.name if p.subcategory_id else "",
+            p.own_qty,
+            float(p.effective_price or 0),
+        ])
+    for i, w in enumerate([45, 16, 18, 20, 20, 12, 12], start=1):
+        ws.column_dimensions[get_column_letter(i)].width = w
+
+    bio = BytesIO()
+    wb.save(bio)
+    resp = HttpResponse(
+        bio.getvalue(),
+        content_type=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ),
+    )
+    fname = f"прайс_амс_{today}.xlsx"
+    resp["Content-Disposition"] = (
+        f"attachment; filename=\"price.xlsx\"; filename*=UTF-8''{quote(fname)}"
+    )
+    return resp
