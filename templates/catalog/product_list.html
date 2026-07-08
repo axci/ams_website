@@ -127,6 +127,7 @@
       {% for product in page_obj %}
       <div class="col">
         <div class="card h-100 shadow-sm">
+          <a href="{{ product.get_absolute_url }}" class="d-block">
           {% if product.picture_thumb %}
           <img src="{{ product.picture_thumb.url }}" class="card-img-top product-thumb p-2" alt="{{ product.name }}" loading="lazy">
           {% elif product.picture %}
@@ -134,6 +135,7 @@
           {% else %}
           <div class="product-thumb-placeholder"><i class="bi bi-image"></i></div>
           {% endif %}
+          </a>
           <div class="card-body d-flex flex-column">
             <div class="small text-muted">{{ product.brand.name }}</div>
             <h2 class="h6 mb-1"><a href="{{ product.get_absolute_url }}" class="text-decoration-none text-dark">{{ product.name }}</a></h2>
