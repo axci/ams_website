@@ -15,7 +15,7 @@
     <table class="table table-hover align-middle mb-0">
       <thead class="table-light">
         <tr>
-          <th>№</th><th>Дата</th><th>Склад</th><th>Статус</th><th class="text-end">Сумма</th><th></th>
+          <th>№</th><th>Дата</th><th>Компания</th><th>Склад</th><th>Статус</th><th class="text-end">Сумма</th><th></th>
         </tr>
       </thead>
       <tbody>
@@ -23,6 +23,7 @@
         <tr>
           <td>№{{ order.pk }}</td>
           <td>{{ order.created_at|date:"d.m.Y H:i" }}</td>
+          <td>{{ order.company|default:"—" }}</td>
           <td>{{ order.warehouse.name }}</td>
           <td><span class="badge text-bg-secondary">{{ order.get_status_display }}</span></td>
           <td class="text-end">{{ order.total|rubles }}</td>

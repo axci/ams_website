@@ -197,7 +197,7 @@ def checkout(request):
 
 @login_required
 def order_list(request):
-    orders = request.user.orders.select_related("warehouse")
+    orders = request.user.orders.select_related("warehouse", "company")
     return render(request, "orders/order_list.html", {"orders": orders})
 
 
