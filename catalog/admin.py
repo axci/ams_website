@@ -1,7 +1,9 @@
 from django.contrib import admin, messages
+from django.db import models
 from django.shortcuts import redirect, render
 from django.urls import path
 from django.utils.html import format_html
+from tinymce.widgets import TinyMCE
 
 from warehouses.models import Stock
 
@@ -116,6 +118,7 @@ class ProductAdmin(admin.ModelAdmin):
     )
     autocomplete_fields = ("brand", "category", "subcategory", "model_product")
     inlines = [ProductPriceInline, ProductStockInline]
+    formfield_overrides = {models.TextField: {"widget": TinyMCE()}}
 
     def get_urls(self):
         custom = [

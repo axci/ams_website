@@ -106,7 +106,7 @@
 
     {% if product.description %}
     <h2 class="h6">Описание</h2>
-    <p class="text-body-secondary" style="white-space: pre-line;">{{ product.description }}</p>
+    <div class="text-body-secondary rich-text" style="white-space: pre-line;">{{ product.description|safe }}</div>
     {% endif %}
   </div>
 </div>
