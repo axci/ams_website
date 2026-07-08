@@ -7,9 +7,12 @@
 {% for item in order.items.all %}  - {{ item.name }} (арт. {{ item.product.article }}) — {{ item.quantity }} x {{ item.price|rubles }} = {{ item.subtotal|rubles }}
 {% endfor %}
 Итого: {{ order.total|rubles }}
-{% if order.shipping_address %}
+{% if order.company %}
+Компания: {{ order.company }}{% endif %}{% if order.shipping_address %}
 Адрес доставки: {{ order.shipping_address }}{% endif %}{% if order.comment %}
 Комментарий: {{ order.comment }}{% endif %}
+
+Счёт на оплату — во вложенном файле Excel.
 
 Мы свяжемся с вами для подтверждения.
 

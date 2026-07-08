@@ -4,7 +4,7 @@ from django.conf import settings
 from django.core.mail import EmailMessage
 from django.template.loader import render_to_string
 
-from .invoices import build_order_items_xlsx
+from .invoices import build_invoice_xlsx, build_order_items_xlsx
 
 logger = logging.getLogger(__name__)
 
@@ -59,13 +59,19 @@ def send_order_confirmation(order):
     subject = f"Ваш заказ №{order.pk} принят"
     body = render_to_string("orders/email/order_confirmation.txt", {"order": order})
     reply_to = [order.warehouse.email] if order.warehouse.email else None
-    EmailMessage(
+    email = EmailMessage(
         subject=subject,
         body=body,
         from_email=settings.DEFAULT_FROM_EMAIL,
         to=[buyer_email],
         reply_to=reply_to,
-    ).send()
+    )
+    email.attach(
+        f"Счёт №{order.invoice_number}.xlsx",
+        build_invoice_xlsx(order),
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    )
+    email.send()
     return True
 
 
