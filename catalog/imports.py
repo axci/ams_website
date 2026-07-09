@@ -3,7 +3,8 @@
 The first row is the header. Recognised product columns (case-insensitive):
 
     sku, article, name, category, subcategory, model product (model_product),
-    weight, volume, manufacturer number (manufacturer_number), price, brand
+    weight, volume, viscosity, description (описание),
+    manufacturer number (manufacturer_number), price, brand
 
 A header that matches a price type name («Розничные», «Крупный ОПТ», …) fills
 that type's per-product price. Any other non-empty header is treated as a
@@ -55,6 +56,8 @@ FIELD_ALIASES = {
     "единица объёма": "volume_unit",
     "viscosity": "viscosity",
     "вязкость": "viscosity",
+    "description": "description",
+    "описание": "description",
     "manufacturer number": "manufacturer_number",
     "manufacturer_number": "manufacturer_number",
     "price": "price",
@@ -297,6 +300,8 @@ def import_products(file_obj, default_brand=None):
                     defaults["volume_unit"] = vu
             if "viscosity" in values:
                 defaults["viscosity"] = _viscosity(values.get("viscosity"))
+            if "description" in values:
+                defaults["description"] = _text(values.get("description"))
 
             # A new product needs a name even if the file omits the column.
             if "name" not in defaults and not Product.objects.filter(sku=sku).exists():
