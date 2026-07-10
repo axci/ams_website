@@ -82,6 +82,9 @@ def _recently_viewed(request, price_type, exclude_pk=None, limit=RECENT_SHOW):
     return result
 
 
+PER_PAGE_OPTIONS = (12, 50, 100)
+
+
 def product_list(request):
     # Public page: anyone may browse. Stock (across all warehouses) is revealed
     # to any logged-in buyer; `warehouse` is their own warehouse for ordering.
@@ -183,7 +186,13 @@ def product_list(request):
     # Explicit ordering: the Sum annotations above drop the model's default
     # ordering, which would make pagination inconsistent.
     products = products.order_by("name")
-    paginator = Paginator(products, 12)
+    try:
+        per_page = int(request.GET.get("per_page", PER_PAGE_OPTIONS[0]))
+    except (TypeError, ValueError):
+        per_page = PER_PAGE_OPTIONS[0]
+    if per_page not in PER_PAGE_OPTIONS:
+        per_page = PER_PAGE_OPTIONS[0]
+    paginator = Paginator(products, per_page)
     page_obj = paginator.get_page(request.GET.get("page"))
 
     # Show the rotating banner only on the clean landing page (no search/filter).
@@ -211,6 +220,8 @@ def product_list(request):
         "selected_viscosity": viscosity_value,
         "selected_in_stock": "1" if in_stock else "",
         "price_type": price_type,
+        "per_page": per_page,
+        "per_page_options": PER_PAGE_OPTIONS,
         "recently_viewed": _recently_viewed(request, price_type),
     }
     return render(request, "catalog/product_list.html", context)
