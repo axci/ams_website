@@ -129,16 +129,6 @@
 
   <div class="col-lg-9">
     {% if page_obj %}
-    {% with flt="q="|add:query|add:"&brand="|add:selected_brand|add:"&category="|add:selected_category|add:"&subcategory="|add:selected_subcategory|add:"&volume="|add:selected_volume|add:"&viscosity="|add:selected_viscosity|add:"&in_stock="|add:selected_in_stock %}
-    <div class="d-flex justify-content-end align-items-center mb-2 gap-2">
-      <span class="small text-muted">Показывать по:</span>
-      <div class="btn-group btn-group-sm" role="group">
-        {% for opt in per_page_options %}
-        <a href="?{{ flt }}&per_page={{ opt }}" class="btn btn-outline-secondary {% if per_page == opt %}active{% endif %}">{{ opt }}</a>
-        {% endfor %}
-      </div>
-    </div>
-    {% endwith %}
     <div class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-3">
       {% for product in page_obj %}
       {% include 'catalog/_product_card.html' %}
@@ -147,9 +137,20 @@
       {% endfor %}
     </div>
 
+    {% with flt="q="|add:query|add:"&brand="|add:selected_brand|add:"&category="|add:selected_category|add:"&subcategory="|add:selected_subcategory|add:"&volume="|add:selected_volume|add:"&viscosity="|add:selected_viscosity|add:"&in_stock="|add:selected_in_stock %}
+    <div class="d-flex justify-content-center align-items-center mt-4 mb-2 gap-2">
+      <span class="text-muted">Показывать по:</span>
+      <div class="btn-group btn-group-sm" role="group">
+        {% for opt in per_page_options %}
+        <a href="?{{ flt }}&per_page={{ opt }}" class="btn btn-outline-secondary {% if per_page == opt %}active{% endif %}">{{ opt }}</a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endwith %}
+
     {% if page_obj.paginator.num_pages > 1 %}
     {% with qs="q="|add:query|add:"&brand="|add:selected_brand|add:"&category="|add:selected_category|add:"&subcategory="|add:selected_subcategory|add:"&volume="|add:selected_volume|add:"&viscosity="|add:selected_viscosity|add:"&in_stock="|add:selected_in_stock %}
-    <nav class="mt-4">
+    <nav class="mb-4">
       <ul class="pagination justify-content-center">
         {% if page_obj.has_previous %}
         <li class="page-item"><a class="page-link" href="?{{ qs }}&per_page={{ per_page }}&page={{ page_obj.previous_page_number }}">Назад</a></li>
