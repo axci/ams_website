@@ -1,0 +1,19 @@
+{% extends 'base.html' %}
+{% block title %}Избранное — Автомеханика-Сибирь{% endblock %}
+
+{% block content %}
+<h1 class="h4 mb-3"><i class="bi bi-heart-fill text-danger"></i> Избранное</h1>
+
+{% if products %}
+<div class="row row-cols-1 row-cols-sm-2 row-cols-xl-3 g-3">
+  {% for product in products %}
+  {% include 'catalog/_product_card.html' %}
+  {% endfor %}
+</div>
+{% else %}
+<div class="alert alert-info">
+  В избранном пока пусто. Добавляйте товары кнопкой <i class="bi bi-heart"></i> в каталоге и на странице товара.
+  <a href="{% url 'catalog:product_list' %}">Перейти в каталог</a>.
+</div>
+{% endif %}
+{% endblock %}

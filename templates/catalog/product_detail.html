@@ -11,7 +11,16 @@
 
 <div class="row g-4">
   <div class="col-md-5">
-    <div class="card shadow-sm">
+    <div class="card shadow-sm position-relative">
+      {% if user.is_authenticated %}
+      <form method="post" action="{% url 'orders:toggle_favorite' product.pk %}" class="position-absolute top-0 end-0 m-2" style="z-index:2">
+        {% csrf_token %}
+        <input type="hidden" name="next" value="{{ request.get_full_path }}">
+        <button type="submit" class="btn btn-light rounded-circle shadow-sm" title="{% if product.pk in favorite_ids %}Убрать из избранного{% else %}В избранное{% endif %}">
+          <i class="bi fs-5 {% if product.pk in favorite_ids %}bi-heart-fill text-danger{% else %}bi-heart{% endif %}"></i>
+        </button>
+      </form>
+      {% endif %}
       <div class="card-body text-center">
         {% if product.picture %}
         <img src="{{ product.picture.url }}" class="img-fluid product-detail-img" alt="{{ product.name }}">

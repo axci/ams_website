@@ -18,6 +18,12 @@ urlpatterns = [
         name="remove_from_cart",
     ),
     path("checkout/", views.checkout, name="checkout"),
+    path("favorites/", views.wishlist, name="wishlist"),
+    path(
+        "favorites/toggle/<int:product_id>/",
+        views.toggle_favorite,
+        name="toggle_favorite",
+    ),
     path("orders/", views.order_list, name="order_list"),
     path("orders/<int:pk>/", views.order_detail, name="order_detail"),
     path("orders/<int:pk>/invoice/", views.order_invoice, name="order_invoice"),

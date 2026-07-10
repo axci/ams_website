@@ -9,14 +9,19 @@ from django.views.decorators.http import require_POST
 
 from accounts.models import DeliveryAddress
 from catalog.models import Product
-from warehouses.availability import available_map, own_warehouse_ids
+from catalog.pricing import price_type_for_user
+from warehouses.availability import (
+    annotate_availability,
+    available_map,
+    own_warehouse_ids,
+)
 from warehouses.models import Stock
 from warehouses.selection import get_current_warehouse
 
 from .emails import send_order_emails
 from .forms import CheckoutForm
 from .invoices import build_invoice_xlsx
-from .models import CartItem, Order, OrderItem
+from .models import CartItem, Favorite, Order, OrderItem
 from .utils import get_or_create_cart
 
 
@@ -229,3 +234,55 @@ def order_invoice(request, pk):
         f"filename*=UTF-8''{quote(filename)}"
     )
     return response
+
+
+@login_required
+@require_POST
+def toggle_favorite(request, product_id):
+    product = get_object_or_404(Product, pk=product_id, is_active=True)
+    fav = Favorite.objects.filter(user=request.user, product=product).first()
+    if fav:
+        fav.delete()
+        messages.info(request, f"{product.name} удалён из избранного.")
+    else:
+        Favorite.objects.create(user=request.user, product=product)
+        messages.success(request, f"{product.name} добавлен в избранное.")
+    return redirect(request.POST.get("next") or "orders:wishlist")
+
+
+@login_required
+def wishlist(request):
+    warehouse = get_current_warehouse(request)
+    own_ids = own_warehouse_ids(request.user)
+    price_type = price_type_for_user(request.user)
+    fav_ids = list(
+        request.user.favorites.order_by("-created_at").values_list(
+            "product_id", flat=True
+        )
+    )
+    by_id = {
+        p.pk: p
+        for p in annotate_availability(
+            Product.objects.filter(pk__in=fav_ids, is_active=True).select_related(
+                "brand"
+            ),
+            own_ids,
+        )
+    }
+    products = []
+    for pid in fav_ids:  # preserve "newest first" order
+        product = by_id.get(pid)
+        if product is not None:
+            product.effective_price = product.price_for(price_type)
+            products.append(product)
+    return render(
+        request,
+        "orders/wishlist.html",
+        {
+            "products": products,
+            "show_stock": True,
+            "warehouse": warehouse,
+            "favorite_ids": set(fav_ids),
+            "price_type": price_type,
+        },
+    )

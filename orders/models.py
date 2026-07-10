@@ -119,3 +119,26 @@ class OrderItem(models.Model):
         if self.price is None or self.quantity is None:
             return None
         return self.price * self.quantity
+
+
+class Favorite(models.Model):
+    """A product saved to a user's wishlist (Избранное)."""
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="favorites"
+    )
+    product = models.ForeignKey(
+        "catalog.Product", on_delete=models.CASCADE, related_name="favorited_by"
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "product"], name="unique_user_favorite"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.user} ♥ {self.product_id}"

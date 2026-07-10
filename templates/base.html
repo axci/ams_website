@@ -56,6 +56,17 @@
         {% endif %}
 
         <li class="nav-item me-lg-2">
+          <a class="nav-link position-relative" href="{% url 'orders:wishlist' %}">
+            <i class="bi bi-heart"></i> Избранное
+            {% if favorites_count %}
+            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+              {{ favorites_count }}
+            </span>
+            {% endif %}
+          </a>
+        </li>
+
+        <li class="nav-item me-lg-2">
           <a class="nav-link position-relative" href="{% url 'orders:cart' %}">
             <i class="bi bi-cart3"></i> Корзина
             {% if nav_cart and nav_cart.items_count %}

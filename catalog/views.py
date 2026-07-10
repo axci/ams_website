@@ -85,6 +85,13 @@ def _recently_viewed(request, price_type, exclude_pk=None, limit=RECENT_SHOW):
 PER_PAGE_OPTIONS = (12, 50, 100)
 
 
+def _favorite_ids(user):
+    """Product ids in the user's wishlist (empty set for guests)."""
+    if not getattr(user, "is_authenticated", False):
+        return set()
+    return set(user.favorites.values_list("product_id", flat=True))
+
+
 def product_list(request):
     # Public page: anyone may browse. Stock (across all warehouses) is revealed
     # to any logged-in buyer; `warehouse` is their own warehouse for ordering.
@@ -222,6 +229,7 @@ def product_list(request):
         "price_type": price_type,
         "per_page": per_page,
         "per_page_options": PER_PAGE_OPTIONS,
+        "favorite_ids": _favorite_ids(request.user),
         "recently_viewed": _recently_viewed(request, price_type),
     }
     return render(request, "catalog/product_list.html", context)
@@ -269,6 +277,7 @@ def product_detail(request, pk):
         "variants": variants,
         "price": price,
         "price_type": price_type,
+        "favorite_ids": _favorite_ids(request.user),
         "recently_viewed": recently_viewed,
     }
     return render(request, "catalog/product_detail.html", context)
