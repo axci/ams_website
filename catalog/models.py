@@ -140,7 +140,7 @@ class Product(models.Model):
         decimal_places=3,
         blank=True,
         null=True,
-        help_text="Weight in kg.",
+        help_text="Вес в указанной единице измерения",
     )
     weight_unit = models.CharField(
         "единица измерения веса", max_length=16, default="кг", blank=True
@@ -150,7 +150,7 @@ class Product(models.Model):
         decimal_places=3,
         blank=True,
         null=True,
-        help_text="Volume in litres.",
+        help_text="Объём в указанной единице измерения",
     )
     volume_unit = models.CharField(
         "единица измерения объёма", max_length=16, default="л", blank=True
@@ -159,7 +159,7 @@ class Product(models.Model):
         max_length=20,
         blank=True,
         db_index=True,
-        help_text="Например: 5W-30, 0W-20 (только для подходящих товаров).",
+        help_text="Например: 5W30, 0W20 (только для подходящих товаров).",
     )
     picture = models.ImageField(upload_to="products/", blank=True, null=True)
     picture_thumb = models.ImageField(
