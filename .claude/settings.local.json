@@ -145,7 +145,12 @@
       "Bash(curl -s -m 20 -o /dev/null -w '%{http_code}' https://ams-demo-hck2.onrender.com/admin/accounts/user/)",
       "Bash(echo \"admin \\(unauth → 302 login is expected\\): $\\(curl -s -m 20 -o /dev/null -w '%{http_code}' https://ams-demo-hck2.onrender.com/admin/accounts/user/\\)\")",
       "Bash(git ls-files *)",
-      "Bash(./venv/bin/python manage.py showmigrations orders)"
+      "Bash(./venv/bin/python manage.py showmigrations orders)",
+      "Bash(./venv/bin/python -c \"import PIL; print\\('Pillow', PIL.__version__\\)\")",
+      "Bash(./venv/bin/python -c \"import cairosvg; print\\('cairosvg ok'\\)\")",
+      "Bash(./venv/bin/python -)",
+      "Bash(./venv/bin/python /private/tmp/claude-501/-Users-maxim-Pipelines-Projects-ams-website/5a42e493-c2fb-4a8a-9d67-d21eea45911c/scratchpad/gen_favicon.py /private/tmp/claude-501/-Users-maxim-Pipelines-Projects-ams-website/5a42e493-c2fb-4a8a-9d67-d21eea45911c/scratchpad)",
+      "Bash(./venv/bin/python manage.py collectstatic --dry-run --noinput)"
     ]
   }
 }
