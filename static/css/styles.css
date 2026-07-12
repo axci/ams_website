@@ -1,6 +1,58 @@
 :root {
   /* Navy background of the logo; sampled from static/img/logo.png. */
   --brand-navy: #0f1b3b;
+
+  /* Brand accent replacing Bootstrap's default blue (c100m78y0k54). */
+  --brand-blue: #001a75;
+  --brand-blue-hover: #00155e;
+  --brand-blue-active: #001350;
+
+  --bs-primary: var(--brand-blue);
+  --bs-primary-rgb: 0, 26, 117;
+  --bs-link-color: var(--brand-blue);
+  --bs-link-color-rgb: 0, 26, 117;
+  --bs-link-hover-color: var(--brand-blue-active);
+  --bs-link-hover-color-rgb: 0, 19, 80;
+}
+
+/* Filled primary buttons: Применить, Добавить в корзину, Войти … */
+.btn-primary {
+  --bs-btn-bg: var(--brand-blue);
+  --bs-btn-border-color: var(--brand-blue);
+  --bs-btn-hover-bg: var(--brand-blue-hover);
+  --bs-btn-hover-border-color: var(--brand-blue-active);
+  --bs-btn-active-bg: var(--brand-blue-active);
+  --bs-btn-active-border-color: var(--brand-blue-active);
+  --bs-btn-disabled-bg: var(--brand-blue);
+  --bs-btn-disabled-border-color: var(--brand-blue);
+}
+
+/* Outline primary buttons: catalog card "В корзину", variant chips … */
+.btn-outline-primary {
+  --bs-btn-color: var(--brand-blue);
+  --bs-btn-border-color: var(--brand-blue);
+  --bs-btn-hover-bg: var(--brand-blue);
+  --bs-btn-hover-border-color: var(--brand-blue);
+  --bs-btn-active-bg: var(--brand-blue);
+  --bs-btn-active-border-color: var(--brand-blue);
+  --bs-btn-disabled-color: var(--brand-blue);
+  --bs-btn-disabled-border-color: var(--brand-blue);
+}
+
+/* Link-style buttons: Сбросить фильтры … */
+.btn-link {
+  --bs-btn-color: var(--brand-blue);
+  --bs-btn-hover-color: var(--brand-blue-active);
+  --bs-btn-active-color: var(--brand-blue-active);
+}
+
+/* Pagination: Назад / Следующая */
+.pagination {
+  --bs-pagination-color: var(--brand-blue);
+  --bs-pagination-hover-color: var(--brand-blue-active);
+  --bs-pagination-focus-color: var(--brand-blue-active);
+  --bs-pagination-active-bg: var(--brand-blue);
+  --bs-pagination-active-border-color: var(--brand-blue);
 }
 
 .brand-navbar {
