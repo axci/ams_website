@@ -104,12 +104,12 @@ class ModelProduct(models.Model):
 
 class Product(models.Model):
     # Unique identifier for the product.
-    sku = models.CharField("SKU", max_length=64, unique=True, db_index=True)
+    sku = models.CharField("Код 1С", max_length=64, unique=True, db_index=True)
     # Additional, non-unique references.
-    article = models.CharField(max_length=64, db_index=True)
-    manufacturer_number = models.CharField(max_length=64, blank=True, db_index=True)
+    article = models.CharField("артикул", max_length=64, db_index=True)
+    manufacturer_number = models.CharField("Номер производителя", max_length=64, blank=True, db_index=True)
 
-    name = models.CharField(max_length=200)
+    name = models.CharField("наименование", max_length=200)
     slug = models.SlugField(max_length=220, blank=True, allow_unicode=True)
     brand = models.ForeignKey(
         Brand, on_delete=models.PROTECT, related_name="products"
@@ -136,6 +136,7 @@ class Product(models.Model):
         null=True,
     )
     weight = models.DecimalField(
+        "вес",
         max_digits=10,
         decimal_places=3,
         blank=True,
@@ -146,6 +147,7 @@ class Product(models.Model):
         "единица измерения веса", max_length=16, default="кг", blank=True
     )
     volume = models.DecimalField(
+        "объём",
         max_digits=10,
         decimal_places=3,
         blank=True,
@@ -156,16 +158,17 @@ class Product(models.Model):
         "единица измерения объёма", max_length=16, default="л", blank=True
     )
     viscosity = models.CharField(
+        "вязкость",
         max_length=20,
         blank=True,
         db_index=True,
         help_text="Например: 5W30, 0W20 (только для подходящих товаров).",
     )
-    picture = models.ImageField(upload_to="products/", blank=True, null=True)
+    picture = models.ImageField("изображение", upload_to="products/", blank=True, null=True)
     picture_thumb = models.ImageField(
         upload_to="products/thumbs/", blank=True, null=True, editable=False
     )
-    description = models.TextField(blank=True)
+    description = models.TextField("описание", blank=True)
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     vat_rate = models.DecimalField(
         "ставка НДС, %", max_digits=5, decimal_places=2, default=22
@@ -176,6 +179,8 @@ class Product(models.Model):
 
     class Meta:
         ordering = ["name"]
+        verbose_name = "товар"
+        verbose_name_plural = "товары"
 
     def __str__(self):
         return f"{self.sku} — {self.name}"
