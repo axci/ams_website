@@ -1,22 +1,41 @@
 {% extends 'base.html' %}
-{% block title %}Регистрация{% endblock %}
+{% block title %}Регистрация — Автомеханика-Сибирь{% endblock %}
 
 {% block content %}
 <div class="card auth-card shadow-sm">
   <div class="card-body p-4">
-    <h1 class="h4 mb-3">Регистрация покупателя</h1>
-    <form method="post">
-      {% csrf_token %}
-      {% for field in form %}
-      <div class="mb-3">
-        <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
-        {{ field }}
-        {% if field.help_text %}<div class="form-text">{{ field.help_text|safe }}</div>{% endif %}
-        {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
-      </div>
-      {% endfor %}
-      <button class="btn btn-primary w-100" type="submit">Зарегистрироваться</button>
-    </form>
+    <h1 class="h4 mb-3">Регистрация</h1>
+    <p class="mb-3">Для регистрации, пожалуйста, обратитесь к менеджеру:</p>
+    {% if warehouses %}
+    <div class="table-responsive">
+      <table class="table table-sm align-middle mb-0">
+        <thead>
+          <tr>
+            <th scope="col">Склад</th>
+            <th scope="col">Телефон</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for w in warehouses %}
+          <tr>
+            <td>{{ w.name }}</td>
+            <td>
+              {% if w.phone %}
+              <a href="tel:{{ w.phone }}" class="link-body-emphasis text-decoration-none">{{ w.phone }}</a>
+              {% else %}
+              <span class="text-muted">—</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <p class="text-muted mb-0">
+      Свяжитесь с нами через страницу <a href="{% url 'warehouses:contacts' %}">Контакты</a>.
+    </p>
+    {% endif %}
     <p class="text-center mt-3 mb-0 small">Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a></p>
   </div>
 </div>

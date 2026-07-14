@@ -1,27 +1,13 @@
-from django.contrib import messages
-from django.contrib.auth import login
 from django.contrib.auth.decorators import login_required
-from django.shortcuts import redirect, render
+from django.shortcuts import render
 
-from .forms import RegisterForm
+from warehouses.models import Warehouse
 
 
 def register(request):
-    if request.user.is_authenticated:
-        return redirect("catalog:product_list")
-    if request.method == "POST":
-        form = RegisterForm(request.POST)
-        if form.is_valid():
-            user = form.save()
-            login(request, user)
-            messages.info(
-                request,
-                "Добро пожаловать! Администратор скоро откроет вам доступ к складам.",
-            )
-            return redirect("catalog:product_list")
-    else:
-        form = RegisterForm()
-    return render(request, "registration/register.html", {"form": form})
+    """Self-registration is disabled — direct visitors to a warehouse manager."""
+    warehouses = Warehouse.objects.filter(is_active=True).order_by("name")
+    return render(request, "registration/register.html", {"warehouses": warehouses})
 
 
 @login_required
