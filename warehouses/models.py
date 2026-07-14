@@ -5,6 +5,7 @@ class Warehouse(models.Model):
     name = models.CharField(max_length=120)
     code = models.CharField(max_length=32, unique=True)
     address = models.CharField(max_length=255, blank=True)
+    phone = models.CharField(max_length=40, blank=True)
     email = models.EmailField(
         blank=True, help_text="Orders placed for this warehouse are emailed here."
     )

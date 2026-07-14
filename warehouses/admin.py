@@ -7,9 +7,9 @@ from .models import Manager, Stock, Warehouse
 
 @admin.register(Warehouse)
 class WarehouseAdmin(admin.ModelAdmin):
-    list_display = ("name", "code", "email", "stock_count", "is_active")
+    list_display = ("name", "code", "phone", "email", "stock_count", "is_active")
     list_filter = ("is_active",)
-    search_fields = ("name", "code")
+    search_fields = ("name", "code", "phone")
     filter_horizontal = ("managers",)
     readonly_fields = ("stock_link",)
 
