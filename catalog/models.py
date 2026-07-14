@@ -106,7 +106,7 @@ class Product(models.Model):
     # Unique identifier for the product.
     sku = models.CharField("Код 1С", max_length=64, unique=True, db_index=True)
     # Additional, non-unique references.
-    article = models.CharField("артикул", max_length=64, db_index=True)
+    article = models.CharField("артикул", max_length=64, blank=True, db_index=True)
     manufacturer_number = models.CharField("Номер производителя", max_length=64, blank=True, db_index=True)
 
     name = models.CharField("наименование", max_length=200)
