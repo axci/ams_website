@@ -154,7 +154,9 @@
       "Bash(./venv/bin/python manage.py sqlmigrate catalog 0016)",
       "Bash(./venv/bin/python manage.py makemigrations catalog --dry-run)",
       "Bash(./venv/bin/python manage.py sqlmigrate warehouses 0006)",
-      "Bash(./venv/bin/python manage.py makemigrations --check --dry-run accounts)"
+      "Bash(./venv/bin/python manage.py makemigrations --check --dry-run accounts)",
+      "Bash(./venv/bin/python manage.py makemigrations --check --dry-run orders)",
+      "Bash(./venv/bin/python manage.py sqlmigrate orders 0005)"
     ]
   }
 }
