@@ -1,0 +1,14 @@
+Заказ №{{ order.pk }} от {{ order.created_at|date:"d.m.Y H:i" }} отменён покупателем.
+
+Склад: {{ order.warehouse.name }} ({{ order.warehouse.code }})
+
+Покупатель: {{ order.user.get_full_name|default:order.user.username }}{% if order.company %} ({{ order.company.company_name }}){% endif %}
+Эл. почта: {{ order.user.email|default:"—" }}
+Телефон: {{ order.company.phone|default:"—" }}
+
+Состав отменённого заказа:
+{% for item in order.items.all %}  — {{ item.name }} | арт. {{ item.product.article }} | SKU {{ item.sku }} | {{ item.quantity }} × {{ item.price|rubles }} = {{ item.subtotal|rubles }}
+{% endfor %}
+Итого: {{ order.total|rubles }}
+
+Товары по этому заказу больше не зарезервированы — при необходимости верните их в остатки.

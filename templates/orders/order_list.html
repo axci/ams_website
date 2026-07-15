@@ -30,6 +30,14 @@
           <td class="text-end">
             <a class="btn btn-sm btn-outline-success" href="{% url 'orders:order_invoice' order.pk %}" title="Скачать счёт"><i class="bi bi-download"></i></a>
             <a class="btn btn-sm btn-outline-primary" href="{% url 'orders:order_detail' order.pk %}">Открыть</a>
+            {% if order.is_cancellable %}
+            <form method="post" action="{% url 'orders:cancel_order' order.pk %}" class="d-inline"
+                  onsubmit="return confirm('Отменить заказ №{{ order.pk }}? Это действие необратимо.');">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{% url 'orders:order_list' %}">
+              <button type="submit" class="btn btn-sm btn-outline-danger" title="Отменить заказ"><i class="bi bi-x-circle"></i></button>
+            </form>
+            {% endif %}
           </td>
         </tr>
         {% endfor %}

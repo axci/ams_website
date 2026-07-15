@@ -75,6 +75,34 @@ def send_order_confirmation(order):
     return True
 
 
+def send_order_cancellation(order):
+    """Notify the warehouse that the buyer cancelled a pending order.
+
+    Returns True if an email was sent, False if the warehouse has no email.
+    """
+    warehouse = order.warehouse
+    if not warehouse.email:
+        logger.warning(
+            "Order #%s: warehouse %s has no email set; cancellation notice skipped.",
+            order.pk,
+            warehouse.code,
+        )
+        return False
+
+    subject = f"Заказ №{order.pk} отменён покупателем — {warehouse.name}"
+    body = render_to_string("orders/email/order_cancellation.txt", {"order": order})
+    reply_to = [order.user.email] if order.user.email else None
+    email = EmailMessage(
+        subject=subject,
+        body=body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[warehouse.email],
+        reply_to=reply_to,
+    )
+    email.send()
+    return True
+
+
 def send_order_emails(order):
     """Send the warehouse notification and the buyer confirmation.
 

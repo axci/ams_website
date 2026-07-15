@@ -6,6 +6,13 @@
   <h1 class="h4 mb-0">Заказ №{{ order.pk }}</h1>
   <div class="d-flex align-items-center gap-2">
     <a href="{% url 'orders:order_invoice' order.pk %}" class="btn btn-sm btn-outline-success"><i class="bi bi-download"></i> Скачать счёт</a>
+    {% if order.is_cancellable %}
+    <form method="post" action="{% url 'orders:cancel_order' order.pk %}" class="d-inline"
+          onsubmit="return confirm('Отменить заказ №{{ order.pk }}? Это действие необратимо.');">
+      {% csrf_token %}
+      <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle"></i> Отменить заказ</button>
+    </form>
+    {% endif %}
     <span class="badge text-bg-secondary fs-6">{{ order.get_status_display }}</span>
   </div>
 </div>

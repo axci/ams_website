@@ -1,3 +1,4 @@
+import logging
 from urllib.parse import quote
 
 from django.contrib import messages
@@ -5,6 +6,8 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from accounts.models import DeliveryAddress
@@ -18,11 +21,13 @@ from warehouses.availability import (
 from warehouses.models import Stock
 from warehouses.selection import get_current_warehouse
 
-from .emails import send_order_emails
+from .emails import send_order_cancellation, send_order_emails
 from .forms import CheckoutForm
 from .invoices import build_invoice_xlsx
 from .models import CartItem, Favorite, Order, OrderItem
 from .utils import get_or_create_cart
+
+logger = logging.getLogger(__name__)
 
 
 @login_required
@@ -214,6 +219,28 @@ def order_detail(request, pk):
         user=request.user,
     )
     return render(request, "orders/order_detail.html", {"order": order})
+
+
+@login_required
+@require_POST
+def cancel_order(request, pk):
+    order = get_object_or_404(request.user.orders, pk=pk)
+    next_url = request.POST.get("next")
+    if not url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        next_url = reverse("orders:order_detail", args=[order.pk])
+    if not order.is_cancellable:
+        messages.error(request, "Этот заказ уже нельзя отменить.")
+        return redirect(next_url)
+    order.status = Order.Status.CANCELLED
+    order.save(update_fields=["status", "updated_at"])
+    try:
+        send_order_cancellation(order)
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "Order #%s: cancellation notice to warehouse failed", order.pk
+        )
+    messages.success(request, f"Заказ №{order.pk} отменён.")
+    return redirect(next_url)
 
 
 @login_required

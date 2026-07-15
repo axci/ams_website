@@ -93,6 +93,11 @@ class Order(models.Model):
     def invoice_number(self):
         return f"W{self.pk}"
 
+    @property
+    def is_cancellable(self):
+        """A buyer may cancel only while the order is still pending."""
+        return self.status == self.Status.PENDING
+
     def recalculate_total(self, save=True):
         self.total = sum((item.subtotal for item in self.items.all()), start=0)
         if save:
