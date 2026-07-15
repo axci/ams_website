@@ -144,6 +144,7 @@ def checkout(request):
                         user=request.user,
                         warehouse=warehouse,
                         company=form.cleaned_data["company"],
+                        payment_method=form.cleaned_data["payment_method"],
                         shipping_address=address,
                         comment=form.cleaned_data["comment"],
                     )

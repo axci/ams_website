@@ -60,6 +60,10 @@ class Order(models.Model):
         DELIVERED = "delivered", "Доставлен"
         CANCELLED = "cancelled", "Отменён"
 
+    class PaymentMethod(models.TextChoices):
+        CASH = "cash", "Наличные"
+        CASHLESS = "cashless", "Безналичные"
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="orders"
     )
@@ -78,6 +82,12 @@ class Order(models.Model):
         max_length=20, choices=Status.choices, default=Status.PENDING
     )
     total = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    payment_method = models.CharField(
+        "способ оплаты",
+        max_length=20,
+        choices=PaymentMethod.choices,
+        default=PaymentMethod.CASHLESS,
+    )
     shipping_address = models.CharField(max_length=255, blank=True)
     comment = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

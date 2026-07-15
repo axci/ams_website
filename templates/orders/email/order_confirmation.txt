@@ -2,6 +2,7 @@
 
 Спасибо за заказ. Заказ №{{ order.pk }} от {{ order.created_at|date:"d.m.Y H:i" }} принят.
 Склад: {{ order.warehouse.name }}
+Способ оплаты: {{ order.get_payment_method_display }}
 
 Состав заказа:
 {% for item in order.items.all %}  - {{ item.name }} (арт. {{ item.product.article }}) — {{ item.quantity }} x {{ item.price|rubles }} = {{ item.subtotal|rubles }}

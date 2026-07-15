@@ -4,12 +4,19 @@ from django.core.exceptions import ValidationError
 from accounts.forms import BootstrapFormMixin
 from accounts.models import Company, DeliveryAddress
 
+from .models import Order
+
 
 class CheckoutForm(BootstrapFormMixin, forms.Form):
     company = forms.ModelChoiceField(
         queryset=Company.objects.none(),
         label="Компания",
         empty_label=None,
+    )
+    payment_method = forms.ChoiceField(
+        label="Способ оплаты",
+        choices=Order.PaymentMethod.choices,
+        initial=Order.PaymentMethod.CASHLESS,
     )
     delivery_address = forms.ModelChoiceField(
         queryset=DeliveryAddress.objects.none(),
