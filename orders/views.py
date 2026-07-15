@@ -133,18 +133,23 @@ def checkout(request):
         elif form.is_valid():
             try:
                 with transaction.atomic():
-                    new_addr = form.cleaned_data["new_delivery_address"].strip()
-                    if new_addr:
-                        address = DeliveryAddress.objects.create(
-                            user=request.user, address=new_addr[:255]
-                        ).address
+                    delivery_method = form.cleaned_data["delivery_method"]
+                    if delivery_method == Order.DeliveryMethod.PICKUP:
+                        address = ""
                     else:
-                        address = form.cleaned_data["delivery_address"].address
+                        new_addr = form.cleaned_data["new_delivery_address"].strip()
+                        if new_addr:
+                            address = DeliveryAddress.objects.create(
+                                user=request.user, address=new_addr[:255]
+                            ).address
+                        else:
+                            address = form.cleaned_data["delivery_address"].address
                     order = Order.objects.create(
                         user=request.user,
                         warehouse=warehouse,
                         company=form.cleaned_data["company"],
                         payment_method=form.cleaned_data["payment_method"],
+                        delivery_method=delivery_method,
                         shipping_address=address,
                         comment=form.cleaned_data["comment"],
                     )

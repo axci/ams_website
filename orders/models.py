@@ -64,6 +64,10 @@ class Order(models.Model):
         CASH = "cash", "Наличные"
         CASHLESS = "cashless", "Безналичные"
 
+    class DeliveryMethod(models.TextChoices):
+        DELIVERY = "delivery", "Доставка"
+        PICKUP = "pickup", "Самовывоз"
+
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.PROTECT, related_name="orders"
     )
@@ -88,6 +92,12 @@ class Order(models.Model):
         choices=PaymentMethod.choices,
         default=PaymentMethod.CASHLESS,
     )
+    delivery_method = models.CharField(
+        "способ получения",
+        max_length=20,
+        choices=DeliveryMethod.choices,
+        default=DeliveryMethod.DELIVERY,
+    )
     shipping_address = models.CharField(max_length=255, blank=True)
     comment = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
@@ -107,6 +117,11 @@ class Order(models.Model):
     def is_cancellable(self):
         """A buyer may cancel only while the order is still pending."""
         return self.status == self.Status.PENDING
+
+    @property
+    def is_pickup(self):
+        """Buyer collects the order at the warehouse instead of delivery."""
+        return self.delivery_method == self.DeliveryMethod.PICKUP
 
     def recalculate_total(self, save=True):
         self.total = sum((item.subtotal for item in self.items.all()), start=0)

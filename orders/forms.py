@@ -18,6 +18,11 @@ class CheckoutForm(BootstrapFormMixin, forms.Form):
         choices=Order.PaymentMethod.choices,
         initial=Order.PaymentMethod.CASHLESS,
     )
+    delivery_method = forms.ChoiceField(
+        label="Способ получения",
+        choices=Order.DeliveryMethod.choices,
+        initial=Order.DeliveryMethod.DELIVERY,
+    )
     delivery_address = forms.ModelChoiceField(
         queryset=DeliveryAddress.objects.none(),
         label="Адрес доставки",
@@ -44,10 +49,11 @@ class CheckoutForm(BootstrapFormMixin, forms.Form):
 
     def clean(self):
         cleaned = super().clean()
-        addr = cleaned.get("delivery_address")
-        new_addr = (cleaned.get("new_delivery_address") or "").strip()
-        if not addr and not new_addr:
-            raise ValidationError(
-                "Укажите адрес доставки — выберите сохранённый или введите новый."
-            )
+        if cleaned.get("delivery_method") == Order.DeliveryMethod.DELIVERY:
+            addr = cleaned.get("delivery_address")
+            new_addr = (cleaned.get("new_delivery_address") or "").strip()
+            if not addr and not new_addr:
+                raise ValidationError(
+                    "Укажите адрес доставки — выберите сохранённый или введите новый."
+                )
         return cleaned

@@ -49,7 +49,7 @@
           {% csrf_token %}
           {% for error in form.non_field_errors %}<div class="alert alert-danger py-2">{{ error }}</div>{% endfor %}
           {% for field in form %}
-          <div class="mb-3">
+          <div class="mb-3" id="field-{{ field.name }}">
             <label class="form-label" for="{{ field.id_for_label }}">{{ field.label }}</label>
             {{ field }}
             {% for error in field.errors %}<div class="text-danger small">{{ error }}</div>{% endfor %}
@@ -64,4 +64,19 @@
     </div>
   </div>
 </div>
+
+<script>
+(function () {
+  var sel = document.getElementById('id_delivery_method');
+  if (!sel) return;
+  var addr = document.getElementById('field-delivery_address');
+  var newAddr = document.getElementById('field-new_delivery_address');
+  function toggle() {
+    var pickup = sel.value === 'pickup';
+    [addr, newAddr].forEach(function (el) { if (el) el.style.display = pickup ? 'none' : ''; });
+  }
+  sel.addEventListener('change', toggle);
+  toggle();
+})();
+</script>
 {% endblock %}

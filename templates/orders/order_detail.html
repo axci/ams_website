@@ -21,7 +21,7 @@
   <div class="col-md-3"><div class="card card-body shadow-sm h-100"><div class="text-muted small">Оформлен</div>{{ order.created_at|date:"d.m.Y H:i" }}</div></div>
   <div class="col-md-3"><div class="card card-body shadow-sm h-100"><div class="text-muted small">Компания</div>{{ order.company|default:"—" }}</div></div>
   <div class="col-md-3"><div class="card card-body shadow-sm h-100"><div class="text-muted small">Склад</div>{{ order.warehouse.name }} ({{ order.warehouse.code }})</div></div>
-  <div class="col-md-3"><div class="card card-body shadow-sm h-100"><div class="text-muted small">Доставка</div>{{ order.shipping_address|default:"—" }}</div></div>
+  <div class="col-md-3"><div class="card card-body shadow-sm h-100"><div class="text-muted small">Получение</div>{% if order.is_pickup %}{{ order.get_delivery_method_display }}{% else %}{{ order.shipping_address|default:"—" }}{% endif %}</div></div>
   <div class="col-md-3"><div class="card card-body shadow-sm h-100"><div class="text-muted small">Способ оплаты</div>{{ order.get_payment_method_display }}</div></div>
 </div>
 

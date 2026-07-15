@@ -2,6 +2,7 @@
 
 Склад: {{ order.warehouse.name }} ({{ order.warehouse.code }})
 Способ оплаты: {{ order.get_payment_method_display }}
+Способ получения: {{ order.get_delivery_method_display }}
 
 Покупатель: {{ order.user.get_full_name|default:order.user.username }}{% if order.company %} ({{ order.company.company_name }}){% endif %}
 ИНН: {{ order.company.inn|default:"—" }}{% if order.company.kpp %} · КПП: {{ order.company.kpp }}{% endif %}
