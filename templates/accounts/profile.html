@@ -70,7 +70,7 @@
             {% if c.debt > 0 %}<span class="badge text-bg-warning text-dark">Долг: {{ c.debt|rubles }}</span>{% endif %}
           </div>
           <div class="small text-muted">
-            {% if c.code %}Код: {{ c.code }}{% endif %}{% if c.inn %} · ИНН: {{ c.inn }}{% endif %}{% if c.kpp %} · КПП: {{ c.kpp }}{% endif %}
+            ИНН: {{ c.inn }}{% endif %}{% if c.kpp %} · КПП: {{ c.kpp }}{% endif %}
           </div>
           {% if c.address %}<div class="small text-muted">{{ c.address }}</div>{% endif %}
         </li>

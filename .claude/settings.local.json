@@ -150,7 +150,11 @@
       "Bash(./venv/bin/python -c \"import cairosvg; print\\('cairosvg ok'\\)\")",
       "Bash(./venv/bin/python -)",
       "Bash(./venv/bin/python /private/tmp/claude-501/-Users-maxim-Pipelines-Projects-ams-website/5a42e493-c2fb-4a8a-9d67-d21eea45911c/scratchpad/gen_favicon.py /private/tmp/claude-501/-Users-maxim-Pipelines-Projects-ams-website/5a42e493-c2fb-4a8a-9d67-d21eea45911c/scratchpad)",
-      "Bash(./venv/bin/python manage.py collectstatic --dry-run --noinput)"
+      "Bash(./venv/bin/python manage.py collectstatic --dry-run --noinput)",
+      "Bash(./venv/bin/python manage.py sqlmigrate catalog 0016)",
+      "Bash(./venv/bin/python manage.py makemigrations catalog --dry-run)",
+      "Bash(./venv/bin/python manage.py sqlmigrate warehouses 0006)",
+      "Bash(./venv/bin/python manage.py makemigrations --check --dry-run accounts)"
     ]
   }
 }
