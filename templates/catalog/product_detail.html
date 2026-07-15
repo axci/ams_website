@@ -42,9 +42,7 @@
       Артикул: <strong>{{ product.article }}</strong>
       {% if product.manufacturer_number %}<span class="ms-3">Номер произв.: <strong>{{ product.manufacturer_number }}</strong></span>{% endif %}
     </div>
-    <div class="h4 mb-3">{{ price|rubles }}
-      {% if price_type %}<span class="badge text-bg-light text-muted fw-normal align-middle small">{{ price_type.name }}</span>{% endif %}
-    </div>
+    <div class="h4 mb-3">{{ price|rubles }}</div>
 
     {% if product.model_product or product.weight or product.volume %}
     <ul class="list-unstyled small text-body-secondary mb-3">

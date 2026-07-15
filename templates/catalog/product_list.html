@@ -45,7 +45,6 @@
 <div class="d-flex justify-content-between align-items-center mb-3">
   <h1 class="h4 mb-0">Каталог</h1>
   <div class="text-muted small text-end">
-    {% if price_type %}<div><i class="bi bi-tag"></i> Цены: <strong>{{ price_type.name }}</strong></div>{% endif %}
     {% if current_warehouse %}<div><i class="bi bi-geo-alt"></i> Наличие в <strong>{{ current_warehouse.name }}</strong></div>{% endif %}
   </div>
 </div>
