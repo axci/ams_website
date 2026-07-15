@@ -48,11 +48,16 @@ class PriceTypeAdmin(admin.ModelAdmin):
 
 @admin.register(Brand)
 class BrandAdmin(admin.ModelAdmin):
-    list_display = ("name", "order", "slug")
+    list_display = ("name", "order", "slug", "visible_for")
     list_editable = ("order",)
     prepopulated_fields = {"slug": ("name",)}
     search_fields = ("name",)
-    filter_horizontal = ("categories",)
+    filter_horizontal = ("categories", "warehouses")
+
+    @admin.display(description="Виден на складах")
+    def visible_for(self, obj):
+        names = [w.name for w in obj.warehouses.all()]
+        return ", ".join(names) if names else "Все склады"
 
 
 @admin.register(Category)

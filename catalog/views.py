@@ -23,6 +23,7 @@ from warehouses.selection import get_current_warehouse
 
 from .models import BannerSlide, Brand, Category, Product, ProductPrice, SubCategory
 from .pricing import price_type_for_user
+from .visibility import visible_brands_q, visible_products_q
 
 
 def _viscosity_key(value):
@@ -62,13 +63,15 @@ def _remember_viewed(request, pk):
     request.session[RECENT_KEY] = ids[:RECENT_STORE]
 
 
-def _recently_viewed(request, price_type, exclude_pk=None, limit=RECENT_SHOW):
+def _recently_viewed(request, price_type, warehouse, exclude_pk=None, limit=RECENT_SHOW):
     """Recently viewed products (session-based), newest first, price-annotated."""
     ids = [i for i in request.session.get(RECENT_KEY, []) if i != exclude_pk]
     if not ids:
         return []
     products = _with_effective_price(
-        Product.objects.filter(pk__in=ids, is_active=True).select_related("brand"),
+        Product.objects.filter(pk__in=ids, is_active=True)
+        .filter(visible_products_q(warehouse))
+        .select_related("brand"),
         price_type,
     )
     by_id = {p.pk: p for p in products}
@@ -98,8 +101,10 @@ def product_list(request):
     warehouse = get_current_warehouse(request)
     show_stock = request.user.is_authenticated
     own_ids = own_warehouse_ids(request.user)
-    products = Product.objects.filter(is_active=True).select_related(
-        "brand", "category", "subcategory"
+    products = (
+        Product.objects.filter(is_active=True)
+        .filter(visible_products_q(warehouse))
+        .select_related("brand", "category", "subcategory")
     )
 
     query = request.GET.get("q", "").strip()
@@ -215,7 +220,7 @@ def product_list(request):
         "page_obj": page_obj,
         "warehouse": warehouse,
         "show_stock": show_stock,
-        "brands": Brand.objects.all(),
+        "brands": Brand.objects.filter(visible_brands_q(warehouse)),
         "categories": categories,
         "volumes": volumes,
         "viscosities": viscosities,
@@ -230,20 +235,22 @@ def product_list(request):
         "per_page": per_page,
         "per_page_options": PER_PAGE_OPTIONS,
         "favorite_ids": _favorite_ids(request.user),
-        "recently_viewed": _recently_viewed(request, price_type),
+        "recently_viewed": _recently_viewed(request, price_type, warehouse),
     }
     return render(request, "catalog/product_list.html", context)
 
 
 def product_detail(request, pk):
+    warehouse = get_current_warehouse(request)
+    # A brand restricted to other warehouses is hidden from the catalog, so its
+    # products must be unreachable by direct URL too.
     product = get_object_or_404(
-        Product.objects.select_related(
+        Product.objects.filter(visible_products_q(warehouse)).select_related(
             "brand", "category", "subcategory", "model_product"
         ),
         pk=pk,
         is_active=True,
     )
-    warehouse = get_current_warehouse(request)
     show_stock = request.user.is_authenticated
     own_ids = own_warehouse_ids(request.user)
     # Stock per warehouse: own warehouses (immediate) + others (7-day delivery).
@@ -265,7 +272,9 @@ def product_detail(request, pk):
         )
 
     # Recently viewed (excluding this product), then record this view.
-    recently_viewed = _recently_viewed(request, price_type, exclude_pk=product.pk)
+    recently_viewed = _recently_viewed(
+        request, price_type, warehouse, exclude_pk=product.pk
+    )
     _remember_viewed(request, product.pk)
 
     context = {
@@ -285,8 +294,11 @@ def product_detail(request, pk):
 
 def _filtered_products(request):
     """Active products with the catalog GET-param filters applied."""
-    products = Product.objects.filter(is_active=True).select_related(
-        "brand", "category", "subcategory"
+    warehouse = get_current_warehouse(request)
+    products = (
+        Product.objects.filter(is_active=True)
+        .filter(visible_products_q(warehouse))
+        .select_related("brand", "category", "subcategory")
     )
     query = request.GET.get("q", "").strip()
     if query:

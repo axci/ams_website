@@ -17,6 +17,12 @@ class Brand(models.Model):
         blank=True,
         help_text="Категории, доступные для этого бренда (пусто = все категории).",
     )
+    warehouses = models.ManyToManyField(
+        "warehouses.Warehouse",
+        related_name="brands",
+        blank=True,
+        help_text="Склады, для которых виден бренд (пусто = все склады).",
+    )
 
     class Meta:
         ordering = ["order", "name"]
