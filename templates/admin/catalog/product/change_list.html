@@ -1,6 +1,11 @@
 {% extends "admin/change_list.html" %}
 {% block object-tools-items %}
   <li>
+    <a href="{% url 'admin:catalog_product_export_excel' %}">
+      Download catalog (Excel)
+    </a>
+  </li>
+  <li>
     <a href="{% url 'admin:catalog_product_import_excel' %}" class="addlink">
       Upload from Excel
     </a>

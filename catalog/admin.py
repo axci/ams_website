@@ -1,12 +1,17 @@
+from urllib.parse import quote
+
 from django.contrib import admin, messages
 from django.db import models
+from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import path
+from django.utils import timezone
 from django.utils.html import format_html
 from tinymce.widgets import TinyMCE
 
 from warehouses.models import Stock
 
+from .exports import build_catalog_xlsx
 from .forms import ProductImportForm
 from .imports import import_products
 from .models import (
@@ -132,8 +137,27 @@ class ProductAdmin(admin.ModelAdmin):
                 self.admin_site.admin_view(self.import_excel),
                 name="catalog_product_import_excel",
             ),
+            path(
+                "export-excel/",
+                self.admin_site.admin_view(self.export_excel),
+                name="catalog_product_export_excel",
+            ),
         ]
         return custom + super().get_urls()
+
+    def export_excel(self, request):
+        """Download the whole catalog, laid out so it can be uploaded back."""
+        filename = f"каталог_{timezone.localdate().strftime('%d.%m.%Y')}.xlsx"
+        response = HttpResponse(
+            build_catalog_xlsx(),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+        )
+        response["Content-Disposition"] = (
+            f"attachment; filename=catalog.xlsx; filename*=UTF-8''{quote(filename)}"
+        )
+        return response
 
     def import_excel(self, request):
         if request.method == "POST":

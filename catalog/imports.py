@@ -7,8 +7,9 @@ The first row is the header. Recognised product columns (case-insensitive):
     manufacturer number (manufacturer_number), price, brand
 
 A header that matches a price type name («Розничные», «Крупный ОПТ», …) fills
-that type's per-product price. Any other non-empty header is treated as a
-WAREHOUSE name, and that column's cells as the stock quantity for that
+that type's per-product price. Columns the catalog export adds for information
+only (see IGNORED_COLUMNS) are skipped. Any other non-empty header is treated
+as a WAREHOUSE name, and that column's cells as the stock quantity for that
 warehouse. Rows are matched/created by ``sku``. Categories, subcategories,
 models, brands and warehouses are matched case-insensitively (Unicode-aware)
 and created on demand.
@@ -68,7 +69,11 @@ FIELD_ALIASES = {
     "brand": "brand",
 }
 
-TEXT_LIMITS = {"sku": 64, "article": 64, "manufacturer_number": 64, "name": 200, "viscosity": 20, "weight_unit": 16, "volume_unit": 16}
+# Written by the catalog export for information only. Listed here so a
+# round-tripped file does not mistake them for warehouse columns.
+IGNORED_COLUMNS = {"is_active", "slug", "picture", "created_at", "updated_at"}
+
+TEXT_LIMITS ={"sku": 64, "article": 64, "manufacturer_number": 64, "name": 200, "viscosity": 20, "weight_unit": 16, "volume_unit": 16}
 
 
 @dataclass
@@ -215,6 +220,8 @@ def import_products(file_obj, default_brand=None):
             continue
         if key in FIELD_ALIASES:
             field_cols[idx] = FIELD_ALIASES[key]
+        elif key in IGNORED_COLUMNS:
+            continue
         elif key in price_types:
             price_type_cols[idx] = price_types[key]
         else:
