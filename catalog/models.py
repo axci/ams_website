@@ -17,11 +17,11 @@ class Brand(models.Model):
         blank=True,
         help_text="Категории, доступные для этого бренда (пусто = все категории).",
     )
-    warehouses = models.ManyToManyField(
+    hidden_warehouses = models.ManyToManyField(
         "warehouses.Warehouse",
-        related_name="brands",
+        related_name="hidden_brands",
         blank=True,
-        help_text="Склады, для которых виден бренд (пусто = все склады).",
+        help_text="Склады, на которых бренд скрыт (пусто = виден везде).",
     )
 
     class Meta:

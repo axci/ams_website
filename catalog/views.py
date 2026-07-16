@@ -245,8 +245,8 @@ def product_list(request):
 def product_detail(request, pk):
     warehouse = get_current_warehouse(request)
     own_ids = own_warehouse_ids(request.user)
-    # A brand restricted to warehouses the user does not have is hidden from the
-    # catalog, so its products must be unreachable by direct URL too.
+    # A brand hidden at every warehouse the user holds is out of the catalog, so
+    # its products must be unreachable by direct URL too.
     product = get_object_or_404(
         Product.objects.filter(visible_products_q(own_ids)).select_related(
             "brand", "category", "subcategory", "model_product"

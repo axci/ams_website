@@ -1,10 +1,11 @@
-"""Which brands a viewer may see, based on the warehouses they have.
+"""Which brands a viewer may see, based on the warehouses they hold.
 
-A brand with no warehouses selected is visible everywhere — that is the default
-and covers most brands. Once warehouses are chosen (Brand.warehouses in the
-admin), the brand is shown to any user holding at least one of them, regardless
-of which warehouse is currently selected. Guests have no warehouses and so only
-ever see unrestricted brands.
+Brand.hidden_warehouses lists the warehouses a brand is hidden at. Empty — the
+default, and true of most brands — means it is hidden nowhere and everyone sees
+it. Otherwise a viewer sees the brand only if they hold at least one warehouse
+it is not hidden at: a buyer with only Новосибирск loses a brand hidden there,
+while a buyer with Новосибирск and Кемерово keeps it. Guests hold no warehouses
+and so only ever see brands that are hidden nowhere.
 """
 
 from django.db.models import Exists, OuterRef, Q
@@ -13,17 +14,18 @@ from .models import Brand
 
 
 def _rule(brand_ref, warehouse_ids):
-    """Unrestricted brands, plus those allowed for any of `warehouse_ids`.
+    """Brands hidden nowhere, plus those not hidden at one of `warehouse_ids`.
 
-    Deliberately EXISTS subqueries rather than joins on the m2m: a brand may
-    allow several warehouses and a user may hold several, so a join would match
-    more than one row per product — duplicating it and inflating the stock Sum
-    annotations.
+    Deliberately EXISTS subqueries rather than joins on the m2m: a join would
+    match several rows per product and inflate the stock Sum annotations. That
+    is one subquery per warehouse the viewer holds, which is a handful at most.
     """
-    links = Brand.warehouses.through.objects.filter(brand_id=OuterRef(brand_ref))
-    q = Q(~Exists(links))
-    if warehouse_ids:
-        q |= Q(Exists(links.filter(warehouse_id__in=warehouse_ids)))
+    hidden = Brand.hidden_warehouses.through.objects.filter(
+        brand_id=OuterRef(brand_ref)
+    )
+    q = Q(~Exists(hidden))
+    for warehouse_id in sorted(warehouse_ids):
+        q |= Q(~Exists(hidden.filter(warehouse_id=warehouse_id)))
     return q
 
 
