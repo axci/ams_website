@@ -4,6 +4,7 @@ The first row is the header. Recognised product columns (case-insensitive):
 
     sku, article, name, category, subcategory, model product (model_product),
     weight, volume, viscosity, description (описание),
+    pack quantity (количество штук в упаковке),
     manufacturer number (manufacturer_number), price, brand
 
 A header that matches a price type name («Розничные», «Крупный ОПТ», …) fills
@@ -57,6 +58,14 @@ FIELD_ALIASES = {
     "единица объёма": "volume_unit",
     "viscosity": "viscosity",
     "вязкость": "viscosity",
+    "pack quantity": "pack_quantity",
+    "pack_quantity": "pack_quantity",
+    "pack": "pack_quantity",
+    "количество штук в упаковке": "pack_quantity",
+    "штук в упаковке": "pack_quantity",
+    "кол-во в упаковке": "pack_quantity",
+    "количество в упаковке": "pack_quantity",
+    "упаковка": "pack_quantity",
     "description": "description",
     "описание": "description",
     "manufacturer number": "manufacturer_number",
@@ -305,6 +314,8 @@ def import_products(file_obj, default_brand=None):
                 vu = _text(values.get("volume_unit"), 16)
                 if vu:
                     defaults["volume_unit"] = vu
+            if "pack_quantity" in values:
+                defaults["pack_quantity"] = _int(values.get("pack_quantity"))
             if "viscosity" in values:
                 defaults["viscosity"] = _viscosity(values.get("viscosity"))
             if "description" in values:

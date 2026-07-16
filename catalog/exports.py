@@ -48,6 +48,7 @@ PRODUCT_COLUMNS = [
     ("weight_unit", lambda p: p.weight_unit),
     ("volume", lambda p: p.volume),
     ("volume_unit", lambda p: p.volume_unit),
+    ("pack_quantity", lambda p: p.pack_quantity),
     ("viscosity", lambda p: p.viscosity),
     ("description", lambda p: p.description),
     ("price", lambda p: p.price),

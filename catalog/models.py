@@ -163,6 +163,12 @@ class Product(models.Model):
     volume_unit = models.CharField(
         "единица измерения объёма", max_length=16, default="л", blank=True
     )
+    pack_quantity = models.PositiveIntegerField(
+        "количество штук в упаковке",
+        blank=True,
+        null=True,
+        help_text="Сколько штук товара в одной упаковке.",
+    )
     viscosity = models.CharField(
         "вязкость",
         max_length=20,
