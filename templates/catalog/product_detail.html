@@ -44,11 +44,12 @@
     </div>
     <div class="h4 mb-3">{{ price|rubles }}</div>
 
-    {% if product.model_product or product.weight or product.volume %}
+    {% if product.model_product or product.weight or product.volume or product.pack_quantity %}
     <ul class="list-unstyled small text-body-secondary mb-3">
       {% if product.model_product %}<li><strong>Модель:</strong> {{ product.model_product.name }}</li>{% endif %}
       {% if product.weight %}<li><strong>Вес:</strong> {{ product.weight|floatformat:"-3" }} {{ product.weight_unit }}</li>{% endif %}
       {% if product.volume %}<li><strong>Объём:</strong> {{ product.volume|floatformat:"-3" }} {{ product.volume_unit }}</li>{% endif %}
+      {% if product.pack_quantity %}<li><strong>Штук в упаковке:</strong> {{ product.pack_quantity }}</li>{% endif %}
     </ul>
     {% endif %}
 
