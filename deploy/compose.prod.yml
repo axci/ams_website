@@ -16,7 +16,9 @@ services:
     restart: unless-stopped
     env_file: .env.prod
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      # Postgres 18 images store data in a version subdir and want the mount at
+      # /var/lib/postgresql (not /var/lib/postgresql/data).
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
       interval: 5s
