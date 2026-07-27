@@ -1,0 +1,22 @@
+# Caddy: automatic Let's Encrypt TLS + reverse proxy to gunicorn, and it serves
+# user-uploaded media straight from disk (/srv/media, the shared media volume).
+# Caddy sets X-Forwarded-Proto, which Django reads via SECURE_PROXY_SSL_HEADER.
+#
+# REHEARSAL (before DNS points here): change the first line to
+#     a-sibir.ru, www.a-sibir.ru {
+#         tls internal
+# so Caddy serves a self-signed cert (public Let's Encrypt can't validate until
+# DNS points at this server). Test with `curl -k` or a hosts-file entry.
+# CUTOVER: remove the `tls internal` line and point DNS here — Caddy then gets
+# a real certificate automatically over port 80.
+
+a-sibir.ru, www.a-sibir.ru {
+	encode zstd gzip
+
+	handle_path /media/* {
+		root * /srv/media
+		file_server
+	}
+
+	reverse_proxy web:8000
+}

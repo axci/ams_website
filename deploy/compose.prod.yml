@@ -1,0 +1,59 @@
+# All-in-one production stack for a single VPS (Timeweb).
+#
+# Three services: Postgres, the web app (gunicorn + WhiteNoise for static),
+# and Caddy (automatic TLS + reverse proxy + serves media from disk). No
+# managed database or object storage needed.
+#
+#   docker compose -f deploy/compose.prod.yml up -d --build
+#
+# Config comes from deploy/.env.prod (see deploy/.env.prod.example).
+# Media lives on the host at /opt/ams/media (create it and chown to uid 1000
+# first: mkdir -p /opt/ams/media && chown -R 1000:1000 /opt/ams/media).
+
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    env_file: .env.prod
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+
+  web:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    env_file: .env.prod
+    environment:
+      DB_HOST: db            # reach Postgres by its compose service name
+    volumes:
+      - /opt/ams/media:/app/media
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - web
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - /opt/ams/media:/srv/media:ro   # Caddy serves /media/* from here
+      - caddy_data:/data               # persists issued certificates
+      - caddy_config:/config
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

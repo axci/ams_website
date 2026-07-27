@@ -13,6 +13,7 @@ db.sqlite3-journal
 # Secrets / local config
 .env
 .env.docker
+.env.prod
 
 # OS / editors
 .DS_Store

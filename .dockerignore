@@ -11,4 +11,5 @@ db.sqlite3-journal
 /staticfiles/
 .env
 .env.docker
+.env.prod
 .DS_Store
