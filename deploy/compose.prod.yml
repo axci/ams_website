@@ -31,6 +31,11 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     env_file: .env.prod
+    sysctls:
+      # This host gives containers no working IPv6 route, so outbound to a
+      # dual-stack host (SMTP, etc.) dies on the IPv6 address instead of using
+      # IPv4. Disabling IPv6 in the container makes it use IPv4 only.
+      - net.ipv6.conf.all.disable_ipv6=1
     environment:
       DB_HOST: db            # reach Postgres by its compose service name
     volumes:
