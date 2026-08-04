@@ -45,6 +45,11 @@
           Некоторых товаров не хватает на складе. <a href="{% url 'orders:cart' %}">Измените корзину</a> перед оформлением.
         </div>
         {% endif %}
+        {% if free_delivery_min and cart.total < free_delivery_min %}
+        <div class="alert alert-warning py-2 small mb-3" id="delivery-min-hint">
+          <i class="bi bi-truck"></i> Доставка — от {{ free_delivery_min|rubles }}. Ваш заказ на {{ cart.total|rubles }}: увеличьте сумму или выберите «Самовывоз».
+        </div>
+        {% endif %}
         <form method="post">
           {% csrf_token %}
           {% for error in form.non_field_errors %}<div class="alert alert-danger py-2">{{ error }}</div>{% endfor %}
@@ -71,9 +76,11 @@
   if (!sel) return;
   var addr = document.getElementById('field-delivery_address');
   var newAddr = document.getElementById('field-new_delivery_address');
+  var hint = document.getElementById('delivery-min-hint');
   function toggle() {
     var pickup = sel.value === 'pickup';
     [addr, newAddr].forEach(function (el) { if (el) el.style.display = pickup ? 'none' : ''; });
+    if (hint) hint.style.display = pickup ? 'none' : '';
   }
   sel.addEventListener('change', toggle);
   toggle();

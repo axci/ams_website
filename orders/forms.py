@@ -41,8 +41,10 @@ class CheckoutForm(BootstrapFormMixin, forms.Form):
         widget=forms.Textarea(attrs={"rows": 3, "placeholder": "Необязательно"}),
     )
 
-    def __init__(self, *args, user=None, **kwargs):
+    def __init__(self, *args, user=None, cart_total=None, **kwargs):
         super().__init__(*args, **kwargs)
+        self.user = user
+        self.cart_total = cart_total
         if user is not None:
             self.fields["company"].queryset = user.companies.all()
             self.fields["delivery_address"].queryset = user.delivery_addresses.all()
@@ -50,6 +52,16 @@ class CheckoutForm(BootstrapFormMixin, forms.Form):
     def clean(self):
         cleaned = super().clean()
         if cleaned.get("delivery_method") == Order.DeliveryMethod.DELIVERY:
+            threshold = getattr(self.user, "free_delivery_min", None)
+            if (
+                threshold is not None
+                and self.cart_total is not None
+                and self.cart_total < threshold
+            ):
+                raise ValidationError(
+                    f"Увеличьте сумму заказа до {threshold:.0f} рублей "
+                    "для бесплатной доставки."
+                )
             addr = cleaned.get("delivery_address")
             new_addr = (cleaned.get("new_delivery_address") or "").strip()
             if not addr and not new_addr:

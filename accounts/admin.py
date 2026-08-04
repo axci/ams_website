@@ -36,7 +36,7 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = BaseUserAdmin.fieldsets + (
         (
             "Настройки покупателя",
-            {"fields": ("manager", "price_type", "show_stock", "warehouses")},
+            {"fields": ("manager", "price_type", "show_stock", "free_delivery_min", "warehouses")},
         ),
     )
 

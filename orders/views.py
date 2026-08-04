@@ -123,7 +123,7 @@ def checkout(request):
             issues.append(item)
 
     if request.method == "POST":
-        form = CheckoutForm(request.POST, user=request.user)
+        form = CheckoutForm(request.POST, user=request.user, cart_total=cart.total)
         if issues:
             messages.error(
                 request,
@@ -196,7 +196,7 @@ def checkout(request):
             send_order_emails(order)
             return redirect("orders:order_detail", pk=order.pk)
     else:
-        form = CheckoutForm(user=request.user)
+        form = CheckoutForm(user=request.user, cart_total=cart.total)
 
     return render(
         request,
@@ -207,6 +207,7 @@ def checkout(request):
             "warehouse": warehouse,
             "form": form,
             "issues": issues,
+            "free_delivery_min": request.user.free_delivery_min,
         },
     )
 

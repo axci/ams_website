@@ -35,6 +35,14 @@ class User(AbstractUser):
         help_text="Если выключено, покупатель видит «много / мало / только N» "
         "вместо точного количества.",
     )
+    free_delivery_min = models.DecimalField(
+        "мин. сумма для доставки",
+        max_digits=12,
+        decimal_places=2,
+        default=3000,
+        help_text="Заказ с доставкой ниже этой суммы оформить нельзя "
+        "(самовывоз — без ограничения).",
+    )
     warehouses = models.ManyToManyField(
         "warehouses.Warehouse",
         related_name="buyers",
