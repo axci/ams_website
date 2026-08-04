@@ -60,7 +60,7 @@ class CheckoutForm(BootstrapFormMixin, forms.Form):
             ):
                 raise ValidationError(
                     f"Увеличьте сумму заказа до {threshold:.0f} рублей "
-                    "для бесплатной доставки."
+                    "для доставки."
                 )
             addr = cleaned.get("delivery_address")
             new_addr = (cleaned.get("new_delivery_address") or "").strip()

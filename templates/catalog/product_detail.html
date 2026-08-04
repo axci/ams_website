@@ -62,11 +62,11 @@
         {% for v in variants %}
           {% if v.pk == product.pk %}
           <span class="btn btn-sm btn-primary disabled" aria-current="true">
-            {% if v.volume %}{{ v.volume|floatformat:"-3" }} {{ v.volume_unit }}{% else %}{{ v.name }}{% endif %} · {{ v.effective_price|rubles }}
+            {% if v.volume %}{{ v.volume|floatformat:"-3" }} {{ v.volume_unit }}{% elif v.weight %}{{ v.weight|floatformat:"-3" }} {{ v.weight_unit }}{% else %}{{ v.name }}{% endif %} · {{ v.effective_price|rubles }}
           </span>
           {% else %}
           <a class="btn btn-sm btn-outline-primary" href="{{ v.get_absolute_url }}">
-            {% if v.volume %}{{ v.volume|floatformat:"-3" }} {{ v.volume_unit }}{% else %}{{ v.name }}{% endif %} · {{ v.effective_price|rubles }}
+            {% if v.volume %}{{ v.volume|floatformat:"-3" }} {{ v.volume_unit }}{% elif v.weight %}{{ v.weight|floatformat:"-3" }} {{ v.weight_unit }}{% else %}{{ v.name }}{% endif %} · {{ v.effective_price|rubles }}
           </a>
           {% endif %}
         {% endfor %}

@@ -261,7 +261,8 @@ def product_detail(request, pk):
     # Price shown depends on the viewer's price type (guests → «Розничные»).
     price_type = price_type_for_user(request.user)
     price = product.price_for(price_type)
-    # Other products of the same model (e.g. different volumes), ordered by volume.
+    # Other products of the same model (different volume or weight), ordered by
+    # volume then weight so weight-only variants sort by weight.
     variants = []
     if product.model_product_id:
         variants = list(
@@ -270,7 +271,7 @@ def product_detail(request, pk):
                     model_product_id=product.model_product_id, is_active=True
                 ),
                 price_type,
-            ).order_by("volume", "name")
+            ).order_by("volume", "weight", "name")
         )
 
     # Recently viewed (excluding this product), then record this view.
