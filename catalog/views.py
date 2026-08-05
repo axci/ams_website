@@ -258,6 +258,8 @@ def product_detail(request, pk):
     # Stock per warehouse: own warehouses (immediate) + others (7-day delivery).
     warehouse_stock = warehouse_breakdown(product, own_ids) if show_stock else []
     total_available = sum(row["qty"] for row in warehouse_stock)
+    # Ordering is limited to the buyer's own warehouse stock.
+    own_available = sum(row["qty"] for row in warehouse_stock if row["is_own"])
     # Price shown depends on the viewer's price type (guests → «Розничные»).
     price_type = price_type_for_user(request.user)
     price = product.price_for(price_type)
@@ -286,6 +288,7 @@ def product_detail(request, pk):
         "show_stock": show_stock,
         "warehouse_stock": warehouse_stock,
         "total_available": total_available,
+        "own_available": own_available,
         "variants": variants,
         "price": price,
         "price_type": price_type,

@@ -1,8 +1,9 @@
 """Stock availability across warehouses.
 
-A buyer can order from their own warehouse(s) immediately, and from every other
-warehouse with a 7-day delivery. So availability for ordering is the total stock
-across all active warehouses, while the display distinguishes "own" from "other".
+A buyer can order only from their own warehouse(s); stock in other warehouses is
+shown for reference (a 7-day delivery) but can't be added to the cart. So
+``own_qty`` / :func:`own_available_map` drive ordering, while ``total_qty`` (from
+:func:`annotate_availability`) drives the display.
 """
 
 from django.db.models import Case, IntegerField, Sum, When
@@ -66,10 +67,21 @@ def warehouse_breakdown(product, own_ids):
     return rows
 
 
-def available_map(product_ids):
-    """Map product_id -> total available quantity across active warehouses."""
+def own_available_map(user, product_ids):
+    """Map product_id -> quantity in the user's own warehouses only.
+
+    This is what ordering is limited to: stock in other warehouses (7-day
+    delivery) is deliberately excluded.
+    """
+    own_ids = own_warehouse_ids(user)
+    if not own_ids:
+        return {}
     rows = (
-        Stock.objects.filter(product_id__in=list(product_ids), warehouse__is_active=True)
+        Stock.objects.filter(
+            product_id__in=list(product_ids),
+            warehouse_id__in=own_ids,
+            warehouse__is_active=True,
+        )
         .values("product_id")
         .annotate(total=Sum("quantity"))
     )

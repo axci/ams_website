@@ -97,10 +97,10 @@
         <input type="hidden" name="next" value="{{ request.get_full_path }}">
         <div class="col-5">
           <label class="form-label small">Количество</label>
-          <input type="number" name="quantity" value="1" min="1" max="{{ total_available }}" class="form-control">
+          <input type="number" name="quantity" value="1" min="1" max="{{ own_available }}" class="form-control">
         </div>
         <div class="col-7">
-          <button class="btn btn-primary w-100" {% if total_available <= 0 %}disabled{% endif %}>
+          <button class="btn btn-primary w-100" {% if own_available <= 0 %}disabled{% endif %}>
             <i class="bi bi-cart-plus"></i> Добавить в корзину
           </button>
         </div>

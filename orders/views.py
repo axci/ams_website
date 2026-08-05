@@ -15,7 +15,7 @@ from catalog.models import Product
 from catalog.pricing import price_type_for_user
 from warehouses.availability import (
     annotate_availability,
-    available_map,
+    own_available_map,
     own_warehouse_ids,
 )
 from warehouses.models import Stock
@@ -35,8 +35,8 @@ def cart_detail(request):
     cart = get_or_create_cart(request.user)
     warehouse = get_current_warehouse(request)
     items = list(cart.items.select_related("product", "product__brand"))
-    # Availability = total stock across all warehouses (own + 7-day delivery).
-    stock_map = available_map([i.product_id for i in items])
+    # Ordering is limited to the buyer's own warehouse stock.
+    stock_map = own_available_map(request.user, [i.product_id for i in items])
     for item in items:
         item.available = stock_map.get(item.product_id, 0)
     return render(
@@ -57,6 +57,24 @@ def add_to_cart(request, product_id):
     quantity = max(1, quantity)
 
     cart = get_or_create_cart(request.user)
+    next_url = request.POST.get("next") or "catalog:product_list"
+    available = own_available_map(request.user, [product.pk]).get(product.pk, 0)
+    existing = (
+        cart.items.filter(product=product).values_list("quantity", flat=True).first()
+        or 0
+    )
+    if existing + quantity > available:
+        if available <= 0:
+            messages.error(request, f"«{product.name}» нет в наличии на вашем складе.")
+        else:
+            in_cart = f", в корзине уже {existing} шт." if existing else ""
+            messages.error(
+                request,
+                f"«{product.name}»: на складе {available} шт.{in_cart} "
+                "Добавить больше нельзя.",
+            )
+        return redirect(next_url)
+
     item, created = CartItem.objects.get_or_create(
         cart=cart, product=product, defaults={"quantity": quantity}
     )
@@ -64,7 +82,7 @@ def add_to_cart(request, product_id):
         item.quantity += quantity
         item.save(update_fields=["quantity"])
     messages.success(request, f"{product.name} добавлен в корзину.")
-    return redirect(request.POST.get("next") or "catalog:product_list")
+    return redirect(next_url)
 
 
 @login_required
@@ -79,10 +97,24 @@ def update_cart_item(request, item_id):
     if quantity <= 0:
         item.delete()
         messages.info(request, "Товар удалён из корзины.")
-    else:
-        item.quantity = quantity
-        item.save(update_fields=["quantity"])
-        messages.success(request, "Корзина обновлена.")
+        return redirect("orders:cart")
+    available = own_available_map(request.user, [item.product_id]).get(
+        item.product_id, 0
+    )
+    if quantity > available:
+        if available <= 0:
+            messages.error(
+                request, f"«{item.product.name}» нет в наличии на вашем складе."
+            )
+        else:
+            messages.error(
+                request,
+                f"«{item.product.name}»: на складе только {available} шт.",
+            )
+        return redirect("orders:cart")
+    item.quantity = quantity
+    item.save(update_fields=["quantity"])
+    messages.success(request, "Корзина обновлена.")
     return redirect("orders:cart")
 
 
@@ -113,9 +145,8 @@ def checkout(request):
         )
         return redirect("orders:cart")
 
-    # Availability = total stock across all warehouses (own + 7-day delivery),
-    # so an order can be placed as long as the total covers it.
-    stock_map = available_map([i.product_id for i in items])
+    # Ordering is limited to the buyer's own warehouse stock.
+    stock_map = own_available_map(request.user, [i.product_id for i in items])
     issues = []
     for item in items:
         item.available = stock_map.get(item.product_id, 0)
@@ -155,18 +186,18 @@ def checkout(request):
                     )
                     own_ids = own_warehouse_ids(request.user)
                     for item in items:
+                        # Fulfil from the buyer's own warehouses only.
                         stock_rows = list(
                             Stock.objects.select_for_update().filter(
-                                product=item.product, warehouse__is_active=True
+                                product=item.product,
+                                warehouse_id__in=own_ids,
+                                warehouse__is_active=True,
                             )
                         )
                         if sum(s.quantity for s in stock_rows) < item.quantity:
                             raise ValueError("stock changed")
-                        # Fulfil from own warehouses first, then others (7-day),
-                        # taking from the largest holdings first.
-                        stock_rows.sort(
-                            key=lambda s: (s.warehouse_id not in own_ids, -s.quantity)
-                        )
+                        # Take from the largest holdings first.
+                        stock_rows.sort(key=lambda s: -s.quantity)
                         remaining = item.quantity
                         for stock in stock_rows:
                             if remaining <= 0:

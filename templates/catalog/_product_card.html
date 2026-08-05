@@ -35,7 +35,7 @@
         <form method="post" action="{% url 'orders:add_to_cart' product.pk %}">
           {% csrf_token %}
           <input type="hidden" name="next" value="{{ request.get_full_path }}">
-          <button class="btn btn-sm btn-outline-primary w-100" {% if product.total_qty <= 0 %}disabled{% endif %}>
+          <button class="btn btn-sm btn-outline-primary w-100" {% if product.own_qty <= 0 %}disabled{% endif %}>
             <i class="bi bi-cart-plus"></i> Добавить в корзину
           </button>
         </form>
