@@ -12,7 +12,8 @@ not found in the catalog are skipped (and reported).
 
 The 1C service lives on the local network (e.g. http://192.168.0.10/...), so
 this command must run from a machine on that LAN. To update the *production*
-site, run it locally with ``DATABASE_URL`` pointing at the Render Postgres.
+site, run it with ``DATABASE_URL`` pointing at the Timeweb Postgres through an
+SSH tunnel — see ``deploy/sync_erp_cron.sh``.
 
 Configuration (CLI args override environment variables)::
 

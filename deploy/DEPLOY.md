@@ -33,6 +33,38 @@ docker compose -f deploy/compose.prod.yml restart caddy
 Migrations run automatically in the web entrypoint. Docker Hub is rate-limited
 from the VPS, so a registry mirror is configured in `/etc/docker/daemon.json`.
 
+## 1C (УНФ) sync
+
+Prices/stock (`sync_erp`) and company debt (`sync_debts`) come from a 1C service
+on the **office LAN** (e.g. `http://192.168.0.10/...`). The VPS can't reach that
+LAN, so the sync runs from an office machine and writes into the production DB.
+
+The production Postgres is bound to the **VPS loopback only** (`127.0.0.1:5432`
+in `compose.prod.yml`) — not internet-exposed — so the office machine reaches it
+over an **SSH tunnel**. `deploy/sync_erp_cron.sh` opens the tunnel, runs both
+commands, and closes it. Configure it via `deploy/sync_erp.env` (gitignored):
+
+```sh
+export ERP_DB_TUNNEL=1
+export ERP_SSH_HOST="root@201.24.115.147"
+export ERP_TUNNEL_LOCAL_PORT=15432
+export ERP_TUNNEL_REMOTE_HOSTPORT="127.0.0.1:5432"
+export DATABASE_URL="postgresql://ams:<POSTGRES_PASSWORD>@127.0.0.1:15432/ams?connect_timeout=10"
+export DB_SSL_REQUIRE=false   # the SSH tunnel already encrypts the link
+# plus ERP_PRODUCTS_URL / ERP_DEBTS_URL / ERP_USER / ERP_PASSWORD
+```
+
+Requirements: the office machine needs passwordless (key-based, `BatchMode`) SSH
+to `ERP_SSH_HOST`, and the VPS must expose the loopback port (redeploy `db` after
+adding the `ports:` mapping). Schedule the script, e.g.:
+
+```sh
+0 8,10,12,14,16 * * * /path/to/ams_website/deploy/sync_erp_cron.sh
+```
+
+Logs go to `logs/sync_erp.log`. Test once by hand with `--dry-run` (writes
+nothing) to confirm the tunnel + credentials before relying on the schedule.
+
 ## Notes
 
 - **TLS:** Caddy obtains and renews the certificate automatically; it needs
