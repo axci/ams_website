@@ -15,6 +15,7 @@
 #   export ERP_PRODUCTS_URL=... ERP_DEBTS_URL=... ERP_USER=... ERP_PASSWORD=...
 #   export ERP_DB_TUNNEL=1
 #   export ERP_SSH_HOST="root@201.24.115.147"
+#   export ERP_SSH_KEY="$HOME/.ssh/id_ed25519"   # explicit key (no agent in launchd/cron)
 #   export ERP_TUNNEL_LOCAL_PORT=15432
 #   export ERP_TUNNEL_REMOTE_HOSTPORT="127.0.0.1:5432"
 #   export DATABASE_URL="postgresql://ams:PASSWORD@127.0.0.1:15432/ams?connect_timeout=10"
@@ -55,7 +56,12 @@ if [ "${ERP_DB_TUNNEL:-0}" = "1" ]; then
     LP="${ERP_TUNNEL_LOCAL_PORT:-15432}"
     RH="${ERP_TUNNEL_REMOTE_HOSTPORT:-127.0.0.1:5432}"
     TUNNEL_CTL="$(mktemp -u "${TMPDIR:-/tmp}/erp_tunnel.XXXXXX")"
-    if ssh -M -S "$TUNNEL_CTL" -f -N \
+    # Use an explicit key when given: schedulers (launchd/cron) run without the
+    # ssh-agent the interactive shell relies on. IdentitiesOnly avoids offering
+    # agent keys. Word-splitting is intended (path must have no spaces).
+    KEY_OPT=""
+    [ -n "${ERP_SSH_KEY:-}" ] && KEY_OPT="-o IdentitiesOnly=yes -i ${ERP_SSH_KEY}"
+    if ssh -M -S "$TUNNEL_CTL" -f -N $KEY_OPT \
             -o BatchMode=yes -o ExitOnForwardFailure=yes -o ConnectTimeout=15 \
             -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
             -L "127.0.0.1:${LP}:${RH}" "$ERP_SSH_HOST" >> "$LOG" 2>&1; then
