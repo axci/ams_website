@@ -70,6 +70,17 @@ FIELD_ALIASES = {
     "описание": "description",
     "manufacturer number": "manufacturer_number",
     "manufacturer_number": "manufacturer_number",
+    "mann_cross": "mann_cross",
+    "mann cross": "mann_cross",
+    "mann": "mann_cross",
+    "mahl_cross": "mahl_cross",
+    "mahle_cross": "mahl_cross",
+    "mahl cross": "mahl_cross",
+    "mahle cross": "mahl_cross",
+    "mahle": "mahl_cross",
+    "sakura_cross": "sakura_cross",
+    "sakura cross": "sakura_cross",
+    "sakura": "sakura_cross",
     "price": "price",
     "vat": "vat_rate",
     "vat_rate": "vat_rate",
@@ -82,7 +93,7 @@ FIELD_ALIASES = {
 # round-tripped file does not mistake them for warehouse columns.
 IGNORED_COLUMNS = {"is_active", "slug", "picture", "created_at", "updated_at"}
 
-TEXT_LIMITS ={"sku": 64, "article": 64, "manufacturer_number": 64, "name": 200, "viscosity": 20, "weight_unit": 16, "volume_unit": 16}
+TEXT_LIMITS ={"sku": 64, "article": 64, "manufacturer_number": 64, "mann_cross": 255, "mahl_cross": 255, "sakura_cross": 255, "name": 200, "viscosity": 20, "weight_unit": 16, "volume_unit": 16}
 
 
 @dataclass
@@ -287,6 +298,12 @@ def import_products(file_obj, default_brand=None):
                 defaults["article"] = _text(values.get("article"), 64)
             if "manufacturer_number" in values:
                 defaults["manufacturer_number"] = _text(values.get("manufacturer_number"), 64)
+            if "mann_cross" in values:
+                defaults["mann_cross"] = _text(values.get("mann_cross"), 255)
+            if "mahl_cross" in values:
+                defaults["mahl_cross"] = _text(values.get("mahl_cross"), 255)
+            if "sakura_cross" in values:
+                defaults["sakura_cross"] = _text(values.get("sakura_cross"), 255)
             if "name" in values:
                 defaults["name"] = _text(values.get("name"), 200) or sku
             if "category" in values:

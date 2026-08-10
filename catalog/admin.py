@@ -124,7 +124,8 @@ class ProductAdmin(admin.ModelAdmin):
     def is_description(self, obj):
         return bool(obj.description)
     search_fields = (
-        "sku", "article", "manufacturer_number", "viscosity", "name", "description"
+        "sku", "article", "manufacturer_number", "viscosity", "name", "description",
+        "mann_cross", "mahl_cross", "sakura_cross",
     )
     autocomplete_fields = ("brand", "category", "subcategory", "model_product")
     inlines = [ProductPriceInline, ProductStockInline]

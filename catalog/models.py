@@ -114,6 +114,12 @@ class Product(models.Model):
     # Additional, non-unique references.
     article = models.CharField("артикул", max_length=64, blank=True, db_index=True)
     manufacturer_number = models.CharField("Номер производителя", max_length=64, blank=True, db_index=True)
+    # Cross-reference numbers (used for the «Фильтры» category). Searchable in the
+    # catalog — case- and separator-insensitive, so «CU 2945» == «CU2945» ==
+    # «CU-2945» — but intentionally not shown on the product page.
+    mann_cross = models.CharField("кросс-номер MANN", max_length=255, blank=True)
+    mahl_cross = models.CharField("кросс-номер MAHLE", max_length=255, blank=True)
+    sakura_cross = models.CharField("кросс-номер SAKURA", max_length=255, blank=True)
 
     name = models.CharField("наименование", max_length=200)
     slug = models.SlugField(max_length=220, blank=True, allow_unicode=True)

@@ -6,8 +6,8 @@ from urllib.parse import quote
 import openpyxl
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import DecimalField, F, IntegerField, OuterRef, Q, Subquery, Value
-from django.db.models.functions import Coalesce
+from django.db.models import DecimalField, F, Func, IntegerField, OuterRef, Q, Subquery, Value
+from django.db.models.functions import Coalesce, Upper
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
@@ -97,6 +97,55 @@ def _favorite_ids(user):
     return set(user.favorites.values_list("product_id", flat=True))
 
 
+def _norm_cross(field):
+    """Uppercased field value with every non-alphanumeric character removed, so
+    cross numbers match regardless of separators (Postgres regexp_replace)."""
+    return Upper(
+        Func(
+            F(field),
+            Value(r"[^0-9A-Za-z]"),
+            Value(""),
+            Value("g"),
+            function="regexp_replace",
+        )
+    )
+
+
+def _search_products(products, query):
+    """Filter `products` by a free-text `query`.
+
+    Matches the usual text fields, plus the brand cross numbers (mann/mahl/
+    sakura) compared with case and separators stripped — so «CU 2945», «CU2945»
+    and «CU-2945» all find the same product. The cross match runs in a subquery
+    so its regexp annotations never leak into the outer query.
+    """
+    text_q = (
+        Q(name__icontains=query)
+        | Q(sku__icontains=query)
+        | Q(article__icontains=query)
+        | Q(manufacturer_number__icontains=query)
+        | Q(brand__name__icontains=query)
+        | Q(description__icontains=query)
+    )
+    normalized = re.sub(r"[^0-9A-Za-z]", "", query).upper()
+    if normalized:
+        cross = (
+            Product.objects.annotate(
+                mann_norm=_norm_cross("mann_cross"),
+                mahl_norm=_norm_cross("mahl_cross"),
+                sakura_norm=_norm_cross("sakura_cross"),
+            )
+            .filter(
+                Q(mann_norm__contains=normalized)
+                | Q(mahl_norm__contains=normalized)
+                | Q(sakura_norm__contains=normalized)
+            )
+            .values("pk")
+        )
+        text_q |= Q(pk__in=cross)
+    return products.filter(text_q)
+
+
 def product_list(request):
     # Public page: anyone may browse. Stock (across all warehouses) is revealed
     # to any logged-in buyer; `warehouse` is their own warehouse for ordering.
@@ -118,14 +167,7 @@ def product_list(request):
     in_stock = request.GET.get("in_stock") == "1"
 
     if query:
-        products = products.filter(
-            Q(name__icontains=query)
-            | Q(sku__icontains=query)
-            | Q(article__icontains=query)
-            | Q(manufacturer_number__icontains=query)
-            | Q(brand__name__icontains=query)
-            | Q(description__icontains=query)
-        )
+        products = _search_products(products, query)
     # Brand → categories cascade. Which categories a brand offers is set in the
     # admin (Brand.categories); empty means "all categories".
     brand_obj = Brand.objects.filter(slug=brand_slug).first() if brand_slug else None
@@ -307,14 +349,7 @@ def _filtered_products(request):
     )
     query = request.GET.get("q", "").strip()
     if query:
-        products = products.filter(
-            Q(name__icontains=query)
-            | Q(sku__icontains=query)
-            | Q(article__icontains=query)
-            | Q(manufacturer_number__icontains=query)
-            | Q(brand__name__icontains=query)
-            | Q(description__icontains=query)
-        )
+        products = _search_products(products, query)
     brand_slug = request.GET.get("brand", "")
     if brand_slug:
         products = products.filter(brand__slug=brand_slug)
