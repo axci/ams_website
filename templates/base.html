@@ -26,14 +26,19 @@
     </button>
 
     <div class="collapse navbar-collapse" id="mainNav">
+      {% if request.resolver_match.namespace == 'catalog' %}
       <form class="d-flex ms-lg-3 my-2 my-lg-0 flex-grow-1" role="search" method="get"
             action="{% url 'catalog:product_list' %}">
         <input class="form-control me-2" type="search" name="q" placeholder="Поиск по наименованию, артиклу, бренду..."
                value="{{ request.GET.q }}">
         <button class="btn btn-outline-light" type="submit"><i class="bi bi-search"></i></button>
       </form>
+      {% endif %}
 
       <ul class="navbar-nav ms-auto align-items-lg-center">
+        {% if request.resolver_match.namespace != 'catalog' %}
+        <li class="nav-item me-lg-2"><a class="nav-link" href="{% url 'catalog:product_list' %}">Каталог</a></li>
+        {% endif %}
         <li class="nav-item me-lg-2"><a class="nav-link" href="{% url 'about:page' %}">О компании</a></li>
         <li class="nav-item me-lg-2"><a class="nav-link" href="{% url 'news:list' %}">Новости</a></li>
         <li class="nav-item me-lg-2"><a class="nav-link" href="{% url 'warehouses:contacts' %}">Контакты</a></li>
