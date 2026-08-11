@@ -18,3 +18,19 @@ class BootstrapFormMixin:
 
 class LoginForm(BootstrapFormMixin, AuthenticationForm):
     pass
+
+
+class RegistrationRequestForm(BootstrapFormMixin, forms.Form):
+    """Public «отправьте заявку» form on the registration page — emailed to sales."""
+
+    company_name = forms.CharField(label="Наименование компании", max_length=255)
+    inn = forms.CharField(label="ИНН", max_length=12)
+    email = forms.EmailField(label="Email")
+    # Honeypot: hidden from people, but bots tend to fill it. Humans leave it empty.
+    website = forms.CharField(required=False, widget=forms.HiddenInput)
+
+    def clean_inn(self):
+        inn = (self.cleaned_data.get("inn") or "").strip()
+        if not inn.isdigit() or len(inn) not in (10, 12):
+            raise forms.ValidationError("ИНН должен содержать 10 или 12 цифр.")
+        return inn

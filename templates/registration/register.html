@@ -36,6 +36,33 @@
       Свяжитесь с нами через страницу <a href="{% url 'warehouses:contacts' %}">Контакты</a>.
     </p>
     {% endif %}
+
+    <hr class="my-4">
+    <h2 class="h6 mb-3">Или отправьте заявку</h2>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {{ form.website }}
+      {% for error in form.non_field_errors %}
+      <div class="alert alert-danger py-2 small mb-3">{{ error }}</div>
+      {% endfor %}
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.company_name.id_for_label }}">{{ form.company_name.label }}</label>
+        {{ form.company_name }}
+        {% for e in form.company_name.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.inn.id_for_label }}">{{ form.inn.label }}</label>
+        {{ form.inn }}
+        {% for e in form.inn.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <div class="mb-3">
+        <label class="form-label" for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>
+        {{ form.email }}
+        {% for e in form.email.errors %}<div class="text-danger small">{{ e }}</div>{% endfor %}
+      </div>
+      <button class="btn btn-primary w-100" type="submit">Отправить заявку</button>
+    </form>
+
     <p class="text-center mt-3 mb-0 small">Уже есть аккаунт? <a href="{% url 'login' %}">Войти</a></p>
   </div>
 </div>
