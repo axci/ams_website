@@ -6,8 +6,8 @@ from urllib.parse import quote
 import openpyxl
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import DecimalField, F, Func, IntegerField, OuterRef, Q, Subquery, Value
-from django.db.models.functions import Coalesce, Upper
+from django.db.models import DecimalField, F, Func, IntegerField, OuterRef, Q, Subquery, TextField, Value
+from django.db.models.functions import Coalesce, Concat
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
@@ -97,53 +97,60 @@ def _favorite_ids(user):
     return set(user.favorites.values_list("product_id", flat=True))
 
 
-def _norm_cross(field):
-    """Uppercased field value with every non-alphanumeric character removed, so
-    cross numbers match regardless of separators (Postgres regexp_replace)."""
-    return Upper(
-        Func(
-            F(field),
-            Value(r"[^0-9A-Za-z]"),
-            Value(""),
-            Value("g"),
-            function="regexp_replace",
-        )
+# Kept when normalizing for search: digits, latin and Cyrillic letters. Every
+# other character (space, hyphen, punctuation) is dropped so «G-5», «G 5» and
+# «g5» all compare equal.
+_SEARCH_KEEP = r"[^0-9A-Za-zА-Яа-яЁё]"
+
+
+def _normalize(text):
+    """Python twin of the DB blob: strip separators. Case is preserved —
+    matching is case-insensitive via icontains (ILIKE)."""
+    return re.sub(_SEARCH_KEEP, "", text)
+
+
+def _search_blob():
+    """A product's searchable text — name, brand, article, code, manufacturer
+    and cross numbers — concatenated with separators removed so query terms can
+    be matched (case-insensitively, via icontains) by containment."""
+    joined = Concat(
+        F("name"), Value(" "),
+        F("brand__name"), Value(" "),
+        F("article"), Value(" "),
+        F("manufacturer_number"), Value(" "),
+        F("sku"), Value(" "),
+        F("mann_cross"), Value(" "),
+        F("mahl_cross"), Value(" "),
+        F("sakura_cross"),
+        output_field=TextField(),
+    )
+    return Func(
+        joined, Value(_SEARCH_KEEP), Value(""), Value("g"),
+        function="regexp_replace",
+        output_field=TextField(),
     )
 
 
 def _search_products(products, query):
     """Filter `products` by a free-text `query`.
 
-    Matches the usual text fields, plus the brand cross numbers (mann/mahl/
-    sakura) compared with case and separators stripped — so «CU 2945», «CU2945»
-    and «CU-2945» all find the same product. The cross match runs in a subquery
-    so its regexp annotations never leak into the outer query.
+    The query is split into terms; a product matches only when EVERY term is
+    found (order-independent), each either in its normalised searchable text
+    (name, brand, article, code, manufacturer/cross numbers — case and
+    separators ignored, so «pemco g5» matches «… G-5 … Pemco») or, as a plain
+    substring, in its description. This subsumes the cross-number search.
     """
-    text_q = (
-        Q(name__icontains=query)
-        | Q(sku__icontains=query)
-        | Q(article__icontains=query)
-        | Q(manufacturer_number__icontains=query)
-        | Q(brand__name__icontains=query)
-        | Q(description__icontains=query)
-    )
-    normalized = re.sub(r"[^0-9A-Za-z]", "", query).upper()
-    if normalized:
-        cross = (
-            Product.objects.annotate(
-                mann_norm=_norm_cross("mann_cross"),
-                mahl_norm=_norm_cross("mahl_cross"),
-                sakura_norm=_norm_cross("sakura_cross"),
-            )
-            .filter(
-                Q(mann_norm__contains=normalized)
-                | Q(mahl_norm__contains=normalized)
-                | Q(sakura_norm__contains=normalized)
-            )
-            .values("pk")
-        )
-        text_q |= Q(pk__in=cross)
-    return products.filter(text_q)
+    terms = query.split()
+    if not terms:
+        return products
+    matches = Product.objects.annotate(_blob=_search_blob())
+    for term in terms:
+        term_q = Q(description__icontains=term)
+        normalized = _normalize(term)
+        if normalized:
+            term_q |= Q(_blob__icontains=normalized)
+        matches = matches.filter(term_q)
+    return products.filter(pk__in=matches.values("pk"))
 
 
 def product_list(request):
