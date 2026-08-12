@@ -8,7 +8,7 @@ from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import DecimalField, F, Func, IntegerField, OuterRef, Q, Subquery, TextField, Value
 from django.db.models.functions import Coalesce, Concat
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from openpyxl.styles import Alignment, Font
@@ -151,6 +151,27 @@ def _search_products(products, query):
             term_q |= Q(_blob__icontains=normalized)
         matches = matches.filter(term_q)
     return products.filter(pk__in=matches.values("pk"))
+
+
+def search_suggest(request):
+    """Autocomplete for the navbar search: up to 10 matching products as JSON
+    (brand + name + url), using the same visibility and matching as the catalog
+    search. Grouped by brand so the «Brand — name» list reads coherently."""
+    query = request.GET.get("q", "").strip()
+    results = []
+    if len(query) >= 2:
+        own_ids = own_warehouse_ids(request.user)
+        products = _search_products(
+            Product.objects.filter(is_active=True)
+            .filter(visible_products_q(own_ids))
+            .select_related("brand"),
+            query,
+        ).order_by("brand__name", "name")[:10]
+        results = [
+            {"brand": p.brand.name, "name": p.name, "url": p.get_absolute_url()}
+            for p in products
+        ]
+    return JsonResponse({"results": results})
 
 
 def product_list(request):
