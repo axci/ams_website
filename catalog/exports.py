@@ -44,6 +44,8 @@ PRODUCT_COLUMNS = [
     ("mann_cross", lambda p: p.mann_cross),
     ("mahl_cross", lambda p: p.mahl_cross),
     ("sakura_cross", lambda p: p.sakura_cross),
+    ("knecht_cross", lambda p: p.knecht_cross),
+    ("oem_cross", lambda p: p.oem_cross),
     ("category", lambda p: p.category.name if p.category_id else ""),
     ("subcategory", lambda p: p.subcategory.name if p.subcategory_id else ""),
     ("model_product", lambda p: p.model_product.name if p.model_product_id else ""),

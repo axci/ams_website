@@ -125,7 +125,7 @@ class ProductAdmin(admin.ModelAdmin):
         return bool(obj.description)
     search_fields = (
         "sku", "article", "manufacturer_number", "viscosity", "name", "description",
-        "mann_cross", "mahl_cross", "sakura_cross",
+        "mann_cross", "mahl_cross", "sakura_cross", "knecht_cross", "oem_cross",
     )
     autocomplete_fields = ("brand", "category", "subcategory", "model_product")
     inlines = [ProductPriceInline, ProductStockInline]

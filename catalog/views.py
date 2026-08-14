@@ -121,7 +121,9 @@ def _search_blob():
         F("sku"), Value(" "),
         F("mann_cross"), Value(" "),
         F("mahl_cross"), Value(" "),
-        F("sakura_cross"),
+        F("sakura_cross"), Value(" "),
+        F("knecht_cross"), Value(" "),
+        F("oem_cross"),
         output_field=TextField(),
     )
     return Func(
