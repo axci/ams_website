@@ -121,7 +121,7 @@ class Product(models.Model):
     mahl_cross = models.CharField("кросс-номер MAHLE", max_length=255, blank=True)
     sakura_cross = models.CharField("кросс-номер SAKURA", max_length=255, blank=True)
     knecht_cross = models.CharField("кросс-номер KNECHT", max_length=255, blank=True)
-    oem_cross = models.CharField("кросс-номер OEM", max_length=255, blank=True)
+    oem_cross = models.CharField("кросс-номер OEM", max_length=10000, blank=True)
 
     name = models.CharField("наименование", max_length=200)
     slug = models.SlugField(max_length=220, blank=True, allow_unicode=True)

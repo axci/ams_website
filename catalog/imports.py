@@ -99,7 +99,7 @@ FIELD_ALIASES = {
 # round-tripped file does not mistake them for warehouse columns.
 IGNORED_COLUMNS = {"is_active", "slug", "picture", "created_at", "updated_at"}
 
-TEXT_LIMITS ={"sku": 64, "article": 64, "manufacturer_number": 64, "mann_cross": 255, "mahl_cross": 255, "sakura_cross": 255, "knecht_cross": 255, "oem_cross": 255, "name": 200, "viscosity": 20, "weight_unit": 16, "volume_unit": 16}
+TEXT_LIMITS ={"sku": 64, "article": 64, "manufacturer_number": 64, "mann_cross": 255, "mahl_cross": 255, "sakura_cross": 255, "knecht_cross": 255, "oem_cross": 10000, "name": 200, "viscosity": 20, "weight_unit": 16, "volume_unit": 16}
 
 
 @dataclass
@@ -313,7 +313,7 @@ def import_products(file_obj, default_brand=None):
             if "knecht_cross" in values:
                 defaults["knecht_cross"] = _text(values.get("knecht_cross"), 255)
             if "oem_cross" in values:
-                defaults["oem_cross"] = _text(values.get("oem_cross"), 255)
+                defaults["oem_cross"] = _text(values.get("oem_cross"), 10000)
             if "name" in values:
                 defaults["name"] = _text(values.get("name"), 200) or sku
             if "category" in values:
