@@ -10,7 +10,7 @@
 # CUTOVER: remove the `tls internal` line and point DNS here — Caddy then gets
 # a real certificate automatically over port 80.
 
-a-sibir.ru, www.a-sibir.ru {
+a-sibir.ru, www.a-sibir.ru, automech.su, www.automech.su {
 	encode zstd gzip
 
 	handle_path /media/* {
