@@ -1,0 +1,184 @@
+/* «О компании» — sectioned design, scoped under .about-page so the mockup's
+   generic class names (.hero/.title/.chip/.wrap …) never clash with Bootstrap
+   or the site base. Rendered inside base.html; the site navbar/footer are kept. */
+
+/* Full-bleed: break out of main.container and sit flush under the navbar. */
+body:has(.about-page) { overflow-x: hidden; }
+.about-page {
+  --navy:#0F1B3B; --navy-deep:#0A1329; --navy-card:#16244d;
+  --oil:#E9A63A; --oil-2:#F5C15A;
+  --paper:#ECEEF2; --paper-card:#E2E6ED;
+  --ink:#0C1526; --steel:#7E8AA0;
+  --line-d:rgba(255,255,255,.10); --line-l:rgba(15,27,59,.14);
+  --maxw:1180px;
+
+  width:100vw;
+  margin-left:calc(50% - 50vw);
+  margin-top:-1.5rem;    /* cancel main.container.py-4 top padding */
+  margin-bottom:-1.5rem; /* cancel main.container.py-4 bottom padding */
+  background:var(--navy-deep);
+  color:#EAEEF6;
+  font-family:"Manrope",system-ui,sans-serif;
+  line-height:1.65;
+  -webkit-font-smoothing:antialiased;
+}
+.about-page a{color:inherit;text-decoration:none}
+.about-page img{max-width:100%;display:block}
+.about-page .wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+.about-page section{padding:clamp(64px,9vw,120px) 0}
+.about-page .light{background:var(--paper);color:var(--ink)}
+
+/* shared */
+.about-page .eyebrow{
+  font-family:"JetBrains Mono",monospace;
+  font-size:.72rem;letter-spacing:.22em;text-transform:uppercase;
+  color:var(--oil);display:flex;align-items:center;gap:12px;
+}
+.about-page .eyebrow::before{content:"";width:26px;height:1px;background:var(--oil);display:inline-block;flex:none}
+.about-page .light .eyebrow{color:#B9791A}
+.about-page .light .eyebrow::before{background:#B9791A}
+.about-page .sec-idx{font-family:"JetBrains Mono",monospace;font-size:.72rem;color:var(--steel);letter-spacing:.1em}
+.about-page .light .sec-idx{color:#6B7488}
+.about-page .sec-head{display:flex;justify-content:space-between;align-items:baseline}
+.about-page h2.title{
+  font-family:"Saira Condensed",sans-serif;font-weight:700;
+  text-transform:uppercase;letter-spacing:.01em;line-height:.98;
+  font-size:clamp(2rem,4.4vw,3.3rem);margin:.5rem 0 0;
+}
+
+/* hero */
+.about-page .hero{position:relative;overflow:hidden;padding:clamp(56px,9vw,120px) 0 clamp(60px,8vw,110px)}
+.about-page .hero::before{
+  content:"";position:absolute;inset:0;pointer-events:none;
+  background:
+    radial-gradient(120% 90% at 88% -10%,rgba(233,166,58,.20),transparent 55%),
+    radial-gradient(90% 70% at 8% 108%,rgba(233,166,58,.08),transparent 60%);
+}
+.about-page .grid-bg{position:absolute;inset:0;opacity:.5;pointer-events:none;
+  background-image:linear-gradient(var(--line-d) 1px,transparent 1px),linear-gradient(90deg,var(--line-d) 1px,transparent 1px);
+  background-size:64px 64px;mask-image:linear-gradient(180deg,#000,transparent 82%)}
+.about-page .hero .wrap{position:relative}
+.about-page .hero h1{
+  font-family:"Saira Condensed",sans-serif;font-weight:700;
+  font-size:clamp(2.7rem,7.2vw,6rem);line-height:.96;margin:.7rem 0 0;
+  max-width:16ch;letter-spacing:.005em;
+}
+.about-page .hero h1 em{color:var(--oil);font-style:normal}
+.about-page .hero .lead{margin:26px 0 0;max-width:60ch;font-size:clamp(1rem,1.5vw,1.18rem);color:#C6D0E4}
+.about-page .spec{
+  margin-top:44px;display:grid;grid-template-columns:repeat(3,1fr);gap:0;
+  border:1px solid var(--line-d);border-radius:12px;overflow:hidden;max-width:760px;
+}
+.about-page .spec div{padding:20px 22px;border-right:1px solid var(--line-d)}
+.about-page .spec div:last-child{border-right:none}
+.about-page .spec dt{font-family:"JetBrains Mono",monospace;font-size:.68rem;letter-spacing:.16em;text-transform:uppercase;color:var(--steel)}
+.about-page .spec dd{margin:8px 0 0;font-family:"Saira Condensed",sans-serif;font-weight:600;font-size:1.5rem;line-height:1.05;text-transform:uppercase}
+.about-page .spec dd small{display:block;font-family:"Manrope";font-weight:500;font-size:.82rem;text-transform:none;letter-spacing:0;color:#AEB9CF;margin-top:3px}
+
+/* profile */
+.about-page .cols{display:grid;grid-template-columns:230px 1fr;gap:48px;margin-top:40px}
+.about-page .col-label{position:sticky;top:100px;align-self:start}
+.about-page .lead-p{font-size:clamp(1.15rem,1.9vw,1.5rem);font-weight:500;line-height:1.45;margin:0 0 1.4em}
+.about-page .body-p{max-width:62ch;color:#354063;margin:0 0 1.15em}
+.about-page .pull{
+  margin:34px 0 0;border-left:3px solid var(--oil);padding:6px 0 6px 22px;
+  font-family:"Saira Condensed",sans-serif;font-weight:600;font-size:1.25rem;text-transform:uppercase;line-height:1.1;
+}
+
+/* clients */
+.about-page .clients-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:48px;align-items:center;margin-top:36px}
+.about-page .clients-grid p{color:#C6D0E4;max-width:46ch}
+.about-page .tags{display:flex;flex-wrap:wrap;gap:12px;margin-top:8px}
+.about-page .tag{
+  font-family:"Saira Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.03em;
+  font-size:1.05rem;padding:12px 20px;border:1px solid var(--line-d);border-radius:8px;
+  background:var(--navy-card);color:#fff;
+}
+.about-page .tag.acc{border-color:var(--oil);color:var(--oil)}
+
+/* brands */
+.about-page .brand-block{border-top:1px solid var(--line-l);padding-top:34px;margin-top:44px}
+.about-page .brand-block:first-of-type{margin-top:40px}
+.about-page .brand-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:14px;margin-bottom:4px}
+.about-page .role{
+  font-family:"JetBrains Mono",monospace;font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;
+  color:#fff;background:var(--navy);padding:6px 12px;border-radius:6px;
+}
+.about-page .brand-block h3{font-family:"Saira Condensed",sans-serif;font-weight:700;text-transform:uppercase;font-size:1.6rem;margin:0;letter-spacing:.01em}
+.about-page .brand-desc{max-width:70ch;color:#3A4664;margin:.5rem 0 22px}
+.about-page .chips{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;align-items:start}
+.about-page .chip{
+  background:#fff;border:1px solid var(--line-l);border-radius:10px;overflow:hidden;
+  display:block;transition:transform .18s,border-color .18s,box-shadow .18s;
+}
+.about-page .chip b{display:block;padding:32px 16px;text-align:center;font-family:"Saira Condensed",sans-serif;font-weight:700;font-size:1.28rem;text-transform:uppercase;letter-spacing:.01em;color:var(--ink)}
+.about-page .chip:hover{transform:translateY(-3px);border-color:var(--oil);box-shadow:0 10px 24px -14px rgba(15,27,59,.4)}
+.about-page .chip-logo{display:block;width:100%;height:auto}
+
+/* geography */
+.about-page .geo-grid{display:grid;grid-template-columns:1fr 1fr;gap:56px;align-items:center;margin-top:40px}
+.about-page .geo-block+.geo-block{margin-top:32px}
+.about-page .geo-cap{display:flex;align-items:baseline;justify-content:space-between;border-bottom:1px solid var(--line-d);padding-bottom:11px;margin:0}
+.about-page .geo-cap b{font-family:"Saira Condensed",sans-serif;font-weight:700;font-size:1.5rem;color:var(--oil);line-height:1}
+.about-page .geo-list{list-style:none;margin:14px 0 0;padding:0}
+.about-page .geo-list li{
+  display:flex;align-items:center;gap:16px;border-bottom:1px solid var(--line-d);
+  font-family:"Saira Condensed",sans-serif;font-weight:600;text-transform:uppercase;letter-spacing:.02em;
+}
+.about-page .geo-list li:last-child{border-bottom:none}
+.about-page .geo-list li::before{content:"";border-radius:50%;background:var(--oil);flex:none}
+.about-page .geo-list.centers li{font-size:1.55rem;color:#fff;padding:15px 0}
+.about-page .geo-list.centers li::before{width:12px;height:12px;box-shadow:0 0 0 5px rgba(233,166,58,.28)}
+.about-page .geo-list.regions li{font-size:1.12rem;color:#C6D0E4;padding:11px 0}
+.about-page .geo-list.regions li::before{width:7px;height:7px;box-shadow:0 0 0 3px rgba(233,166,58,.16)}
+.about-page .map-frame{position:relative;border:1px solid var(--line-d);border-radius:14px;background:linear-gradient(160deg,#0d1836,#0a1329);padding:18px}
+.about-page .map-frame .mono-tag{position:absolute;top:14px;left:16px;font-family:"JetBrains Mono";font-size:.62rem;letter-spacing:.14em;color:var(--steel);text-transform:uppercase}
+.about-page .map-frame .mono-tag.r{left:auto;right:16px}
+.about-page .map-frame svg{width:100%;height:auto;display:block}
+.about-page .node-dot{fill:var(--oil)}
+.about-page .node-ring{fill:none;stroke:var(--oil);stroke-width:1.4;opacity:.55}
+.about-page .node-lbl{font-family:"JetBrains Mono",monospace;font-size:10.5px;fill:#D6DEEE;letter-spacing:.04em}
+.about-page .node-lbl.hub{fill:#fff}
+.about-page .backbone{stroke:var(--oil);stroke-width:2;opacity:.72;stroke-linecap:round}
+.about-page .link-line{stroke:var(--oil);stroke-width:1.3;opacity:.5;stroke-dasharray:5 5}
+.about-page .node-tag{font-family:"JetBrains Mono",monospace;font-size:8px;fill:var(--oil);letter-spacing:.08em;text-transform:uppercase}
+.about-page .map-grid-line{stroke:var(--line-d);stroke-width:1}
+
+/* requisites */
+.about-page .req-grid{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:40px;align-items:start}
+.about-page .req-card{border:1px solid var(--line-l);border-radius:14px;background:#fff;overflow:hidden}
+.about-page .req-row{display:flex;justify-content:space-between;gap:20px;padding:20px 24px;border-bottom:1px solid var(--line-l)}
+.about-page .req-row:last-child{border-bottom:none}
+.about-page .req-row dt{font-family:"JetBrains Mono",monospace;font-size:.7rem;letter-spacing:.12em;text-transform:uppercase;color:var(--steel);margin:0}
+.about-page .req-row dd{margin:0;text-align:right;font-weight:600;color:var(--ink);font-family:"JetBrains Mono",monospace;font-size:.95rem}
+.about-page .req-row dd.name{font-family:"Manrope";font-weight:600;max-width:26ch}
+.about-page .dl{
+  display:inline-flex;align-items:center;gap:12px;background:var(--navy);color:#fff;
+  padding:18px 26px;border-radius:12px;font-weight:600;transition:background .2s,transform .18s;
+  font-family:"Saira Condensed",sans-serif;text-transform:uppercase;letter-spacing:.03em;font-size:1.1rem;
+}
+.about-page .dl:hover,.about-page .dl:focus-visible{background:#16244d;transform:translateY(-2px)}
+.about-page .dl svg{flex:none}
+.about-page .req-note{color:#4A5573;margin-top:16px;font-size:.9rem;max-width:40ch}
+
+/* reveal — only hide when JS is ready, so no-JS shows everything */
+.about-page.reveal-ready .rv{opacity:0;transform:translateY(22px);transition:opacity .7s ease,transform .7s ease}
+.about-page.reveal-ready .rv.in{opacity:1;transform:none}
+
+/* responsive */
+@media(max-width:900px){
+  .about-page .cols,.about-page .clients-grid,.about-page .geo-grid,.about-page .req-grid{grid-template-columns:1fr;gap:30px}
+  .about-page .col-label{position:static}
+  .about-page .spec{grid-template-columns:1fr}
+  .about-page .spec div{border-right:none;border-bottom:1px solid var(--line-d)}
+  .about-page .spec div:last-child{border-bottom:none}
+}
+@media(max-width:520px){
+  .about-page .wrap{padding:0 20px}
+  .about-page .req-row{flex-direction:column;gap:6px}
+  .about-page .req-row dd{text-align:left}
+}
+@media(prefers-reduced-motion:reduce){
+  .about-page.reveal-ready .rv{opacity:1;transform:none;transition:none}
+  .about-page .link-line{stroke-dasharray:none}
+}

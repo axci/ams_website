@@ -1,31 +1,198 @@
 {% extends 'base.html' %}
+{% load static %}
 {% block title %}О компании — Автомеханика-Сибирь{% endblock %}
 
-{% block content %}
-<h1 class="h4 mb-4">О компании</h1>
+{% block extra_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Saira+Condensed:wght@500;600;700&family=Manrope:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="{% static 'css/about.css' %}" rel="stylesheet">
+{% endblock %}
 
-{% if blocks %}
-{% for block in blocks %}
-<div class="row align-items-center g-4 mb-4">
-  {% if block.picture %}
-  <div class="col-md-5 {% cycle '' 'order-md-2' %}">
-    <img src="{{ block.picture.url }}" class="img-fluid rounded shadow-sm" alt="">
-  </div>
-  <div class="col-md-7">
-    {% if block.title %}<h2 class="h5">{{ block.title }}</h2>{% endif %}
-    <div class="rich-text">{{ block.text|safe }}</div>
-    {% if block.file %}<p class="mt-2"><a href="{{ block.file.url }}" class="btn btn-sm btn-outline-secondary" download><i class="bi bi-download"></i> Скачать {{ block.filename }}</a></p>{% endif %}
-  </div>
-  {% else %}
-  <div class="col-12">
-    {% if block.title %}<h2 class="h5">{{ block.title }}</h2>{% endif %}
-    <div class="rich-text">{{ block.text|safe }}</div>
-    {% if block.file %}<p class="mt-2"><a href="{{ block.file.url }}" class="btn btn-sm btn-outline-secondary" download><i class="bi bi-download"></i> Скачать {{ block.filename }}</a></p>{% endif %}
-  </div>
-  {% endif %}
+{% block content %}
+<div class="about-page">
+
+  {# ---------- HERO ---------- #}
+  <section class="hero">
+    <div class="grid-bg"></div>
+    <div class="wrap">
+      <p class="eyebrow rv">{{ page.hero_eyebrow }}</p>
+      <h1 class="rv">{{ page.hero_title }}{% if page.hero_title_accent %} <em>{{ page.hero_title_accent }}</em>{% endif %}</h1>
+      {% if page.hero_lead %}<p class="lead rv">{{ page.hero_lead }}</p>{% endif %}
+      {% if specs %}
+      <dl class="spec rv">
+        {% for s in specs %}
+        <div><dt>{{ s.label }}</dt><dd>{{ s.value }}{% if s.subtitle %}<small>{{ s.subtitle }}</small>{% endif %}</dd></div>
+        {% endfor %}
+      </dl>
+      {% endif %}
+    </div>
+  </section>
+
+  {# ---------- ПРОФИЛЬ ---------- #}
+  <section class="light">
+    <div class="wrap">
+      <div class="eyebrow rv">{{ page.profile_eyebrow }}</div>
+      <div class="sec-head">
+        <h2 class="title rv">{{ page.profile_title }}</h2>
+      </div>
+      <div class="cols">
+        <div class="col-label rv"><span class="sec-idx">{{ page.profile_side_label }}</span></div>
+        <div>
+          {% if page.profile_lead %}<p class="lead-p rv">{{ page.profile_lead }}</p>{% endif %}
+          {% if page.profile_body %}<p class="body-p rv">{{ page.profile_body }}</p>{% endif %}
+          {% if page.profile_pull %}<p class="pull rv">{{ page.profile_pull }}</p>{% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ---------- КЛИЕНТЫ ---------- #}
+  <section>
+    <div class="wrap">
+      <div class="eyebrow rv">{{ page.clients_eyebrow }}</div>
+      <div class="sec-head">
+        <h2 class="title rv">{{ page.clients_title }}</h2>
+      </div>
+      <div class="clients-grid">
+        <div class="rv"><p>{{ page.clients_body }}</p></div>
+        {% if tags %}
+        <div class="rv">
+          <div class="tags">
+            {% for t in tags %}<span class="tag{% if t.accent %} acc{% endif %}">{{ t.text }}</span>{% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </section>
+
+  {# ---------- БРЕНДЫ ---------- #}
+  <section class="light">
+    <div class="wrap">
+      <div class="eyebrow rv">{{ page.brands_eyebrow }}</div>
+      <div class="sec-head">
+        <h2 class="title rv">{{ page.brands_title }}</h2>
+      </div>
+      {% for block in brand_blocks %}
+      <div class="brand-block rv">
+        <div class="brand-head">
+          {% if block.role %}<span class="role">{{ block.role }}</span>{% endif %}
+          <h3>{{ block.heading }}</h3>
+        </div>
+        {% if block.description %}<p class="brand-desc">{{ block.description }}</p>{% endif %}
+        {% with chips=block.chips.all %}
+        {% if chips %}
+        <div class="chips">
+          {% for chip in chips %}
+          {% if chip.url %}
+          <a class="chip" href="{{ chip.url }}">{% if chip.image %}<img class="chip-logo" src="{{ chip.image.url }}" alt="{{ chip.name }}">{% else %}<b>{{ chip.name }}</b>{% endif %}</a>
+          {% else %}
+          <div class="chip">{% if chip.image %}<img class="chip-logo" src="{{ chip.image.url }}" alt="{{ chip.name }}">{% else %}<b>{{ chip.name }}</b>{% endif %}</div>
+          {% endif %}
+          {% endfor %}
+        </div>
+        {% endif %}
+        {% endwith %}
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+
+  {# ---------- ГЕОГРАФИЯ ---------- #}
+  <section>
+    <div class="wrap">
+      <div class="eyebrow rv">{{ page.geo_eyebrow }}</div>
+      <div class="sec-head">
+        <h2 class="title rv">{{ page.geo_title }}</h2>
+      </div>
+      <div class="geo-grid">
+        <div class="rv">
+          <div class="geo-block">
+            <p class="geo-cap"><span class="sec-idx">Регионы поставок</span></p>
+            <ul class="geo-list regions">
+              {% for r in regions %}<li>{{ r.name }}</li>{% endfor %}
+            </ul>
+          </div>
+        </div>
+        <div class="map-frame rv">
+          <svg viewBox="0 0 520 460" role="img" aria-label="Схема логистики: центры поставок обслуживают регионы Сибири">
+            <g>
+              <line class="map-grid-line" x1="0" y1="115" x2="520" y2="115" opacity=".5"/>
+              <line class="map-grid-line" x1="0" y1="230" x2="520" y2="230" opacity=".5"/>
+              <line class="map-grid-line" x1="0" y1="345" x2="520" y2="345" opacity=".5"/>
+              <line class="map-grid-line" x1="130" y1="0" x2="130" y2="460" opacity=".5"/>
+              <line class="map-grid-line" x1="260" y1="0" x2="260" y2="460" opacity=".5"/>
+              <line class="map-grid-line" x1="390" y1="0" x2="390" y2="460" opacity=".5"/>
+            </g>
+
+            <g class="links">
+              <line class="link-line" x1="325" y1="172" x2="268" y2="96"/>
+              <line class="link-line" x1="165" y1="192" x2="208" y2="300"/>
+              <line class="link-line" x1="208" y1="300" x2="318" y2="392"/>
+            </g>
+            <g>
+              <line class="backbone" x1="165" y1="192" x2="325" y2="172"/>
+              <line class="backbone" x1="325" y1="172" x2="372" y2="270"/>
+              <line class="backbone" x1="165" y1="192" x2="372" y2="270"/>
+            </g>
+
+            {# Outer city nodes (fixed decorative labels) #}
+            <circle class="node-dot" cx="268" cy="96" r="5"/>
+            <text class="node-lbl" x="280" y="92">Томск</text>
+            <circle class="node-dot" cx="208" cy="300" r="5"/>
+            <text class="node-lbl" x="196" y="316" text-anchor="end">Барнаул</text>
+            <circle class="node-dot" cx="318" cy="392" r="5"/>
+            <text class="node-lbl" x="330" y="396">Горно-Алтайск</text>
+
+            {# Supply centres — labelled from the first three centres #}
+            <circle class="node-ring" cx="165" cy="192" r="14"/>
+            <circle class="node-ring" cx="165" cy="192" r="22" opacity=".26"/>
+            <circle class="node-dot" cx="165" cy="192" r="7"/>
+            <text class="node-lbl hub" x="150" y="182" text-anchor="end">{{ centers.0.name }}</text>
+
+            <circle class="node-ring" cx="325" cy="172" r="14"/>
+            <circle class="node-ring" cx="325" cy="172" r="22" opacity=".26"/>
+            <circle class="node-dot" cx="325" cy="172" r="7"/>
+            <text class="node-lbl hub" x="343" y="168">{{ centers.1.name }}</text>
+
+            <circle class="node-ring" cx="372" cy="270" r="14"/>
+            <circle class="node-ring" cx="372" cy="270" r="22" opacity=".26"/>
+            <circle class="node-dot" cx="372" cy="270" r="7"/>
+            <text class="node-lbl hub" x="390" y="266">{{ centers.2.name }}</text>
+          </svg>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {# ---------- РЕКВИЗИТЫ ---------- #}
+  <section class="light">
+    <div class="wrap">
+      <div class="eyebrow rv">{{ page.req_eyebrow }}</div>
+      <div class="sec-head">
+        <h2 class="title rv">{{ page.req_title }}</h2>
+      </div>
+      <div class="req-grid">
+        <dl class="req-card rv">
+          <div class="req-row"><dt>Наименование</dt><dd class="name">{{ company.short_name }}</dd></div>
+          {% if company.inn %}<div class="req-row"><dt>ИНН</dt><dd>{{ company.inn }}</dd></div>{% endif %}
+          {% if company.kpp %}<div class="req-row"><dt>КПП</dt><dd>{{ company.kpp }}</dd></div>{% endif %}
+          {% if company.legal_form %}<div class="req-row"><dt>Форма</dt><dd class="name">{{ company.legal_form }}</dd></div>{% endif %}
+        </dl>
+        <div class="rv">
+          {% if company.card_pdf %}
+          <a class="dl" href="{{ company.card_pdf.url }}" download>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Скачать карточку предприятия
+          </a>
+          {% endif %}
+          {% if page.req_note %}<p class="req-note">{{ page.req_note }}</p>{% endif %}
+        </div>
+      </div>
+    </div>
+  </section>
+
 </div>
-{% endfor %}
-{% else %}
-<div class="alert alert-info">Информация о компании скоро появится.</div>
-{% endif %}
+<script src="{% static 'js/about.js' %}" defer></script>
 {% endblock %}
