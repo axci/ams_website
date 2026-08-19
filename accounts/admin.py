@@ -251,11 +251,10 @@ class RegistrationRequestAdmin(admin.ModelAdmin):
                     )
                 # Send the credentials outside the transaction: a mail hiccup
                 # must not roll back an account that already exists.
-                login_url = request.build_absolute_uri(reverse("login"))
                 name = user.get_full_name() or user.first_name
                 try:
                     send_credentials(
-                        user.email, name, user.username, data["password"], login_url
+                        user.email, name, user.username, data["password"]
                     )
                     self.message_user(
                         request,
