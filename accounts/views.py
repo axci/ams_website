@@ -11,6 +11,7 @@ from warehouses.models import Warehouse
 
 from .emails import send_registration_request
 from .forms import PasswordChangeForm, RegistrationRequestForm
+from .models import RegistrationRequest
 
 logger = logging.getLogger(__name__)
 
@@ -22,8 +23,15 @@ def register(request):
     if request.method == "POST":
         form = RegistrationRequestForm(request.POST)
         if form.is_valid():
-            # Skip sending on a filled honeypot, but act as if it succeeded.
+            # Skip storing/sending on a filled honeypot, but act as if it succeeded.
             if not form.cleaned_data.get("website"):
+                # Store the request first so it is never lost, then notify sales
+                # (best effort — a mail failure must not drop a saved заявка).
+                RegistrationRequest.objects.create(
+                    company_name=form.cleaned_data["company_name"],
+                    inn=form.cleaned_data["inn"],
+                    email=form.cleaned_data["email"],
+                )
                 try:
                     send_registration_request(
                         form.cleaned_data["company_name"],
@@ -31,17 +39,7 @@ def register(request):
                         form.cleaned_data["email"],
                     )
                 except Exception:  # noqa: BLE001
-                    logger.exception("Registration request email failed")
-                    messages.error(
-                        request,
-                        "Не удалось отправить заявку. Попробуйте позже "
-                        "или позвоните менеджеру.",
-                    )
-                    return render(
-                        request,
-                        "registration/register.html",
-                        {"warehouses": warehouses, "form": form},
-                    )
+                    logger.exception("Registration request notification email failed")
             messages.success(
                 request,
                 "Спасибо! Ваша заявка отправлена — менеджер свяжется с вами.",

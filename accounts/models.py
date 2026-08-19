@@ -118,6 +118,46 @@ class Company(models.Model):
         return self.company_name or self.code or f"Компания #{self.pk}"
 
 
+class RegistrationRequest(models.Model):
+    """A «заявка на регистрацию» submitted from the public register page.
+
+    Stored so the sales team can process it in the admin: from a request they
+    create the buyer's account and email the login/password with one button.
+    """
+
+    class Status(models.TextChoices):
+        NEW = "new", "Новая"
+        PROCESSED = "processed", "Обработана"
+        REJECTED = "rejected", "Отклонена"
+
+    company_name = models.CharField("наименование компании", max_length=255)
+    inn = models.CharField("ИНН", max_length=12, blank=True, default="")
+    email = models.EmailField("email")
+    status = models.CharField(
+        "статус", max_length=16, choices=Status.choices, default=Status.NEW
+    )
+    note = models.TextField("примечание", blank=True)
+    created_user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        related_name="+",
+        blank=True,
+        null=True,
+        verbose_name="созданный аккаунт",
+        help_text="Аккаунт, созданный по этой заявке.",
+    )
+    created_at = models.DateTimeField("получена", auto_now_add=True)
+    processed_at = models.DateTimeField("обработана", blank=True, null=True)
+
+    class Meta:
+        verbose_name = "заявка на регистрацию"
+        verbose_name_plural = "заявки на регистрацию"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.company_name} ({self.email})"
+
+
 class DeliveryAddress(models.Model):
     """A saved delivery address a buyer can pick at checkout."""
 

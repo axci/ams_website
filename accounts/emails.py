@@ -29,3 +29,28 @@ def send_registration_request(company_name, inn, email):
         to=[REGISTRATION_REQUEST_EMAIL],
         reply_to=[email],
     ).send()
+
+
+def send_credentials(to_email, name, username, password, login_url):
+    """Email a new client their login and password. Raises on send failure."""
+    greeting = f"Здравствуйте, {name}!" if name else "Здравствуйте!"
+    subject = "Доступ к личному кабинету — Автомеханика-Сибирь"
+    body = (
+        f"{greeting}\n\n"
+        "Благодарим за регистрацию на нашем сайте. "
+        "Ниже — данные для входа в личный кабинет:\n\n"
+        f"Логин: {username}\n"
+        f"Пароль: {password}\n"
+        f"Адрес входа: {login_url}\n\n"
+        "В целях безопасности рекомендуем сменить пароль после первого входа: "
+        "Профиль → «Сменить пароль».\n\n"
+        "Если у вас возникнут вопросы, свяжитесь с вашим персональным менеджером.\n\n"
+        "С уважением,\n"
+        "команда «Автомеханика-Сибирь»"
+    )
+    EmailMessage(
+        subject=subject,
+        body=body,
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[to_email],
+    ).send()

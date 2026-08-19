@@ -1,11 +1,22 @@
+import logging
+
 from django import forms
 from django.contrib import admin, messages
 from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
-from django.shortcuts import redirect, render
-from django.urls import path
+from django.contrib.auth.password_validation import validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.db import transaction
+from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import path, reverse
+from django.utils import timezone
+from django.utils.crypto import get_random_string
+from django.utils.html import format_html
 
+from .emails import send_credentials
 from .imports import import_companies
-from .models import Company, DeliveryAddress, User
+from .models import Company, DeliveryAddress, RegistrationRequest, User
+
+logger = logging.getLogger(__name__)
 
 
 class CompanyInline(admin.TabularInline):
@@ -108,3 +119,143 @@ class DeliveryAddressAdmin(admin.ModelAdmin):
     list_display = ("user", "label", "address")
     search_fields = ("label", "address", "user__username")
     autocomplete_fields = ("user",)
+
+
+# Ambiguous look-alike characters left out so a client can read the password.
+_PWD_ALPHABET = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789"
+
+
+class CreateClientForm(forms.Form):
+    """Fields the manager fills to turn a registration request into a real
+    account. The password is emailed to the client, so it is shown in clear."""
+
+    username = forms.CharField(label="Логин", max_length=150)
+    first_name = forms.CharField(label="Имя", max_length=150, required=False)
+    last_name = forms.CharField(label="Фамилия", max_length=150, required=False)
+    email = forms.EmailField(label="Email")
+    password = forms.CharField(label="Пароль", max_length=128)
+
+    def clean_username(self):
+        username = self.cleaned_data["username"].strip()
+        if User.objects.filter(username__iexact=username).exists():
+            raise forms.ValidationError("Пользователь с таким логином уже существует.")
+        return username
+
+    def clean_password(self):
+        password = self.cleaned_data["password"]
+        try:
+            validate_password(password)
+        except DjangoValidationError as exc:
+            raise forms.ValidationError(list(exc.messages))
+        return password
+
+
+@admin.register(RegistrationRequest)
+class RegistrationRequestAdmin(admin.ModelAdmin):
+    change_form_template = "admin/accounts/registrationrequest/change_form.html"
+    list_display = (
+        "company_name", "inn", "email", "status", "created_at", "action_link"
+    )
+    list_filter = ("status",)
+    search_fields = ("company_name", "inn", "email")
+    readonly_fields = ("created_at", "processed_at", "created_user")
+    fields = (
+        "company_name", "inn", "email", "status", "note",
+        "created_user", "created_at", "processed_at",
+    )
+    ordering = ("-created_at",)
+
+    @admin.display(description="Действие")
+    def action_link(self, obj):
+        if obj.created_user_id:
+            return "Аккаунт создан"
+        url = reverse("admin:accounts_registrationrequest_process", args=[obj.pk])
+        return format_html('<a class="button" href="{}">Создать аккаунт</a>', url)
+
+    def get_urls(self):
+        custom = [
+            path(
+                "<int:pk>/process/",
+                self.admin_site.admin_view(self.process_view),
+                name="accounts_registrationrequest_process",
+            ),
+        ]
+        return custom + super().get_urls()
+
+    def process_view(self, request, pk):
+        req = get_object_or_404(RegistrationRequest, pk=pk)
+        change_url = reverse("admin:accounts_registrationrequest_change", args=[pk])
+        if req.created_user_id:
+            self.message_user(
+                request, "По этой заявке уже создан аккаунт.", messages.WARNING
+            )
+            return redirect(change_url)
+
+        if request.method == "POST":
+            form = CreateClientForm(request.POST)
+            if form.is_valid():
+                data = form.cleaned_data
+                with transaction.atomic():
+                    user = User.objects.create_user(
+                        username=data["username"],
+                        email=data["email"],
+                        password=data["password"],
+                        first_name=data["first_name"],
+                        last_name=data["last_name"],
+                    )
+                    if req.company_name or req.inn:
+                        Company.objects.create(
+                            user=user,
+                            company_name=req.company_name,
+                            inn=req.inn or "",
+                        )
+                    req.status = RegistrationRequest.Status.PROCESSED
+                    req.created_user = user
+                    req.processed_at = timezone.now()
+                    req.save(
+                        update_fields=["status", "created_user", "processed_at"]
+                    )
+                # Send the credentials outside the transaction: a mail hiccup
+                # must not roll back an account that already exists.
+                login_url = request.build_absolute_uri(reverse("login"))
+                name = user.get_full_name() or user.first_name
+                try:
+                    send_credentials(
+                        user.email, name, user.username, data["password"], login_url
+                    )
+                    self.message_user(
+                        request,
+                        f"Аккаунт «{user.username}» создан, письмо с доступами "
+                        f"отправлено на {user.email}.",
+                        messages.SUCCESS,
+                    )
+                except Exception:  # noqa: BLE001
+                    logger.exception("Credentials email failed")
+                    self.message_user(
+                        request,
+                        f"Аккаунт «{user.username}» создан, но письмо отправить "
+                        "не удалось — сообщите доступы клиенту вручную "
+                        f"(пароль: {data['password']}).",
+                        messages.WARNING,
+                    )
+                return redirect(change_url)
+        else:
+            suggested_username = (req.email.split("@")[0] if req.email else "").strip()
+            form = CreateClientForm(
+                initial={
+                    "username": suggested_username,
+                    "email": req.email,
+                    "password": get_random_string(10, _PWD_ALPHABET),
+                }
+            )
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": f"Создание аккаунта по заявке: {req.company_name}",
+            "form": form,
+            "req": req,
+            "opts": self.model._meta,
+        }
+        return render(
+            request, "admin/accounts/registrationrequest/process.html", context
+        )

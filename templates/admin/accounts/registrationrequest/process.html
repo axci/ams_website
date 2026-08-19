@@ -1,0 +1,43 @@
+{% extends "admin/base_site.html" %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Главная</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+  &rsaquo; <a href="{% url 'admin:accounts_registrationrequest_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+  &rsaquo; <a href="{% url 'admin:accounts_registrationrequest_change' req.pk %}">{{ req }}</a>
+  &rsaquo; Создание аккаунта
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="help" style="margin-bottom:1.5em; max-width:60em;">
+  <p><strong>Заявка:</strong> {{ req.company_name }}{% if req.inn %} · ИНН {{ req.inn }}{% endif %} · {{ req.email }}</p>
+  <p>После сохранения будет создан аккаунт покупателя{% if req.company_name or req.inn %}
+     и привязана компания «{{ req.company_name|default:req.inn }}»{% endif %},
+     а на указанный email уйдёт письмо с логином и паролем. Склады, менеджера и
+     тип цены можно назначить позже в карточке пользователя.</p>
+</div>
+
+<form method="post">
+  {% csrf_token %}
+  {% if form.non_field_errors %}
+  <p class="errornote">{{ form.non_field_errors }}</p>
+  {% endif %}
+  <fieldset class="module aligned">
+    {% for field in form %}
+    <div class="form-row field-{{ field.name }}{% if field.errors %} errors{% endif %}">
+      {{ field.errors }}
+      <div>
+        <label for="{{ field.id_for_label }}"{% if field.field.required %} class="required"{% endif %}>{{ field.label }}:</label>
+        {{ field }}
+      </div>
+    </div>
+    {% endfor %}
+  </fieldset>
+  <div class="submit-row">
+    <input type="submit" value="Создать аккаунт и выслать доступы" class="default">
+    <a href="{% url 'admin:accounts_registrationrequest_change' req.pk %}" class="closelink">Отмена</a>
+  </div>
+</form>
+{% endblock %}
