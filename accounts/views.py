@@ -2,12 +2,15 @@ import logging
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.views import PasswordChangeView
+from django.contrib.messages.views import SuccessMessageMixin
 from django.shortcuts import redirect, render
+from django.urls import reverse_lazy
 
 from warehouses.models import Warehouse
 
 from .emails import send_registration_request
-from .forms import RegistrationRequestForm
+from .forms import PasswordChangeForm, RegistrationRequestForm
 
 logger = logging.getLogger(__name__)
 
@@ -56,3 +59,13 @@ def register(request):
 @login_required
 def profile(request):
     return render(request, "accounts/profile.html")
+
+
+class ChangePasswordView(SuccessMessageMixin, PasswordChangeView):
+    """Self-service password change (login-required). Keeps the user signed in
+    and returns to the profile with a success message."""
+
+    form_class = PasswordChangeForm
+    template_name = "accounts/change_password.html"
+    success_url = reverse_lazy("profile")
+    success_message = "Пароль успешно изменён."

@@ -1,5 +1,8 @@
 from django import forms
-from django.contrib.auth.forms import AuthenticationForm
+from django.contrib.auth.forms import (
+    AuthenticationForm,
+    PasswordChangeForm as DjangoPasswordChangeForm,
+)
 
 
 class BootstrapFormMixin:
@@ -18,6 +21,10 @@ class BootstrapFormMixin:
 
 class LoginForm(BootstrapFormMixin, AuthenticationForm):
     pass
+
+
+class PasswordChangeForm(BootstrapFormMixin, DjangoPasswordChangeForm):
+    """Bootstrap-styled password change for the self-service «Сменить пароль» page."""
 
 
 class RegistrationRequestForm(BootstrapFormMixin, forms.Form):
