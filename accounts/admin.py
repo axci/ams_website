@@ -12,6 +12,9 @@ from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.html import format_html
 
+from catalog.models import PriceType
+from warehouses.models import Manager, Warehouse
+
 from .emails import send_credentials
 from .imports import import_companies
 from .models import Company, DeliveryAddress, RegistrationRequest, User
@@ -134,12 +137,34 @@ class CreateClientForm(forms.Form):
     last_name = forms.CharField(label="Фамилия", max_length=150, required=False)
     email = forms.EmailField(label="Email")
     password = forms.CharField(label="Пароль", max_length=128)
+    code = forms.CharField(label="Код компании", max_length=32, required=False)
+    delivery_address = forms.CharField(
+        label="Адрес доставки", max_length=255, required=False
+    )
+    warehouses = forms.ModelMultipleChoiceField(
+        label="Склады",
+        queryset=Warehouse.objects.filter(is_active=True),
+        required=False,
+        widget=forms.CheckboxSelectMultiple,
+    )
+    price_type = forms.ModelChoiceField(
+        label="Тип цены", queryset=PriceType.objects.all(), required=False
+    )
+    manager = forms.ModelChoiceField(
+        label="Менеджер", queryset=Manager.objects.all(), required=False
+    )
 
     def clean_username(self):
         username = self.cleaned_data["username"].strip()
         if User.objects.filter(username__iexact=username).exists():
             raise forms.ValidationError("Пользователь с таким логином уже существует.")
         return username
+
+    def clean_code(self):
+        code = (self.cleaned_data.get("code") or "").strip()
+        if code and Company.objects.filter(code=code).exists():
+            raise forms.ValidationError("Компания с таким кодом уже существует.")
+        return code
 
     def clean_password(self):
         password = self.cleaned_data["password"]
@@ -202,12 +227,21 @@ class RegistrationRequestAdmin(admin.ModelAdmin):
                         password=data["password"],
                         first_name=data["first_name"],
                         last_name=data["last_name"],
+                        price_type=data["price_type"],
+                        manager=data["manager"],
                     )
-                    if req.company_name or req.inn:
+                    if data["warehouses"]:
+                        user.warehouses.set(data["warehouses"])
+                    if req.company_name or req.inn or data["code"]:
                         Company.objects.create(
                             user=user,
+                            code=data["code"] or None,
                             company_name=req.company_name,
                             inn=req.inn or "",
+                        )
+                    if data["delivery_address"]:
+                        DeliveryAddress.objects.create(
+                            user=user, address=data["delivery_address"]
                         )
                     req.status = RegistrationRequest.Status.PROCESSED
                     req.created_user = user
@@ -241,11 +275,16 @@ class RegistrationRequestAdmin(admin.ModelAdmin):
                 return redirect(change_url)
         else:
             suggested_username = (req.email.split("@")[0] if req.email else "").strip()
+            default_price_type = (
+                PriceType.objects.filter(name__iexact="Крупный ОПТ").first()
+                or PriceType.objects.filter(is_default=True).first()
+            )
             form = CreateClientForm(
                 initial={
                     "username": suggested_username,
                     "email": req.email,
                     "password": get_random_string(10, _PWD_ALPHABET),
+                    "price_type": default_price_type,
                 }
             )
 
