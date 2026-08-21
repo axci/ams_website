@@ -7,6 +7,16 @@ from django.utils.text import slugify
 class Brand(models.Model):
     name = models.CharField(max_length=120, unique=True)
     slug = models.SlugField(max_length=140, unique=True, blank=True)
+    search_aliases = models.TextField(
+        "альтернативные названия для поиска",
+        blank=True,
+        default="",
+        help_text=(
+            "Другие написания бренда для поиска: латиница/кириллица, "
+            "транслитерация, частые опечатки. Разделяйте пробелом или запятой. "
+            "Например, для «Аляska»: «аляска alaska». Покупателям не показывается."
+        ),
+    )
     logo = models.ImageField(upload_to="brands/", blank=True, null=True)
     order = models.PositiveIntegerField(
         default=0, help_text="Display order on the site (lower numbers first)."

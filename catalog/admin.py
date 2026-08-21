@@ -56,7 +56,7 @@ class BrandAdmin(admin.ModelAdmin):
     list_display = ("name", "order", "slug", "hidden_at")
     list_editable = ("order",)
     prepopulated_fields = {"slug": ("name",)}
-    search_fields = ("name",)
+    search_fields = ("name", "search_aliases")
     filter_horizontal = ("categories", "hidden_warehouses")
 
     @admin.display(description="Скрыт на складах")

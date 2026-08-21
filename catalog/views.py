@@ -110,12 +110,14 @@ def _normalize(text):
 
 
 def _search_blob():
-    """A product's searchable text — name, brand, article, code, manufacturer
-    and cross numbers — concatenated with separators removed so query terms can
-    be matched (case-insensitively, via icontains) by containment."""
+    """A product's searchable text — name, brand (with its search aliases),
+    article, code, manufacturer and cross numbers — concatenated with separators
+    removed so query terms can be matched (case-insensitively, via icontains) by
+    containment."""
     joined = Concat(
         F("name"), Value(" "),
         F("brand__name"), Value(" "),
+        F("brand__search_aliases"), Value(" "),
         F("article"), Value(" "),
         F("manufacturer_number"), Value(" "),
         F("sku"), Value(" "),
