@@ -9,6 +9,16 @@ from .invoices import build_invoice_xlsx, build_order_items_xlsx
 logger = logging.getLogger(__name__)
 
 
+def _order_client_label(order):
+    """Human-readable client name for email subjects — the order's company
+    (e.g. «ИП Пупкин»), falling back to the buyer's name."""
+    if order.company_id:
+        label = order.company.company_name or order.company.code
+        if label:
+            return label
+    return order.user.get_full_name() or order.user.get_username()
+
+
 def send_order_notification(order):
     """Email a placed order to its warehouse (internal).
 
@@ -23,7 +33,7 @@ def send_order_notification(order):
         )
         return False
 
-    subject = f"Новый заказ №{order.pk} — {warehouse.name}"
+    subject = f"Новый заказ №{order.pk} — {warehouse.name} — {_order_client_label(order)}"
     body = render_to_string("orders/email/order_email.txt", {"order": order})
     reply_to = [order.user.email] if order.user.email else None
     email = EmailMessage(
