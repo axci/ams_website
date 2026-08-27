@@ -324,9 +324,8 @@ class Command(BaseCommand):
                 buyer.save()
             buyer.warehouses.set([warehouses[c] for c in data["warehouses"]])
             if not buyer.companies.exists():
-                Company.objects.create(
-                    user=buyer, company_name=data["company_name"]
-                )
+                company = Company.objects.create(company_name=data["company_name"])
+                company.users.add(buyer)
         self.stdout.write(f"Buyers: {len(BUYERS)}")
 
         # Convenience admin for local development only.

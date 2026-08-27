@@ -81,14 +81,13 @@ class Company(models.Model):
         LEGAL = "legal", "Юридическое лицо"
         INDIVIDUAL = "individual", "Физическое лицо"
 
-    user = models.ForeignKey(
+    users = models.ManyToManyField(
         User,
-        on_delete=models.SET_NULL,
         related_name="companies",
         blank=True,
-        null=True,
-        verbose_name="аккаунт",
-        help_text="Личный кабинет, которому принадлежит компания.",
+        verbose_name="аккаунты",
+        help_text="Личные кабинеты, которым принадлежит компания "
+        "(одну компанию можно назначить нескольким пользователям).",
     )
     code = models.CharField("код", max_length=32, unique=True, blank=True, null=True)
     type = models.CharField(

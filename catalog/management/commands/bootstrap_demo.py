@@ -54,7 +54,8 @@ class Command(BaseCommand):
         from accounts.models import Company
 
         if not buyer.companies.exists():
-            Company.objects.create(user=buyer, company_name="Demo Buyer")
+            company = Company.objects.create(company_name="Demo Buyer")
+            company.users.add(buyer)
 
         self.stdout.write(self.style.SUCCESS("Demo bootstrap complete."))
         self.stdout.write(f"  admin / {admin_pw}  (staff)")

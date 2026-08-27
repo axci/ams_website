@@ -22,10 +22,15 @@ from .models import Company, DeliveryAddress, RegistrationRequest, User
 logger = logging.getLogger(__name__)
 
 
-class CompanyInline(admin.TabularInline):
-    model = Company
+class CompanyUsersInline(admin.TabularInline):
+    """Link existing companies to a user (edit company details on the Company
+    page). Companies are many-to-many with users, so this edits the join table."""
+
+    model = Company.users.through
     extra = 0
-    fields = ("code", "company_name", "type", "inn", "kpp", "address", "phone", "debt")
+    autocomplete_fields = ("company",)
+    verbose_name = "компания"
+    verbose_name_plural = "компании"
 
 
 class DeliveryAddressInline(admin.TabularInline):
@@ -46,7 +51,7 @@ class UserAdmin(BaseUserAdmin):
     )
     filter_horizontal = BaseUserAdmin.filter_horizontal + ("warehouses",)
     autocomplete_fields = ("manager",)
-    inlines = [CompanyInline, DeliveryAddressInline]
+    inlines = [CompanyUsersInline, DeliveryAddressInline]
     fieldsets = BaseUserAdmin.fieldsets + (
         (
             "Настройки покупателя",
@@ -67,11 +72,21 @@ class CompanyImportForm(forms.Form):
 @admin.register(Company)
 class CompanyAdmin(admin.ModelAdmin):
     change_list_template = "admin/accounts/company/change_list.html"
-    list_display = ("code", "company_name", "type", "inn", "kpp", "debt", "user")
+    list_display = ("code", "company_name", "type", "inn", "kpp", "debt", "user_list")
     list_filter = ("type",)
     search_fields = ("code", "company_name", "inn", "kpp")
-    autocomplete_fields = ("user",)
-    list_select_related = ("user",)
+    filter_horizontal = ("users",)
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).prefetch_related("users")
+
+    @admin.display(description="Аккаунты")
+    def user_list(self, obj):
+        users = list(obj.users.all())
+        label = ", ".join(u.get_username() for u in users[:3]) or "—"
+        if len(users) > 3:
+            label += f" +{len(users) - 3}"
+        return label
 
     def get_urls(self):
         custom = [
@@ -233,12 +248,12 @@ class RegistrationRequestAdmin(admin.ModelAdmin):
                     if data["warehouses"]:
                         user.warehouses.set(data["warehouses"])
                     if req.company_name or req.inn or data["code"]:
-                        Company.objects.create(
-                            user=user,
+                        company = Company.objects.create(
                             code=data["code"] or None,
                             company_name=req.company_name,
                             inn=req.inn or "",
                         )
+                        company.users.add(user)
                     if data["delivery_address"]:
                         DeliveryAddress.objects.create(
                             user=user, address=data["delivery_address"]
