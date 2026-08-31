@@ -120,6 +120,53 @@ def update_cart_item(request, item_id):
 
 @login_required
 @require_POST
+def update_cart(request):
+    """Update the quantities of every cart line at once (one «Обновить корзину»
+    button). Each row posts quantity_<item_id>. A line set to 0 is removed; a
+    line exceeding stock is left unchanged and reported."""
+    cart = get_or_create_cart(request.user)
+    items = list(cart.items.select_related("product"))
+    stock_map = own_available_map(request.user, [i.product_id for i in items])
+    changed = False
+    for item in items:
+        raw = request.POST.get(f"quantity_{item.pk}")
+        if raw is None:
+            continue
+        try:
+            quantity = int(raw)
+        except (TypeError, ValueError):
+            continue
+        if quantity <= 0:
+            item.delete()
+            changed = True
+            continue
+        if quantity == item.quantity:
+            continue
+        available = stock_map.get(item.product_id, 0)
+        if quantity > available:
+            if available <= 0:
+                messages.error(
+                    request,
+                    f"«{item.product.name}» нет в наличии на вашем складе — "
+                    "количество не изменено.",
+                )
+            else:
+                messages.error(
+                    request,
+                    f"«{item.product.name}»: на складе только {available} шт. — "
+                    "количество не изменено.",
+                )
+            continue
+        item.quantity = quantity
+        item.save(update_fields=["quantity"])
+        changed = True
+    if changed:
+        messages.success(request, "Корзина обновлена.")
+    return redirect("orders:cart")
+
+
+@login_required
+@require_POST
 def remove_from_cart(request, item_id):
     cart = get_or_create_cart(request.user)
     CartItem.objects.filter(pk=item_id, cart=cart).delete()

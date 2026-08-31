@@ -7,6 +7,7 @@ app_name = "orders"
 urlpatterns = [
     path("cart/", views.cart_detail, name="cart"),
     path("cart/add/<int:product_id>/", views.add_to_cart, name="add_to_cart"),
+    path("cart/update/", views.update_cart, name="update_cart"),
     path(
         "cart/item/<int:item_id>/update/",
         views.update_cart_item,

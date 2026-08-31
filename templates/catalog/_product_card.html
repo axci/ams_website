@@ -32,11 +32,15 @@
           {% endif %}
         </div>
         {% if user.is_authenticated %}
-        <form method="post" action="{% url 'orders:add_to_cart' product.pk %}">
+        <form method="post" action="{% url 'orders:add_to_cart' product.pk %}" class="d-flex gap-1">
           {% csrf_token %}
           <input type="hidden" name="next" value="{{ request.get_full_path }}">
-          <button class="btn btn-sm btn-outline-primary w-100" {% if product.own_qty <= 0 %}disabled{% endif %}>
-            <i class="bi bi-cart-plus"></i> Добавить в корзину
+          <input type="number" name="quantity" value="1" min="1"
+                 {% if product.own_qty > 0 %}max="{{ product.own_qty }}"{% endif %}
+                 class="form-control form-control-sm text-center" style="width:72px;flex:0 0 auto"
+                 aria-label="Количество" {% if product.own_qty <= 0 %}disabled{% endif %}>
+          <button class="btn btn-sm btn-outline-primary flex-grow-1" {% if product.own_qty <= 0 %}disabled{% endif %}>
+            <i class="bi bi-cart-plus"></i> В корзину
           </button>
         </form>
         {% else %}
