@@ -2,6 +2,11 @@
 {% block title %}{{ product.name }} — Автомеханика-Сибирь{% endblock %}
 
 {% block content %}
+<a href="{% url 'catalog:product_list' %}" class="btn btn-outline-secondary btn-sm mb-3"
+   onclick="if(document.referrer.indexOf(location.origin)===0){history.back();return false;}">
+  <i class="bi bi-arrow-left"></i> Назад
+</a>
+
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb">
     <li class="breadcrumb-item"><a href="{% url 'catalog:product_list' %}">Каталог</a></li>
