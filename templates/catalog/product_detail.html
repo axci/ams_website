@@ -134,7 +134,7 @@
     {% if product.certificate %}
     <div class="mb-1">
       {% if product.certificate_is_link %}
-      <a href="{{ product.certificate }}" target="_blank" rel="noopener"><i class="bi bi-link-45deg"></i> {{ product.certificate }}</a>
+      <a href="{{ product.certificate }}" target="_blank" rel="noopener"><i class="bi bi-file-earmark-text"></i> Открыть сертификат</a>
       {% else %}
       <span class="text-body-secondary">{{ product.certificate }}</span>
       {% endif %}
