@@ -56,15 +56,20 @@ PRODUCT_COLUMNS = [
     ("pack_quantity", lambda p: p.pack_quantity),
     ("viscosity", lambda p: p.viscosity),
     ("description", lambda p: p.description),
+    ("certificate", lambda p: p.certificate),
     ("price", lambda p: p.price),
     ("vat_rate", lambda p: p.vat_rate),
 ]
 
 # Informational only; catalog.imports ignores these headers on the way back in.
+# certificate_file/show_certificate are read-only here — a file cannot be
+# re-uploaded from a cell, and the toggle is edited in the admin.
 EXTRA_COLUMNS = [
     ("is_active", lambda p: p.is_active),
     ("slug", lambda p: p.slug),
     ("picture", lambda p: p.picture.name if p.picture else ""),
+    ("certificate_file", lambda p: p.certificate_file.name if p.certificate_file else ""),
+    ("show_certificate", lambda p: p.show_certificate),
     ("created_at", lambda p: _moment(p.created_at)),
     ("updated_at", lambda p: _moment(p.updated_at)),
 ]

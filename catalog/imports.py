@@ -5,7 +5,8 @@ The first row is the header. Recognised product columns (case-insensitive):
     sku, article, name, category, subcategory, model product (model_product),
     weight, volume, viscosity, description (описание),
     pack quantity (количество штук в упаковке),
-    manufacturer number (manufacturer_number), price, brand
+    manufacturer number (manufacturer_number), price, brand,
+    certificate (сертификат соответствия — a link or text)
 
 A header that matches a price type name («Розничные», «Крупный ОПТ», …) fills
 that type's per-product price. Columns the catalog export adds for information
@@ -87,6 +88,10 @@ FIELD_ALIASES = {
     "oem_cross": "oem_cross",
     "oem cross": "oem_cross",
     "oem": "oem_cross",
+    "certificate": "certificate",
+    "сертификат": "certificate",
+    "сертификат соответствия": "certificate",
+    "certificate of conformity": "certificate",
     "price": "price",
     "vat": "vat_rate",
     "vat_rate": "vat_rate",
@@ -96,10 +101,14 @@ FIELD_ALIASES = {
 }
 
 # Written by the catalog export for information only. Listed here so a
-# round-tripped file does not mistake them for warehouse columns.
-IGNORED_COLUMNS = {"is_active", "slug", "picture", "created_at", "updated_at"}
+# round-tripped file does not mistake them for warehouse columns. The certificate
+# file cannot be re-uploaded from a spreadsheet cell, so it is export-only.
+IGNORED_COLUMNS = {
+    "is_active", "slug", "picture", "certificate_file", "show_certificate",
+    "created_at", "updated_at",
+}
 
-TEXT_LIMITS ={"sku": 64, "article": 64, "manufacturer_number": 64, "mann_cross": 255, "mahl_cross": 255, "sakura_cross": 255, "knecht_cross": 255, "oem_cross": 10000, "name": 200, "viscosity": 20, "weight_unit": 16, "volume_unit": 16}
+TEXT_LIMITS ={"sku": 64, "article": 64, "manufacturer_number": 64, "mann_cross": 255, "mahl_cross": 255, "sakura_cross": 255, "knecht_cross": 255, "oem_cross": 10000, "certificate": 500, "name": 200, "viscosity": 20, "weight_unit": 16, "volume_unit": 16}
 
 
 @dataclass
@@ -347,6 +356,8 @@ def import_products(file_obj, default_brand=None):
                 defaults["viscosity"] = _viscosity(values.get("viscosity"))
             if "description" in values:
                 defaults["description"] = _text(values.get("description"))
+            if "certificate" in values:
+                defaults["certificate"] = _text(values.get("certificate"), 500)
 
             # A new product needs a name even if the file omits the column.
             if "name" not in defaults and not Product.objects.filter(sku=sku).exists():
