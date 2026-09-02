@@ -199,6 +199,24 @@ class Product(models.Model):
         upload_to="products/thumbs/", blank=True, null=True, editable=False
     )
     description = models.TextField("описание", blank=True)
+    certificate = models.CharField(
+        "сертификат соответствия",
+        max_length=500,
+        blank=True,
+        default="",
+        help_text="Ссылка или текст. Ссылка (http…) показывается кликабельной. "
+        "Можно указать вместе с загруженным файлом.",
+    )
+    certificate_file = models.FileField(
+        "файл сертификата соответствия",
+        upload_to="certificates/",
+        blank=True,
+        null=True,
+        help_text="Загрузите файл — на странице товара появится ссылка на него.",
+    )
+    show_certificate = models.BooleanField(
+        "показывать сертификат на странице товара", default=True
+    )
     price = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     vat_rate = models.DecimalField(
         "ставка НДС, %", max_digits=5, decimal_places=2, default=22
@@ -214,6 +232,16 @@ class Product(models.Model):
 
     def __str__(self):
         return f"{self.sku} — {self.name}"
+
+    @property
+    def has_certificate(self):
+        """Whether there is any «сертификат соответствия» to show."""
+        return bool(self.certificate or self.certificate_file)
+
+    @property
+    def certificate_is_link(self):
+        """True when the certificate text is a URL (render it clickable)."""
+        return self.certificate.strip().lower().startswith(("http://", "https://"))
 
     def clean(self):
         # Keep subcategory consistent with the chosen category.

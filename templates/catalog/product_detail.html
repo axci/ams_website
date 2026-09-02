@@ -121,6 +121,26 @@
     <h2 class="h6">Описание</h2>
     <div class="text-body-secondary rich-text" style="white-space: pre-line;">{{ product.description|safe }}</div>
     {% endif %}
+
+    {% if product.show_certificate and product.has_certificate %}
+    <h2 class="h6 mt-4">Сертификат соответствия</h2>
+    {% if product.certificate_file %}
+    <div class="mb-1">
+      <a href="{{ product.certificate_file.url }}" target="_blank" rel="noopener">
+        <i class="bi bi-file-earmark-text"></i> Открыть сертификат
+      </a>
+    </div>
+    {% endif %}
+    {% if product.certificate %}
+    <div class="mb-1">
+      {% if product.certificate_is_link %}
+      <a href="{{ product.certificate }}" target="_blank" rel="noopener"><i class="bi bi-link-45deg"></i> {{ product.certificate }}</a>
+      {% else %}
+      <span class="text-body-secondary">{{ product.certificate }}</span>
+      {% endif %}
+    </div>
+    {% endif %}
+    {% endif %}
   </div>
 </div>
 
