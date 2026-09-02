@@ -4,10 +4,14 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.views import PasswordChangeView
 from django.contrib.messages.views import SuccessMessageMixin
+from django.core.exceptions import PermissionDenied
+from django.db.models import Count, Sum
 from django.shortcuts import redirect, render
 from django.urls import reverse_lazy
+from django.utils import timezone
 
-from warehouses.models import Warehouse
+from orders.models import Order
+from warehouses.models import Manager, Warehouse
 
 from .emails import send_registration_request
 from .forms import PasswordChangeForm, RegistrationRequestForm
@@ -57,6 +61,78 @@ def register(request):
 @login_required
 def profile(request):
     return render(request, "accounts/profile.html")
+
+
+@login_required
+def manager_dashboard(request):
+    """A manager's workspace: their clients, those clients' orders and sales
+    stats. Managers see only their own clients; staff/superusers may view any
+    manager (via ?manager=<id>)."""
+    own = request.user.manager_profile
+    can_view_all = request.user.is_staff or request.user.is_superuser
+    if own is None and not can_view_all:
+        raise PermissionDenied
+
+    all_managers = Manager.objects.all() if can_view_all else None
+    manager = own
+    if can_view_all:
+        picked = request.GET.get("manager")
+        if picked:
+            manager = Manager.objects.filter(pk=picked).first()
+
+    # Staff with no manager chosen yet — show the picker.
+    if manager is None:
+        return render(
+            request,
+            "accounts/manager_dashboard.html",
+            {"manager": None, "all_managers": all_managers, "can_view_all": True},
+        )
+
+    clients = list(manager.clients.prefetch_related("companies").order_by("username"))
+    orders = Order.objects.filter(user__manager=manager)
+    active = orders.exclude(status=Order.Status.CANCELLED)
+
+    # Per-client order count and sales (cancelled excluded).
+    agg = {
+        row["user"]: row
+        for row in active.values("user").annotate(n=Count("id"), sales=Sum("total"))
+    }
+    for client in clients:
+        row = agg.get(client.pk)
+        client.orders_count = row["n"] if row else 0
+        client.sales_total = row["sales"] if row else 0
+        client.debt = client.total_debt()
+
+    month_start = timezone.now().replace(
+        day=1, hour=0, minute=0, second=0, microsecond=0
+    )
+    stats = {
+        "clients": len(clients),
+        "orders": active.count(),
+        "sales": active.aggregate(s=Sum("total"))["s"] or 0,
+        "month_sales": active.filter(created_at__gte=month_start).aggregate(
+            s=Sum("total")
+        )["s"]
+        or 0,
+    }
+    recent_orders = list(
+        orders.select_related("user", "company", "warehouse").order_by("-created_at")[
+            :20
+        ]
+    )
+
+    return render(
+        request,
+        "accounts/manager_dashboard.html",
+        {
+            "manager": manager,
+            "clients": clients,
+            "stats": stats,
+            "recent_orders": recent_orders,
+            "all_managers": all_managers,
+            "can_view_all": can_view_all,
+        },
+    )
 
 
 class ChangePasswordView(SuccessMessageMixin, PasswordChangeView):

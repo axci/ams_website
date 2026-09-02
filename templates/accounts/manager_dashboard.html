@@ -1,0 +1,125 @@
+{% extends 'base.html' %}
+{% block title %}Кабинет менеджера{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h4 mb-0">
+    <i class="bi bi-briefcase"></i> Кабинет менеджера
+    {% if manager %}<span class="text-muted">— {{ manager }}</span>{% endif %}
+  </h1>
+  {% if can_view_all and all_managers %}
+  <form method="get" class="d-flex align-items-center gap-2">
+    <label class="text-muted small mb-0" for="managerPick">Менеджер:</label>
+    <select id="managerPick" name="manager" class="form-select form-select-sm" style="width:auto" onchange="this.form.submit()">
+      <option value="">— выберите —</option>
+      {% for m in all_managers %}
+      <option value="{{ m.pk }}" {% if manager and manager.pk == m.pk %}selected{% endif %}>{{ m }}</option>
+      {% endfor %}
+    </select>
+  </form>
+  {% endif %}
+</div>
+
+{% if not manager %}
+<div class="alert alert-info">Выберите менеджера, чтобы увидеть его клиентов и статистику.</div>
+{% else %}
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="card shadow-sm h-100"><div class="card-body">
+      <div class="text-muted small">Клиентов</div>
+      <div class="h3 mb-0">{{ stats.clients }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card shadow-sm h-100"><div class="card-body">
+      <div class="text-muted small">Заказов</div>
+      <div class="h3 mb-0">{{ stats.orders }}</div>
+      <div class="small text-muted">без отменённых</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card shadow-sm h-100"><div class="card-body">
+      <div class="text-muted small">Продажи всего</div>
+      <div class="h3 mb-0">{{ stats.sales|rubles }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card shadow-sm h-100"><div class="card-body">
+      <div class="text-muted small">Продажи за месяц</div>
+      <div class="h3 mb-0">{{ stats.month_sales|rubles }}</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+  <div class="card-header d-flex justify-content-between align-items-center">
+    <span><i class="bi bi-people"></i> Клиенты</span>
+    <span class="badge text-bg-secondary">{{ stats.clients }}</span>
+  </div>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>Клиент</th><th>Компании</th>
+          <th class="text-center">Заказов</th><th class="text-end">Сумма продаж</th><th class="text-end">Задолженность</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for c in clients %}
+        <tr>
+          <td>
+            <div class="fw-semibold">{{ c.get_full_name|default:c.username }}</div>
+            {% if c.email %}<div class="small text-muted">{{ c.email }}</div>{% endif %}
+          </td>
+          <td class="small">
+            {% for company in c.companies.all %}{{ company }}{% if not forloop.last %}, {% endif %}{% empty %}<span class="text-muted">—</span>{% endfor %}
+          </td>
+          <td class="text-center">{{ c.orders_count }}</td>
+          <td class="text-end">{{ c.sales_total|rubles }}</td>
+          <td class="text-end {% if c.debt > 0 %}text-danger fw-semibold{% endif %}">{{ c.debt|rubles }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="5" class="text-muted text-center py-3">У этого менеджера пока нет клиентов.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card shadow-sm">
+  <div class="card-header"><i class="bi bi-receipt"></i> Последние заказы</div>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>№</th><th>Дата</th><th>Клиент</th><th>Компания</th><th>Склад</th>
+          <th class="text-center">Статус</th><th class="text-end">Сумма</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in recent_orders %}
+        <tr>
+          <td><a href="{% url 'orders:order_detail' o.pk %}" class="text-decoration-none">#{{ o.pk }}</a></td>
+          <td class="small">{{ o.created_at|date:"d.m.Y H:i" }}</td>
+          <td class="small">{{ o.user.get_full_name|default:o.user.username }}</td>
+          <td class="small">{% if o.company %}{{ o.company }}{% else %}—{% endif %}</td>
+          <td class="small">{{ o.warehouse.name }}</td>
+          <td class="text-center">
+            {% if o.status == 'cancelled' %}<span class="badge text-bg-danger">{{ o.get_status_display }}</span>
+            {% elif o.status == 'delivered' %}<span class="badge text-bg-success">{{ o.get_status_display }}</span>
+            {% elif o.status == 'shipped' %}<span class="badge text-bg-primary">{{ o.get_status_display }}</span>
+            {% elif o.status == 'confirmed' %}<span class="badge text-bg-info">{{ o.get_status_display }}</span>
+            {% else %}<span class="badge text-bg-secondary">{{ o.get_status_display }}</span>{% endif %}
+          </td>
+          <td class="text-end">{{ o.total|rubles }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="7" class="text-muted text-center py-3">Заказов пока нет.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

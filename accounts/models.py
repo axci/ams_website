@@ -20,6 +20,16 @@ class User(AbstractUser):
         verbose_name="менеджер",
         help_text="Персональный менеджер покупателя.",
     )
+    manager_profile = models.OneToOneField(
+        "warehouses.Manager",
+        on_delete=models.SET_NULL,
+        related_name="account",
+        blank=True,
+        null=True,
+        verbose_name="профиль менеджера",
+        help_text="Если задано, пользователь входит как этот менеджер и видит "
+        "в «Кабинете менеджера» своих клиентов.",
+    )
     price_type = models.ForeignKey(
         "catalog.PriceType",
         on_delete=models.SET_NULL,

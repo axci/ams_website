@@ -50,12 +50,20 @@ class UserAdmin(BaseUserAdmin):
         "companies__code", "companies__company_name", "companies__inn",
     )
     filter_horizontal = BaseUserAdmin.filter_horizontal + ("warehouses",)
-    autocomplete_fields = ("manager",)
+    autocomplete_fields = ("manager", "manager_profile")
     inlines = [CompanyUsersInline, DeliveryAddressInline]
     fieldsets = BaseUserAdmin.fieldsets + (
         (
             "Настройки покупателя",
             {"fields": ("manager", "price_type", "show_stock", "free_delivery_min", "warehouses")},
+        ),
+        (
+            "Доступ менеджера",
+            {
+                "fields": ("manager_profile",),
+                "description": "Свяжите логин с профилем менеджера, чтобы дать "
+                "доступ в «Кабинет менеджера» с его клиентами.",
+            },
         ),
     )
 
