@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}{{ client.get_full_name|default:client.username }} — клиент{% endblock %}
+
+{% block content %}
+<a href="{% url 'manager_dashboard' %}" class="btn btn-outline-secondary btn-sm mb-3">
+  <i class="bi bi-arrow-left"></i> К кабинету менеджера
+</a>
+
+<h1 class="h4 mb-3">
+  <i class="bi bi-person-badge"></i> {{ client.get_full_name|default:client.username }}
+</h1>
+
+<div class="row g-3 mb-4">
+  <div class="col-6 col-lg-3">
+    <div class="card shadow-sm h-100"><div class="card-body">
+      <div class="text-muted small">Заказов</div>
+      <div class="h3 mb-0">{{ stats.orders }}</div>
+      <div class="small text-muted">без отменённых</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card shadow-sm h-100"><div class="card-body">
+      <div class="text-muted small">Сумма продаж</div>
+      <div class="h3 mb-0">{{ stats.sales|rubles }}</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card shadow-sm h-100"><div class="card-body">
+      <div class="text-muted small">Задолженность</div>
+      <div class="h3 mb-0 {% if stats.debt > 0 %}text-danger{% endif %}">{{ stats.debt|rubles }}</div>
+    </div></div>
+  </div>
+</div>
+
+<div class="row g-4">
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header">Аккаунт</div>
+      <ul class="list-group list-group-flush">
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Имя пользователя</span><span>{{ client.get_username }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Имя</span><span>{{ client.get_full_name|default:"—" }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Эл. почта</span><span>{% if client.email %}<a href="mailto:{{ client.email }}" class="text-decoration-none">{{ client.email }}</a>{% else %}—{% endif %}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Менеджер</span><span>{{ client.manager|default:"—" }}</span></li>
+        <li class="list-group-item d-flex justify-content-between"><span class="text-muted">Тип цены</span><span>{{ client.price_type|default:"по умолчанию" }}</span></li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header">Склады</div>
+      <ul class="list-group list-group-flush">
+        {% for wh in client.warehouses.all %}
+        <li class="list-group-item">{{ wh.name }} <span class="text-muted small">({{ wh.code }})</span></li>
+        {% empty %}
+        <li class="list-group-item text-muted">Склады не назначены.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header">Компании</div>
+      <ul class="list-group list-group-flush">
+        {% for c in client.companies.all %}
+        <li class="list-group-item">
+          <div class="d-flex justify-content-between">
+            <span class="fw-semibold">{{ c }}</span>
+            {% if c.debt > 0 %}<span class="badge text-bg-warning text-dark">Долг: {{ c.debt|rubles }}</span>{% endif %}
+          </div>
+          <div class="small text-muted">
+            {% if c.code %}Код: {{ c.code }}{% endif %}{% if c.inn %} · ИНН: {{ c.inn }}{% endif %}{% if c.kpp %} · КПП: {{ c.kpp }}{% endif %}
+          </div>
+          {% if c.address %}<div class="small text-muted">{{ c.address }}</div>{% endif %}
+          {% if c.phone %}<div class="small text-muted"><i class="bi bi-telephone"></i> {{ c.phone }}</div>{% endif %}
+        </li>
+        {% empty %}
+        <li class="list-group-item text-muted">Компании не добавлены.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header">Адреса доставки</div>
+      <ul class="list-group list-group-flush">
+        {% for a in client.delivery_addresses.all %}
+        <li class="list-group-item">{% if a.label %}<span class="fw-semibold">{{ a.label }}:</span> {% endif %}{{ a.address }}</li>
+        {% empty %}
+        <li class="list-group-item text-muted">Адреса не добавлены.</li>
+        {% endfor %}
+      </ul>
+    </div>
+  </div>
+</div>
+
+<div class="card shadow-sm mt-4">
+  <div class="card-header"><i class="bi bi-receipt"></i> Заказы</div>
+  <div class="table-responsive">
+    <table class="table align-middle mb-0">
+      <thead class="table-light">
+        <tr>
+          <th>№</th><th>Дата</th><th>Компания</th><th>Склад</th>
+          <th class="text-center">Статус</th><th class="text-end">Сумма</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for o in orders %}
+        <tr>
+          <td><a href="{% url 'orders:order_detail' o.pk %}" class="text-decoration-none">#{{ o.pk }}</a></td>
+          <td class="small">{{ o.created_at|date:"d.m.Y H:i" }}</td>
+          <td class="small">{% if o.company %}{{ o.company }}{% else %}—{% endif %}</td>
+          <td class="small">{{ o.warehouse.name }}</td>
+          <td class="text-center">
+            {% if o.status == 'cancelled' %}<span class="badge text-bg-danger">{{ o.get_status_display }}</span>
+            {% elif o.status == 'delivered' %}<span class="badge text-bg-success">{{ o.get_status_display }}</span>
+            {% elif o.status == 'shipped' %}<span class="badge text-bg-primary">{{ o.get_status_display }}</span>
+            {% elif o.status == 'confirmed' %}<span class="badge text-bg-info">{{ o.get_status_display }}</span>
+            {% else %}<span class="badge text-bg-secondary">{{ o.get_status_display }}</span>{% endif %}
+          </td>
+          <td class="text-end">{{ o.total|rubles }}</td>
+        </tr>
+        {% empty %}
+        <tr><td colspan="6" class="text-muted text-center py-3">У клиента пока нет заказов.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

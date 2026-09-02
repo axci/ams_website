@@ -69,7 +69,7 @@
         {% for c in clients %}
         <tr>
           <td>
-            <div class="fw-semibold">{{ c.get_full_name|default:c.username }}</div>
+            <div class="fw-semibold"><a href="{% url 'manager_client_detail' c.pk %}" class="text-decoration-none">{{ c.get_full_name|default:c.username }}</a></div>
             {% if c.email %}<div class="small text-muted">{{ c.email }}</div>{% endif %}
           </td>
           <td class="small">
@@ -102,7 +102,7 @@
         <tr>
           <td><a href="{% url 'orders:order_detail' o.pk %}" class="text-decoration-none">#{{ o.pk }}</a></td>
           <td class="small">{{ o.created_at|date:"d.m.Y H:i" }}</td>
-          <td class="small">{{ o.user.get_full_name|default:o.user.username }}</td>
+          <td class="small"><a href="{% url 'manager_client_detail' o.user.pk %}" class="text-decoration-none">{{ o.user.get_full_name|default:o.user.username }}</a></td>
           <td class="small">{% if o.company %}{{ o.company }}{% else %}—{% endif %}</td>
           <td class="small">{{ o.warehouse.name }}</td>
           <td class="text-center">

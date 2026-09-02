@@ -6,7 +6,7 @@ from django.contrib.auth.views import PasswordChangeView
 from django.contrib.messages.views import SuccessMessageMixin
 from django.core.exceptions import PermissionDenied
 from django.db.models import Count, Sum
-from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse_lazy
 from django.utils import timezone
 
@@ -15,7 +15,7 @@ from warehouses.models import Manager, Warehouse
 
 from .emails import send_registration_request
 from .forms import PasswordChangeForm, RegistrationRequestForm
-from .models import RegistrationRequest
+from .models import RegistrationRequest, User
 
 logger = logging.getLogger(__name__)
 
@@ -137,6 +137,36 @@ def manager_dashboard(request):
             "all_managers": all_managers,
             "can_view_all": can_view_all,
         },
+    )
+
+
+@login_required
+def manager_client_detail(request, pk):
+    """A manager's view of one client: account, companies, addresses, orders and
+    that client's sales. A manager may open only their own clients; admins without
+    a manager profile may open any."""
+    client = get_object_or_404(
+        User.objects.prefetch_related("companies", "delivery_addresses", "warehouses"),
+        pk=pk,
+    )
+    own = request.user.manager_profile
+    if own is not None:
+        if client.manager_id != own.pk:
+            raise PermissionDenied  # not this manager's client
+    elif not (request.user.is_staff or request.user.is_superuser):
+        raise PermissionDenied
+
+    orders = client.orders.select_related("company", "warehouse").order_by("-created_at")
+    active = orders.exclude(status=Order.Status.CANCELLED)
+    stats = {
+        "orders": active.count(),
+        "sales": active.aggregate(s=Sum("total"))["s"] or 0,
+        "debt": client.total_debt(),
+    }
+    return render(
+        request,
+        "accounts/manager_client_detail.html",
+        {"client": client, "orders": list(orders[:50]), "stats": stats},
     )
 
 
