@@ -69,16 +69,21 @@ def manager_dashboard(request):
     stats. Managers see only their own clients; staff/superusers may view any
     manager (via ?manager=<id>)."""
     own = request.user.manager_profile
-    can_view_all = request.user.is_staff or request.user.is_superuser
-    if own is None and not can_view_all:
-        raise PermissionDenied
-
-    all_managers = Manager.objects.all() if can_view_all else None
-    manager = own
-    if can_view_all:
+    if own is not None:
+        # A manager is scoped to their own clients — other managers are never
+        # available to them (no switcher, and any ?manager override is ignored),
+        # even if the account also has staff access.
+        manager = own
+        can_view_all = False
+        all_managers = None
+    elif request.user.is_staff or request.user.is_superuser:
+        # An admin without a manager profile may view any manager.
+        can_view_all = True
+        all_managers = Manager.objects.all()
         picked = request.GET.get("manager")
-        if picked:
-            manager = Manager.objects.filter(pk=picked).first()
+        manager = Manager.objects.filter(pk=picked).first() if picked else None
+    else:
+        raise PermissionDenied
 
     # Staff with no manager chosen yet — show the picker.
     if manager is None:
