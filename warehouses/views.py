@@ -19,7 +19,12 @@ def switch_warehouse(request):
 
 
 def contacts(request):
-    warehouses = Warehouse.objects.filter(is_active=True).prefetch_related("managers")
+    # Fixed display order for this page; any other warehouses follow alphabetically.
+    preferred = {"Новосибирск": 0, "Кемерово": 1, "Новокузнецк": 2}
+    warehouses = sorted(
+        Warehouse.objects.filter(is_active=True).prefetch_related("managers"),
+        key=lambda w: (preferred.get(w.name, len(preferred)), w.name),
+    )
     return render(request, "warehouses/contacts.html", {"warehouses": warehouses})
 
 
