@@ -13,7 +13,7 @@
       <button type="submit" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-circle"></i> Отменить заказ</button>
     </form>
     {% endif %}
-    <span class="badge text-bg-secondary fs-6">{{ order.get_status_display }}</span>
+    {% if order.status == 'cancelled' %}<span class="badge text-bg-danger fs-6">Отменён</span>{% endif %}
   </div>
 </div>
 

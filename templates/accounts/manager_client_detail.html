@@ -103,27 +103,20 @@
       <thead class="table-light">
         <tr>
           <th>№</th><th>Дата</th><th>Компания</th><th>Склад</th>
-          <th class="text-center">Статус</th><th class="text-end">Сумма</th>
+          <th class="text-end">Сумма</th>
         </tr>
       </thead>
       <tbody>
         {% for o in orders %}
         <tr>
-          <td><a href="{% url 'orders:order_detail' o.pk %}" class="text-decoration-none">#{{ o.pk }}</a></td>
+          <td><a href="{% url 'orders:order_detail' o.pk %}" class="text-decoration-none">#{{ o.pk }}</a>{% if o.status == 'cancelled' %} <span class="badge text-bg-danger">Отменён</span>{% endif %}</td>
           <td class="small">{{ o.created_at|date:"d.m.Y H:i" }}</td>
           <td class="small">{% if o.company %}{{ o.company }}{% else %}—{% endif %}</td>
           <td class="small">{{ o.warehouse.name }}</td>
-          <td class="text-center">
-            {% if o.status == 'cancelled' %}<span class="badge text-bg-danger">{{ o.get_status_display }}</span>
-            {% elif o.status == 'delivered' %}<span class="badge text-bg-success">{{ o.get_status_display }}</span>
-            {% elif o.status == 'shipped' %}<span class="badge text-bg-primary">{{ o.get_status_display }}</span>
-            {% elif o.status == 'confirmed' %}<span class="badge text-bg-info">{{ o.get_status_display }}</span>
-            {% else %}<span class="badge text-bg-secondary">{{ o.get_status_display }}</span>{% endif %}
-          </td>
           <td class="text-end">{{ o.total|rubles }}</td>
         </tr>
         {% empty %}
-        <tr><td colspan="6" class="text-muted text-center py-3">У клиента пока нет заказов.</td></tr>
+        <tr><td colspan="5" class="text-muted text-center py-3">У клиента пока нет заказов.</td></tr>
         {% endfor %}
       </tbody>
     </table>
