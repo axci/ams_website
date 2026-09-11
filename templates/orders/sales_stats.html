@@ -86,6 +86,24 @@
 </div>
 {{ chart_time|json_script:"chartTimeData" }}
 {{ chart_clients|json_script:"chartClientsData" }}
+
+<div class="card shadow-sm mb-3">
+  <div class="card-header p-0">
+    <ul class="nav nav-tabs card-header-tabs m-2" role="tablist">
+      <li class="nav-item"><button class="nav-link active" type="button" data-bs-toggle="tab" data-bs-target="#bd-product">Товары</button></li>
+      <li class="nav-item"><button class="nav-link" type="button" data-bs-toggle="tab" data-bs-target="#bd-model">Модели</button></li>
+      <li class="nav-item"><button class="nav-link" type="button" data-bs-toggle="tab" data-bs-target="#bd-category">Категории</button></li>
+      <li class="nav-item"><button class="nav-link" type="button" data-bs-toggle="tab" data-bs-target="#bd-subcategory">Подкатегории</button></li>
+    </ul>
+  </div>
+  <div class="tab-content">
+    <div class="tab-pane fade show active" id="bd-product">{% include 'orders/_breakdown_table.html' with rows=by_product col_label="Товар" %}</div>
+    <div class="tab-pane fade" id="bd-model">{% include 'orders/_breakdown_table.html' with rows=by_model col_label="Модель" %}</div>
+    <div class="tab-pane fade" id="bd-category">{% include 'orders/_breakdown_table.html' with rows=by_category col_label="Категория" %}</div>
+    <div class="tab-pane fade" id="bd-subcategory">{% include 'orders/_breakdown_table.html' with rows=by_subcategory col_label="Подкатегория" %}</div>
+  </div>
+  <div class="card-footer small text-muted">Отсортировано по расходу, топ‑50. Учитываются выбранные фильтры.</div>
+</div>
 {% endif %}
 
 <div class="card shadow-sm">

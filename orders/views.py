@@ -472,6 +472,25 @@ def sales_stats(request):
         values.append(others)
     chart_clients = {"labels": labels, "values": values}
 
+    # Rankings by расход (descending), top 50 each — respect the active filters.
+    def _rank(field, default):
+        return [
+            {"label": r[field] or default, "qty": float(r["q"] or 0)}
+            for r in records.values(field)
+            .annotate(q=Sum("quantity"))
+            .order_by("-q")[:50]
+        ]
+
+    by_product = [
+        {"label": r["product__name"] or r["sku"], "sku": r["sku"], "qty": float(r["q"] or 0)}
+        for r in records.values("sku", "product__name")
+        .annotate(q=Sum("quantity"))
+        .order_by("-q")[:50]
+    ]
+    by_model = _rank("product__model_product__name", "— без модели")
+    by_category = _rank("product__category__name", "— без категории")
+    by_subcategory = _rank("product__subcategory__name", "— без подкатегории")
+
     # Everything except `page`, so pagination links keep the active filters.
     params = request.GET.copy()
     params.pop("page", None)
@@ -494,5 +513,9 @@ def sales_stats(request):
             "base_qs": params.urlencode(),
             "chart_time": chart_time,
             "chart_clients": chart_clients,
+            "by_product": by_product,
+            "by_model": by_model,
+            "by_category": by_category,
+            "by_subcategory": by_subcategory,
         },
     )
