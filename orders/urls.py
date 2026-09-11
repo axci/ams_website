@@ -25,6 +25,7 @@ urlpatterns = [
         views.toggle_favorite,
         name="toggle_favorite",
     ),
+    path("sales/", views.sales_stats, name="sales_stats"),
     path("orders/", views.order_list, name="order_list"),
     path("orders/<int:pk>/", views.order_detail, name="order_detail"),
     path("orders/<int:pk>/invoice/", views.order_invoice, name="order_invoice"),

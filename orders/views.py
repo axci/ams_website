@@ -3,7 +3,11 @@ from urllib.parse import quote
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
+from django.core.paginator import Paginator
 from django.db import transaction
+from django.db.models import Count, Q, Sum
+from django.db.models.functions import TruncDay, TruncMonth, TruncWeek
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -11,20 +15,20 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from accounts.models import DeliveryAddress
-from catalog.models import Product
+from catalog.models import Brand, Product
 from catalog.pricing import price_type_for_user
 from warehouses.availability import (
     annotate_availability,
     own_available_map,
     own_warehouse_ids,
 )
-from warehouses.models import Stock
+from warehouses.models import Stock, Warehouse
 from warehouses.selection import get_current_warehouse
 
 from .emails import send_order_cancellation, send_order_emails
 from .forms import CheckoutForm
 from .invoices import build_invoice_xlsx
-from .models import CartItem, Favorite, Order, OrderItem
+from .models import CartItem, Favorite, Order, OrderItem, SalesRecord
 from .utils import get_or_create_cart
 
 logger = logging.getLogger(__name__)
@@ -396,5 +400,99 @@ def wishlist(request):
             "warehouse": warehouse,
             "favorite_ids": set(fav_ids),
             "price_type": price_type,
+        },
+    )
+
+
+def can_view_sales(user):
+    """Authorisation for the «Статистика продаж» section."""
+    return user.is_superuser or getattr(user, "can_view_sales", False)
+
+
+@login_required
+def sales_stats(request):
+    """Role-gated external sales statistics (imported from 1C). Filterable by
+    date range and warehouse, with totals over the whole filtered set."""
+    if not can_view_sales(request.user):
+        raise PermissionDenied
+
+    records = SalesRecord.objects.select_related("warehouse", "product", "product__brand")
+
+    warehouse_id = request.GET.get("warehouse") or ""
+    brand_id = request.GET.get("brand") or ""
+    q = (request.GET.get("q") or "").strip()
+    date_from = (request.GET.get("from") or "").strip()
+    date_to = (request.GET.get("to") or "").strip()
+    if warehouse_id:
+        records = records.filter(warehouse_id=warehouse_id)
+    if brand_id:
+        records = records.filter(product__brand_id=brand_id)
+    if q:
+        records = records.filter(Q(sku__icontains=q) | Q(product__name__icontains=q))
+    if date_from:
+        records = records.filter(date__date__gte=date_from)
+    if date_to:
+        records = records.filter(date__date__lte=date_to)
+
+    totals = records.aggregate(
+        qty=Sum("quantity"), n=Count("id"), clients=Count("client", distinct=True)
+    )
+    page = Paginator(records, 50).get_page(request.GET.get("page"))
+
+    # Time series at three granularities (client switches without a reload).
+    dated = records.exclude(date__isnull=True)
+
+    def _series(trunc, fmt):
+        rows = (
+            dated.annotate(bucket=trunc("date"))
+            .values("bucket")
+            .annotate(q=Sum("quantity"))
+            .order_by("bucket")
+        )
+        return [[r["bucket"].strftime(fmt), float(r["q"] or 0)] for r in rows]
+
+    chart_time = {
+        "day": _series(TruncDay, "%d.%m.%Y"),
+        "week": _series(TruncWeek, "%d.%m.%Y"),
+        "month": _series(TruncMonth, "%m.%Y"),
+    }
+
+    # By client: top 10 by расход, the rest summed into «Другие».
+    client_rows = list(
+        records.exclude(client="")
+        .values("client")
+        .annotate(q=Sum("quantity"))
+        .order_by("-q")
+    )
+    labels = [r["client"] for r in client_rows[:10]]
+    values = [float(r["q"] or 0) for r in client_rows[:10]]
+    others = sum(float(r["q"] or 0) for r in client_rows[10:])
+    if others > 0:
+        labels.append("Другие")
+        values.append(others)
+    chart_clients = {"labels": labels, "values": values}
+
+    # Everything except `page`, so pagination links keep the active filters.
+    params = request.GET.copy()
+    params.pop("page", None)
+
+    return render(
+        request,
+        "orders/sales_stats.html",
+        {
+            "page_obj": page,
+            "totals": totals,
+            "warehouses": Warehouse.objects.order_by("name"),
+            "brands": Brand.objects.filter(
+                products__sales_records__isnull=False
+            ).distinct().order_by("name"),
+            "selected_warehouse": warehouse_id,
+            "selected_brand": brand_id,
+            "q": q,
+            "date_from": date_from,
+            "date_to": date_to,
+            "base_qs": params.urlencode(),
+            "chart_time": chart_time,
+            "chart_clients": chart_clients,
         },
     )

@@ -6,6 +6,11 @@
    onclick="if(document.referrer.indexOf(location.origin)===0){history.back();return false;}">
   <i class="bi bi-arrow-left"></i> Назад
 </a>
+{% if user.can_view_sales or user.is_superuser %}
+<a href="{% url 'orders:sales_stats' %}?q={{ product.sku|urlencode }}" class="btn btn-outline-info btn-sm mb-3">
+  <i class="bi bi-graph-up-arrow"></i> Статистика продаж
+</a>
+{% endif %}
 
 <nav aria-label="breadcrumb">
   <ol class="breadcrumb">

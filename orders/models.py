@@ -172,3 +172,47 @@ class Favorite(models.Model):
 
     def __str__(self):
         return f"{self.user} ♥ {self.product_id}"
+
+
+class SalesRecord(models.Model):
+    """A sale line imported from the 1C «Ведомость по товарам» export
+    (Расходная накладная / Корректировка реализации). Distinct from the site's
+    own Order — this is external sales statistics, visible to authorised users."""
+
+    date = models.DateTimeField("дата документа", blank=True, null=True)
+    warehouse = models.ForeignKey(
+        "warehouses.Warehouse",
+        on_delete=models.PROTECT,
+        related_name="sales_records",
+        verbose_name="склад",
+    )
+    product = models.ForeignKey(
+        "catalog.Product",
+        on_delete=models.SET_NULL,
+        related_name="sales_records",
+        blank=True,
+        null=True,
+        verbose_name="товар",
+        help_text="Сопоставляется по Коду 1С; пусто — если товара нет в каталоге.",
+    )
+    sku = models.CharField("Код 1С", max_length=64, db_index=True)
+    client = models.CharField("контрагент", max_length=255, blank=True)
+    client_type = models.CharField("тип контрагента", max_length=120, blank=True)
+    quantity = models.DecimalField("расход", max_digits=12, decimal_places=3, default=0)
+    document = models.CharField("документ", max_length=255)
+    document_type = models.CharField("тип документа", max_length=64, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "продажа"
+        verbose_name_plural = "статистика продаж"
+        ordering = ["-date"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["warehouse", "sku", "document"], name="unique_sale_line"
+            )
+        ]
+        indexes = [models.Index(fields=["-date"])]
+
+    def __str__(self):
+        return f"{self.sku} · {self.warehouse_id} · {self.document}"

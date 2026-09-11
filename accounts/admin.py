@@ -44,7 +44,7 @@ class UserAdmin(BaseUserAdmin):
     list_display = (
         "username", "email", "company_list", "price_type", "is_staff", "is_active"
     )
-    list_filter = BaseUserAdmin.list_filter + ("price_type", "show_stock")
+    list_filter = BaseUserAdmin.list_filter + ("price_type", "show_stock", "can_view_sales")
     search_fields = (
         "username", "email", "first_name", "last_name",
         "companies__code", "companies__company_name", "companies__inn",
@@ -55,7 +55,7 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = BaseUserAdmin.fieldsets + (
         (
             "Настройки покупателя",
-            {"fields": ("manager", "price_type", "show_stock", "free_delivery_min", "warehouses")},
+            {"fields": ("manager", "price_type", "show_stock", "can_view_sales", "free_delivery_min", "warehouses")},
         ),
         (
             "Доступ менеджера",

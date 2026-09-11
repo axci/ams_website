@@ -45,6 +45,12 @@ class User(AbstractUser):
         help_text="Если выключено, покупатель видит «много / мало / только N» "
         "вместо точного количества.",
     )
+    can_view_sales = models.BooleanField(
+        "доступ к статистике продаж",
+        default=False,
+        help_text="Разрешает просмотр раздела «Статистика продаж». "
+        "Суперпользователям доступ открыт всегда.",
+    )
     free_delivery_min = models.DecimalField(
         "мин. сумма для доставки",
         max_digits=12,
