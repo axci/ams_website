@@ -39,7 +39,16 @@
     <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-funnel"></i> Показать</button>
     <a class="btn btn-sm btn-outline-secondary" href="{% url 'orders:sales_stats' %}">Сбросить</a>
   </div>
+  {% if selected_model %}<input type="hidden" name="model" value="{{ selected_model.pk }}">{% endif %}
 </form>
+
+{% if selected_model %}
+<div class="mb-3">
+  <span class="badge text-bg-info fs-6 fw-normal">Модель: {{ selected_model.name }}
+    <a href="{% url 'orders:sales_stats' %}{% if model_qs %}?{{ model_qs }}{% endif %}" class="link-light text-decoration-none ms-1" title="Сбросить фильтр по модели">✕</a>
+  </span>
+</div>
+{% endif %}
 
 <div class="row g-3 mb-3">
   <div class="col-6 col-lg-3">
@@ -97,8 +106,8 @@
     </ul>
   </div>
   <div class="tab-content">
-    <div class="tab-pane fade show active" id="bd-product">{% include 'orders/_breakdown_table.html' with rows=by_product col_label="Товар" %}</div>
-    <div class="tab-pane fade" id="bd-model">{% include 'orders/_breakdown_table.html' with rows=by_model col_label="Модель" %}</div>
+    <div class="tab-pane fade show active" id="bd-product">{% include 'orders/_breakdown_table.html' with rows=by_product col_label="Товар" link_type="product" %}</div>
+    <div class="tab-pane fade" id="bd-model">{% include 'orders/_breakdown_table.html' with rows=by_model col_label="Модель" link_type="model" %}</div>
     <div class="tab-pane fade" id="bd-category">{% include 'orders/_breakdown_table.html' with rows=by_category col_label="Категория" %}</div>
     <div class="tab-pane fade" id="bd-subcategory">{% include 'orders/_breakdown_table.html' with rows=by_subcategory col_label="Подкатегория" %}</div>
   </div>

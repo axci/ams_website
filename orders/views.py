@@ -15,7 +15,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from accounts.models import DeliveryAddress
-from catalog.models import Brand, Product
+from catalog.models import Brand, ModelProduct, Product
 from catalog.pricing import price_type_for_user
 from warehouses.availability import (
     annotate_availability,
@@ -420,6 +420,7 @@ def sales_stats(request):
 
     warehouse_id = request.GET.get("warehouse") or ""
     brand_id = request.GET.get("brand") or ""
+    model_id = request.GET.get("model") or ""
     q = (request.GET.get("q") or "").strip()
     date_from = (request.GET.get("from") or "").strip()
     date_to = (request.GET.get("to") or "").strip()
@@ -427,6 +428,8 @@ def sales_stats(request):
         records = records.filter(warehouse_id=warehouse_id)
     if brand_id:
         records = records.filter(product__brand_id=brand_id)
+    if model_id:
+        records = records.filter(product__model_product_id=model_id)
     if q:
         records = records.filter(Q(sku__icontains=q) | Q(product__name__icontains=q))
     if date_from:
@@ -482,18 +485,33 @@ def sales_stats(request):
         ]
 
     by_product = [
-        {"label": r["product__name"] or r["sku"], "sku": r["sku"], "qty": float(r["q"] or 0)}
-        for r in records.values("sku", "product__name")
+        {"label": r["product__name"] or r["sku"], "sku": r["sku"],
+         "pk": r["product_id"], "qty": float(r["q"] or 0)}
+        for r in records.values("sku", "product__name", "product_id")
         .annotate(q=Sum("quantity"))
         .order_by("-q")[:50]
     ]
-    by_model = _rank("product__model_product__name", "— без модели")
+    by_model = [
+        {"label": r["product__model_product__name"] or "— без модели",
+         "pk": r["product__model_product"], "qty": float(r["q"] or 0)}
+        for r in records.values("product__model_product", "product__model_product__name")
+        .annotate(q=Sum("quantity"))
+        .order_by("-q")[:50]
+    ]
     by_category = _rank("product__category__name", "— без категории")
     by_subcategory = _rank("product__subcategory__name", "— без подкатегории")
 
     # Everything except `page`, so pagination links keep the active filters.
     params = request.GET.copy()
     params.pop("page", None)
+
+    # Model drill-down: keep the other filters, swap the model.
+    mp = request.GET.copy()
+    mp.pop("page", None)
+    mp.pop("model", None)
+    model_qs = mp.urlencode()
+    model_link_base = "?" + (model_qs + "&" if model_qs else "") + "model="
+    selected_model = ModelProduct.objects.filter(pk=model_id).first() if model_id else None
 
     return render(
         request,
@@ -517,5 +535,8 @@ def sales_stats(request):
             "by_model": by_model,
             "by_category": by_category,
             "by_subcategory": by_subcategory,
+            "model_link_base": model_link_base,
+            "model_qs": model_qs,
+            "selected_model": selected_model,
         },
     )
