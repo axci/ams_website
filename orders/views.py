@@ -41,6 +41,7 @@ from .emails import send_order_cancellation, send_order_emails
 from .forms import CheckoutForm
 from .invoices import build_invoice_xlsx
 from .models import CartItem, Favorite, Order, OrderItem, SalesRecord
+from .sales_export import build_sales_xlsx
 from .utils import get_or_create_cart
 
 logger = logging.getLogger(__name__)
@@ -462,6 +463,19 @@ def sales_stats(request):
         records = records.filter(date__date__gte=date_from)
     if date_to:
         records = records.filter(date__date__lte=date_to)
+
+    if request.GET.get("export") == "xlsx":
+        filename = f"продажи_{timezone.localdate():%d.%m.%Y}.xlsx"
+        response = HttpResponse(
+            build_sales_xlsx(records),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+        )
+        response["Content-Disposition"] = (
+            f"attachment; filename=sales.xlsx; filename*=UTF-8''{quote(filename)}"
+        )
+        return response
 
     # Metric: units (штуки) or weight (продажи × вес товара). Rows without a
     # product weight contribute nothing to weight totals.

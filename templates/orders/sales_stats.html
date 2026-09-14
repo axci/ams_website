@@ -44,6 +44,7 @@
   <div class="col-auto">
     <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-funnel"></i> Показать</button>
     <a class="btn btn-sm btn-outline-secondary" href="{% url 'orders:sales_stats' %}">Сбросить</a>
+    <a class="btn btn-sm btn-outline-success" href="?{% if base_qs %}{{ base_qs }}&{% endif %}export=xlsx"><i class="bi bi-file-earmark-excel"></i> Скачать в Excel</a>
   </div>
   {% if selected_model %}<input type="hidden" name="model" value="{{ selected_model.pk }}">{% endif %}
   {% if metric == 'weight' %}<input type="hidden" name="metric" value="weight">{% endif %}
@@ -61,30 +62,30 @@
   <div class="col-6 col-lg-3">
     <div class="card shadow-sm h-100"><div class="card-body">
       <div class="text-muted small">Всего продаж, {{ metric_unit }}</div>
-      <div class="h3 mb-0">{{ totals.val|default:0|floatformat:"-3" }}</div>
+      <div class="h3 mb-0">{{ totals.val|default:0|floatformat:0 }}</div>
     </div></div>
   </div>
   <div class="col-6 col-lg-3">
     <div class="card shadow-sm h-100"><div class="card-body">
       <div class="text-muted small">Продажи с начала месяца, {{ metric_unit }}</div>
-      <div class="h3 mb-0">{{ mtd.cur|floatformat:"-3" }}</div>
+      <div class="h3 mb-0">{{ mtd.cur|floatformat:0 }}</div>
       <div class="small">
         {% if not mtd.has_prev %}<span class="text-muted">нет данных за пр. год</span>
         {% elif mtd.up %}<span class="text-success fw-semibold">▲ +{{ mtd.pct|floatformat:1 }}%</span>
         {% else %}<span class="text-danger fw-semibold">▼ {{ mtd.pct|floatformat:1 }}%</span>{% endif %}
-        {% if mtd.has_prev %}<span class="text-muted">к пр. году ({{ mtd.prev|floatformat:"-3" }})</span>{% endif %}
+        {% if mtd.has_prev %}<span class="text-muted">к пр. году ({{ mtd.prev|floatformat:0 }})</span>{% endif %}
       </div>
     </div></div>
   </div>
   <div class="col-6 col-lg-3">
     <div class="card shadow-sm h-100"><div class="card-body">
       <div class="text-muted small">Продажи с начала года, {{ metric_unit }}</div>
-      <div class="h3 mb-0">{{ ytd.cur|floatformat:"-3" }}</div>
+      <div class="h3 mb-0">{{ ytd.cur|floatformat:0 }}</div>
       <div class="small">
         {% if not ytd.has_prev %}<span class="text-muted">нет данных за пр. год</span>
         {% elif ytd.up %}<span class="text-success fw-semibold">▲ +{{ ytd.pct|floatformat:1 }}%</span>
         {% else %}<span class="text-danger fw-semibold">▼ {{ ytd.pct|floatformat:1 }}%</span>{% endif %}
-        {% if ytd.has_prev %}<span class="text-muted">к пр. году ({{ ytd.prev|floatformat:"-3" }})</span>{% endif %}
+        {% if ytd.has_prev %}<span class="text-muted">к пр. году ({{ ytd.prev|floatformat:0 }})</span>{% endif %}
       </div>
     </div></div>
   </div>
