@@ -1,4 +1,5 @@
 import logging
+from decimal import Decimal
 from urllib.parse import quote
 
 from django.contrib import messages
@@ -6,11 +7,22 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum, Value
+from django.db.models import (
+    Case,
+    Count,
+    DecimalField,
+    ExpressionWrapper,
+    F,
+    Q,
+    Sum,
+    Value,
+    When,
+)
 from django.db.models.functions import Coalesce, TruncDay, TruncMonth, TruncWeek
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
+from django.utils import timezone
 from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
@@ -38,6 +50,11 @@ RU_MONTHS_SHORT = [
     "", "янв", "фев", "мар", "апр", "май", "июн",
     "июл", "авг", "сен", "окт", "ноя", "дек",
 ]
+
+# weight_unit variants → factor to convert a product's weight to kilograms, so
+# sales in weight can be summed regardless of how the unit was entered.
+_GRAM_UNITS = ["г", "гр", "г.", "гр.", "грамм", "граммов", "Г", "Гр", "ГР", "g", "gr", "gram"]
+_TONNE_UNITS = ["т", "т.", "тн", "тонна", "тонн", "Т", "t", "T", "ton"]
 
 
 @login_required
@@ -438,6 +455,9 @@ def sales_stats(request):
         records = records.filter(product__model_product_id=model_id)
     if q:
         records = records.filter(Q(sku__icontains=q) | Q(product__name__icontains=q))
+    # Non-date filters applied — reused for the month/year-to-date windows, which
+    # use their own date ranges and ignore the from/to filter.
+    base = records
     if date_from:
         records = records.filter(date__date__gte=date_from)
     if date_to:
@@ -447,9 +467,17 @@ def sales_stats(request):
     # product weight contribute nothing to weight totals.
     metric = "weight" if request.GET.get("metric") == "weight" else "qty"
     if metric == "weight":
-        weight_field = DecimalField(max_digits=16, decimal_places=3)
+        weight_field = DecimalField(max_digits=18, decimal_places=6)
+        # Normalise each product's weight to kilograms — weight_unit may be
+        # граммы or тонны, which must not be summed together as-is.
+        to_kg = Case(
+            When(product__weight_unit__in=_GRAM_UNITS, then=Value(Decimal("0.001"))),
+            When(product__weight_unit__in=_TONNE_UNITS, then=Value(Decimal("1000"))),
+            default=Value(Decimal("1")),
+            output_field=weight_field,
+        )
         row_expr = ExpressionWrapper(
-            F("quantity") * F("product__weight"), output_field=weight_field
+            F("quantity") * F("product__weight") * to_kg, output_field=weight_field
         )
         # Products without a weight contribute 0 (and sort last), not NULL.
         value_expr = Coalesce(row_expr, Value(0), output_field=weight_field)
@@ -465,6 +493,42 @@ def sales_stats(request):
     page = Paginator(
         records.annotate(row_value=row_expr), 50
     ).get_page(request.GET.get("page"))
+
+    # Month- and year-to-date vs the same period last year. Same metric and
+    # non-date filters; own date windows (the from/to filter does not apply).
+    now = timezone.now()
+
+    def _shift_year(dt):
+        try:
+            return dt.replace(year=dt.year - 1)
+        except ValueError:  # 29 February
+            return dt.replace(year=dt.year - 1, day=28)
+
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    year_start = month_start.replace(month=1)
+
+    def _window(start, end):
+        return float(
+            base.filter(date__gte=start, date__lte=end).aggregate(
+                v=Sum(value_expr)
+            )["v"]
+            or 0
+        )
+
+    def _period(start):
+        cur = _window(start, now)
+        prev = _window(_shift_year(start), _shift_year(now))
+        pct = ((cur - prev) / prev * 100) if prev else None
+        return {
+            "cur": cur,
+            "prev": prev,
+            "pct": pct,
+            "has_prev": prev > 0,
+            "up": pct is not None and pct >= 0,
+        }
+
+    mtd = _period(month_start)
+    ytd = _period(year_start)
 
     # Time series at three granularities (client switches without a reload).
     dated = records.exclude(date__isnull=True)
@@ -582,5 +646,7 @@ def sales_stats(request):
             "metric": metric,
             "metric_unit": metric_unit,
             "metric_link_base": metric_link_base,
+            "mtd": mtd,
+            "ytd": ytd,
         },
     )

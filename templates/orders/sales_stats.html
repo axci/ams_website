@@ -66,6 +66,30 @@
   </div>
   <div class="col-6 col-lg-3">
     <div class="card shadow-sm h-100"><div class="card-body">
+      <div class="text-muted small">Продажи с начала месяца, {{ metric_unit }}</div>
+      <div class="h3 mb-0">{{ mtd.cur|floatformat:"-3" }}</div>
+      <div class="small">
+        {% if not mtd.has_prev %}<span class="text-muted">нет данных за пр. год</span>
+        {% elif mtd.up %}<span class="text-success fw-semibold">▲ +{{ mtd.pct|floatformat:1 }}%</span>
+        {% else %}<span class="text-danger fw-semibold">▼ {{ mtd.pct|floatformat:1 }}%</span>{% endif %}
+        {% if mtd.has_prev %}<span class="text-muted">к пр. году ({{ mtd.prev|floatformat:"-3" }})</span>{% endif %}
+      </div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card shadow-sm h-100"><div class="card-body">
+      <div class="text-muted small">Продажи с начала года, {{ metric_unit }}</div>
+      <div class="h3 mb-0">{{ ytd.cur|floatformat:"-3" }}</div>
+      <div class="small">
+        {% if not ytd.has_prev %}<span class="text-muted">нет данных за пр. год</span>
+        {% elif ytd.up %}<span class="text-success fw-semibold">▲ +{{ ytd.pct|floatformat:1 }}%</span>
+        {% else %}<span class="text-danger fw-semibold">▼ {{ ytd.pct|floatformat:1 }}%</span>{% endif %}
+        {% if ytd.has_prev %}<span class="text-muted">к пр. году ({{ ytd.prev|floatformat:"-3" }})</span>{% endif %}
+      </div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg-3">
+    <div class="card shadow-sm h-100"><div class="card-body">
       <div class="text-muted small">Контрагентов</div>
       <div class="h3 mb-0">{{ totals.clients }}</div>
     </div></div>
