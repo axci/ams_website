@@ -2,7 +2,13 @@
 {% block title %}Статистика продаж{% endblock %}
 
 {% block content %}
-<h1 class="h4 mb-3"><i class="bi bi-graph-up-arrow"></i> Статистика продаж</h1>
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h4 mb-0"><i class="bi bi-graph-up-arrow"></i> Статистика продаж</h1>
+  <div class="btn-group btn-group-sm" role="group" aria-label="Единица измерения">
+    <a href="{{ metric_link_base }}qty" class="btn btn-outline-primary {% if metric != 'weight' %}active{% endif %}">В штуках</a>
+    <a href="{{ metric_link_base }}weight" class="btn btn-outline-primary {% if metric == 'weight' %}active{% endif %}">В весе (кг)</a>
+  </div>
+</div>
 
 <form method="get" class="row g-2 align-items-end mb-3">
   <div class="col-auto">
@@ -40,6 +46,7 @@
     <a class="btn btn-sm btn-outline-secondary" href="{% url 'orders:sales_stats' %}">Сбросить</a>
   </div>
   {% if selected_model %}<input type="hidden" name="model" value="{{ selected_model.pk }}">{% endif %}
+  {% if metric == 'weight' %}<input type="hidden" name="metric" value="weight">{% endif %}
 </form>
 
 {% if selected_model %}
@@ -53,14 +60,8 @@
 <div class="row g-3 mb-3">
   <div class="col-6 col-lg-3">
     <div class="card shadow-sm h-100"><div class="card-body">
-      <div class="text-muted small">Всего продаж (расход)</div>
-      <div class="h3 mb-0">{{ totals.qty|default:0|floatformat:"-3" }}</div>
-    </div></div>
-  </div>
-  <div class="col-6 col-lg-3">
-    <div class="card shadow-sm h-100"><div class="card-body">
-      <div class="text-muted small">Записей</div>
-      <div class="h3 mb-0">{{ totals.n }}</div>
+      <div class="text-muted small">Всего продаж, {{ metric_unit }}</div>
+      <div class="h3 mb-0">{{ totals.val|default:0|floatformat:"-3" }}</div>
     </div></div>
   </div>
   <div class="col-6 col-lg-3">
@@ -73,8 +74,8 @@
 
 {% if totals.n %}
 <div class="row g-3 mb-3">
-  <div class="col-lg-7">
-    <div class="card shadow-sm h-100"><div class="card-body">
+  <div class="col-12">
+    <div class="card shadow-sm"><div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <span class="fw-semibold">Продажи по времени</span>
         <div class="btn-group btn-group-sm" role="group">
@@ -86,7 +87,15 @@
       <div style="height:300px"><canvas id="timeChart"></canvas></div>
     </div></div>
   </div>
-  <div class="col-lg-5">
+</div>
+<div class="row g-3 mb-3">
+  <div class="col-lg-6">
+    <div class="card shadow-sm h-100"><div class="card-body">
+      <div class="fw-semibold mb-2">Продажи по складам</div>
+      <div style="height:300px"><canvas id="warehousesChart"></canvas></div>
+    </div></div>
+  </div>
+  <div class="col-lg-6">
     <div class="card shadow-sm h-100"><div class="card-body">
       <div class="fw-semibold mb-2">Продажи по контрагентам</div>
       <div style="height:300px"><canvas id="clientsChart"></canvas></div>
@@ -95,6 +104,7 @@
 </div>
 {{ chart_time|json_script:"chartTimeData" }}
 {{ chart_clients|json_script:"chartClientsData" }}
+{{ chart_warehouses|json_script:"chartWarehousesData" }}
 
 <div class="card shadow-sm mb-3">
   <div class="card-header p-0">
@@ -120,7 +130,7 @@
     <table class="table table-hover align-middle mb-0">
       <thead class="table-light">
         <tr>
-          <th>Дата</th><th>Склад</th><th>Товар</th><th>Бренд</th><th>Контрагент</th><th class="text-end">Расход</th>
+          <th>Дата</th><th>Склад</th><th>Товар</th><th>Бренд</th><th>Контрагент</th><th class="text-end">Продажи, {{ metric_unit }}</th>
         </tr>
       </thead>
       <tbody>
@@ -135,7 +145,7 @@
           </td>
           <td class="small">{% if r.product %}{{ r.product.brand.name }}{% else %}—{% endif %}</td>
           <td class="small">{{ r.client|default:"—" }}{% if r.client_type %}<div class="text-muted">{{ r.client_type }}</div>{% endif %}</td>
-          <td class="text-end">{{ r.quantity|floatformat:"-3" }}</td>
+          <td class="text-end">{{ r.row_value|floatformat:"-3"|default:"—" }}</td>
         </tr>
         {% empty %}
         <tr><td colspan="6" class="text-muted text-center py-4">Нет данных. Загрузите файл из 1С в админке (Заказы → Статистика продаж).</td></tr>
@@ -165,13 +175,14 @@
 (function () {
   var timeData = JSON.parse(document.getElementById("chartTimeData").textContent);
   var clientData = JSON.parse(document.getElementById("chartClientsData").textContent);
+  var warehouseData = JSON.parse(document.getElementById("chartWarehousesData").textContent);
   var bucket = "month";
 
   var timeChart = new Chart(document.getElementById("timeChart"), {
     type: "bar",
     data: {
       labels: timeData[bucket].map(function (r) { return r[0]; }),
-      datasets: [{ label: "Расход", data: timeData[bucket].map(function (r) { return r[1]; }), backgroundColor: "#0d6efd" }],
+      datasets: [{ label: "Продажи, {{ metric_unit }}", data: timeData[bucket].map(function (r) { return r[1]; }), backgroundColor: "#006BA2" }],
     },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
   });
@@ -191,7 +202,16 @@
     type: "bar",
     data: {
       labels: clientData.labels,
-      datasets: [{ label: "Расход", data: clientData.values, backgroundColor: "#20c997" }],
+      datasets: [{ label: "Продажи, {{ metric_unit }}", data: clientData.values, backgroundColor: "#EBB434" }],
+    },
+    options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } },
+  });
+
+  new Chart(document.getElementById("warehousesChart"), {
+    type: "bar",
+    data: {
+      labels: warehouseData.labels,
+      datasets: [{ label: "Продажи, {{ metric_unit }}", data: warehouseData.values, backgroundColor: "#3EBCD2" }],
     },
     options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } },
   });

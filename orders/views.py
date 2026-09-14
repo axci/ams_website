@@ -6,8 +6,8 @@ from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator
 from django.db import transaction
-from django.db.models import Count, Q, Sum
-from django.db.models.functions import TruncDay, TruncMonth, TruncWeek
+from django.db.models import Count, DecimalField, ExpressionWrapper, F, Q, Sum, Value
+from django.db.models.functions import Coalesce, TruncDay, TruncMonth, TruncWeek
 from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -32,6 +32,12 @@ from .models import CartItem, Favorite, Order, OrderItem, SalesRecord
 from .utils import get_or_create_cart
 
 logger = logging.getLogger(__name__)
+
+# Short Russian month names (index = month number) for chart labels.
+RU_MONTHS_SHORT = [
+    "", "янв", "фев", "мар", "апр", "май", "июн",
+    "июл", "авг", "сен", "окт", "ноя", "дек",
+]
 
 
 @login_required
@@ -437,34 +443,52 @@ def sales_stats(request):
     if date_to:
         records = records.filter(date__date__lte=date_to)
 
+    # Metric: units (штуки) or weight (продажи × вес товара). Rows without a
+    # product weight contribute nothing to weight totals.
+    metric = "weight" if request.GET.get("metric") == "weight" else "qty"
+    if metric == "weight":
+        weight_field = DecimalField(max_digits=16, decimal_places=3)
+        row_expr = ExpressionWrapper(
+            F("quantity") * F("product__weight"), output_field=weight_field
+        )
+        # Products without a weight contribute 0 (and sort last), not NULL.
+        value_expr = Coalesce(row_expr, Value(0), output_field=weight_field)
+        metric_unit = "кг"
+    else:
+        value_expr = F("quantity")
+        row_expr = F("quantity")
+        metric_unit = "шт"
+
     totals = records.aggregate(
-        qty=Sum("quantity"), n=Count("id"), clients=Count("client", distinct=True)
+        val=Sum(value_expr), n=Count("id"), clients=Count("client", distinct=True)
     )
-    page = Paginator(records, 50).get_page(request.GET.get("page"))
+    page = Paginator(
+        records.annotate(row_value=row_expr), 50
+    ).get_page(request.GET.get("page"))
 
     # Time series at three granularities (client switches without a reload).
     dated = records.exclude(date__isnull=True)
 
-    def _series(trunc, fmt):
+    def _series(trunc, label):
         rows = (
             dated.annotate(bucket=trunc("date"))
             .values("bucket")
-            .annotate(q=Sum("quantity"))
+            .annotate(q=Sum(value_expr))
             .order_by("bucket")
         )
-        return [[r["bucket"].strftime(fmt), float(r["q"] or 0)] for r in rows]
+        return [[label(r["bucket"]), float(r["q"] or 0)] for r in rows]
 
     chart_time = {
-        "day": _series(TruncDay, "%d.%m.%Y"),
-        "week": _series(TruncWeek, "%d.%m.%Y"),
-        "month": _series(TruncMonth, "%m.%Y"),
+        "day": _series(TruncDay, lambda d: d.strftime("%d.%m.%Y")),
+        "week": _series(TruncWeek, lambda d: d.strftime("%d.%m.%Y")),
+        "month": _series(TruncMonth, lambda d: f"{RU_MONTHS_SHORT[d.month]} {d:%y}"),
     }
 
     # By client: top 10 by расход, the rest summed into «Другие».
     client_rows = list(
         records.exclude(client="")
         .values("client")
-        .annotate(q=Sum("quantity"))
+        .annotate(q=Sum(value_expr))
         .order_by("-q")
     )
     labels = [r["client"] for r in client_rows[:10]]
@@ -475,12 +499,21 @@ def sales_stats(request):
         values.append(others)
     chart_clients = {"labels": labels, "values": values}
 
+    # By warehouse (all warehouses present in the filtered set).
+    wh_rows = (
+        records.values("warehouse__name").annotate(q=Sum(value_expr)).order_by("-q")
+    )
+    chart_warehouses = {
+        "labels": [r["warehouse__name"] for r in wh_rows],
+        "values": [float(r["q"] or 0) for r in wh_rows],
+    }
+
     # Rankings by расход (descending), top 50 each — respect the active filters.
     def _rank(field, default):
         return [
             {"label": r[field] or default, "qty": float(r["q"] or 0)}
             for r in records.values(field)
-            .annotate(q=Sum("quantity"))
+            .annotate(q=Sum(value_expr))
             .order_by("-q")[:50]
         ]
 
@@ -488,14 +521,14 @@ def sales_stats(request):
         {"label": r["product__name"] or r["sku"], "sku": r["sku"],
          "pk": r["product_id"], "qty": float(r["q"] or 0)}
         for r in records.values("sku", "product__name", "product_id")
-        .annotate(q=Sum("quantity"))
+        .annotate(q=Sum(value_expr))
         .order_by("-q")[:50]
     ]
     by_model = [
         {"label": r["product__model_product__name"] or "— без модели",
          "pk": r["product__model_product"], "qty": float(r["q"] or 0)}
         for r in records.values("product__model_product", "product__model_product__name")
-        .annotate(q=Sum("quantity"))
+        .annotate(q=Sum(value_expr))
         .order_by("-q")[:50]
     ]
     by_category = _rank("product__category__name", "— без категории")
@@ -512,6 +545,13 @@ def sales_stats(request):
     model_qs = mp.urlencode()
     model_link_base = "?" + (model_qs + "&" if model_qs else "") + "model="
     selected_model = ModelProduct.objects.filter(pk=model_id).first() if model_id else None
+
+    # Metric toggle (units / weight): keep the other filters, swap the metric.
+    metp = request.GET.copy()
+    metp.pop("page", None)
+    metp.pop("metric", None)
+    met_qs = metp.urlencode()
+    metric_link_base = "?" + (met_qs + "&" if met_qs else "") + "metric="
 
     return render(
         request,
@@ -531,6 +571,7 @@ def sales_stats(request):
             "base_qs": params.urlencode(),
             "chart_time": chart_time,
             "chart_clients": chart_clients,
+            "chart_warehouses": chart_warehouses,
             "by_product": by_product,
             "by_model": by_model,
             "by_category": by_category,
@@ -538,5 +579,8 @@ def sales_stats(request):
             "model_link_base": model_link_base,
             "model_qs": model_qs,
             "selected_model": selected_model,
+            "metric": metric,
+            "metric_unit": metric_unit,
+            "metric_link_base": metric_link_base,
         },
     )
