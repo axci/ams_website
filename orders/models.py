@@ -216,3 +216,44 @@ class SalesRecord(models.Model):
 
     def __str__(self):
         return f"{self.sku} · {self.warehouse_id} · {self.document}"
+
+
+class StockSnapshot(models.Model):
+    """Day-by-day product stock at a warehouse, reconstructed from the 1C
+    «Ведомость по товарам» running balances (нач./кон. остаток). One row is the
+    stock at the END of that date; the beginning of a date equals the previous
+    day's value."""
+
+    sku = models.CharField("Код 1С", max_length=64, db_index=True)
+    product = models.ForeignKey(
+        "catalog.Product",
+        on_delete=models.SET_NULL,
+        related_name="stock_snapshots",
+        blank=True,
+        null=True,
+        verbose_name="товар",
+    )
+    warehouse = models.ForeignKey(
+        "warehouses.Warehouse",
+        on_delete=models.PROTECT,
+        related_name="stock_snapshots",
+        verbose_name="склад",
+    )
+    date = models.DateField("дата", db_index=True)
+    quantity = models.DecimalField(
+        "остаток на конец дня", max_digits=12, decimal_places=3, default=0
+    )
+
+    class Meta:
+        verbose_name = "остаток (история)"
+        verbose_name_plural = "история остатков"
+        ordering = ["sku", "warehouse", "date"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["sku", "warehouse", "date"], name="unique_stock_snapshot"
+            )
+        ]
+        indexes = [models.Index(fields=["warehouse", "date"])]
+
+    def __str__(self):
+        return f"{self.sku} @ {self.warehouse_id} {self.date}: {self.quantity}"

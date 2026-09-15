@@ -1,10 +1,13 @@
+from io import BytesIO
+
 from django import forms
 from django.contrib import admin, messages
 from django.shortcuts import redirect, render
 from django.urls import path
 
-from .models import Cart, CartItem, Order, OrderItem, SalesRecord
+from .models import Cart, CartItem, Order, OrderItem, SalesRecord, StockSnapshot
 from .sales_import import import_sales
+from .stock_import import import_stock
 
 
 class CartItemInline(admin.TabularInline):
@@ -68,17 +71,28 @@ class SalesRecordAdmin(admin.ModelAdmin):
         if request.method == "POST":
             form = SalesImportForm(request.POST, request.FILES)
             if form.is_valid():
-                result = import_sales(form.cleaned_data["file"])
+                # One upload builds both sales records and stock history.
+                data = form.cleaned_data["file"].read()
+                sales = import_sales(BytesIO(data))
+                stock = import_stock(BytesIO(data))
+                summary = (
+                    f"Продажи: добавлено {sales.created}, обновлено {sales.updated}, "
+                    f"пропущено {sales.skipped}, без товара {sales.unmatched_sku}."
+                )
+                if stock.period_start:
+                    summary += (
+                        f" Остатки: {stock.snapshots} записей за "
+                        f"{stock.period_start:%d.%m.%Y}–{stock.period_end:%d.%m.%Y}."
+                    )
                 self.message_user(
                     request,
-                    f"Импорт завершён: добавлено {result.created}, "
-                    f"обновлено {result.updated}, пропущено {result.skipped}, "
-                    f"без товара в каталоге {result.unmatched_sku}, "
-                    f"ошибок {len(result.errors)}.",
-                    level=messages.SUCCESS if not result.errors else messages.WARNING,
+                    summary,
+                    level=messages.SUCCESS if not sales.errors else messages.WARNING,
                 )
-                for row_num, msg in result.errors[:15]:
-                    self.message_user(request, f"Строка {row_num}: {msg}", messages.ERROR)
+                for row_num, msg in sales.errors[:10]:
+                    self.message_user(request, f"Продажи, строка {row_num}: {msg}", messages.ERROR)
+                for row_num, msg in stock.errors[:10]:
+                    self.message_user(request, f"Остатки, строка {row_num}: {msg}", messages.ERROR)
                 return redirect("admin:orders_salesrecord_changelist")
         else:
             form = SalesImportForm()
@@ -89,3 +103,55 @@ class SalesRecordAdmin(admin.ModelAdmin):
             "opts": self.model._meta,
         }
         return render(request, "admin/orders/salesrecord/import_excel.html", context)
+
+
+class StockImportForm(forms.Form):
+    file = forms.FileField(label="Excel-файл (.xlsx) из 1С")
+
+
+@admin.register(StockSnapshot)
+class StockSnapshotAdmin(admin.ModelAdmin):
+    change_list_template = "admin/orders/stocksnapshot/change_list.html"
+    list_display = ("date", "warehouse", "product", "sku", "quantity")
+    list_filter = ("warehouse", "date")
+    search_fields = ("sku", "product__name")
+    list_select_related = ("warehouse", "product")
+    date_hierarchy = "date"
+
+    def get_urls(self):
+        custom = [
+            path(
+                "import-excel/",
+                self.admin_site.admin_view(self.import_excel),
+                name="orders_stocksnapshot_import_excel",
+            ),
+        ]
+        return custom + super().get_urls()
+
+    def import_excel(self, request):
+        if request.method == "POST":
+            form = StockImportForm(request.POST, request.FILES)
+            if form.is_valid():
+                result = import_stock(form.cleaned_data["file"])
+                if result.errors:
+                    for row_num, msg in result.errors[:15]:
+                        self.message_user(request, f"Строка {row_num}: {msg}", messages.ERROR)
+                else:
+                    self.message_user(
+                        request,
+                        f"Импорт остатков завершён: {result.snapshots} записей "
+                        f"по {result.pairs} парам (товар × склад) за период "
+                        f"{result.period_start:%d.%m.%Y}–{result.period_end:%d.%m.%Y}; "
+                        f"без товара в каталоге {result.unmatched_sku}.",
+                        level=messages.SUCCESS,
+                    )
+                return redirect("admin:orders_stocksnapshot_changelist")
+        else:
+            form = StockImportForm()
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Импорт истории остатков из 1С",
+            "form": form,
+            "opts": self.model._meta,
+        }
+        return render(request, "admin/orders/stocksnapshot/import_excel.html", context)

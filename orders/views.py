@@ -40,7 +40,7 @@ from warehouses.selection import get_current_warehouse
 from .emails import send_order_cancellation, send_order_emails
 from .forms import CheckoutForm
 from .invoices import build_invoice_xlsx
-from .models import CartItem, Favorite, Order, OrderItem, SalesRecord
+from .models import CartItem, Favorite, Order, OrderItem, SalesRecord, StockSnapshot
 from .sales_export import build_sales_xlsx
 from .utils import get_or_create_cart
 
@@ -662,5 +662,61 @@ def sales_stats(request):
             "metric_link_base": metric_link_base,
             "mtd": mtd,
             "ytd": ytd,
+        },
+    )
+
+
+@login_required
+def stock_history(request):
+    """Role-gated stock-over-time chart. Pick a product (code or name) and
+    optionally a warehouse; each (product × warehouse) is a line over the
+    imported period. Capped at 12 lines — narrow the search for more."""
+    if not can_view_sales(request.user):
+        raise PermissionDenied
+
+    q = (request.GET.get("q") or "").strip()
+    warehouse_id = request.GET.get("warehouse") or ""
+    chart = {"labels": [], "series": []}
+    too_many = False
+
+    if q:
+        snaps = StockSnapshot.objects.all()
+        if warehouse_id:
+            snaps = snaps.filter(warehouse_id=warehouse_id)
+        snaps = snaps.filter(Q(sku__icontains=q) | Q(product__name__icontains=q))
+        rows = list(
+            snaps.order_by("date").values(
+                "sku", "product__name", "warehouse__name", "date", "quantity"
+            )
+        )
+        dates = sorted({r["date"] for r in rows})
+        idx = {d: i for i, d in enumerate(dates)}
+        series = {}
+        for r in rows:
+            key = (r["sku"], r["warehouse__name"])
+            s = series.get(key)
+            if s is None:
+                if len(series) >= 12:
+                    too_many = True
+                    continue
+                label = (r["product__name"] or r["sku"]) + " — " + r["warehouse__name"]
+                s = {"label": label, "data": [None] * len(dates)}
+                series[key] = s
+            s["data"][idx[r["date"]]] = float(r["quantity"])
+        chart = {
+            "labels": [d.strftime("%d.%m.%Y") for d in dates],
+            "series": list(series.values()),
+        }
+
+    return render(
+        request,
+        "orders/stock_history.html",
+        {
+            "q": q,
+            "warehouses": Warehouse.objects.order_by("name"),
+            "selected_warehouse": warehouse_id,
+            "chart": chart,
+            "too_many": too_many,
+            "has_data": bool(chart["series"]),
         },
     )

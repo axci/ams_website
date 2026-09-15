@@ -10,6 +10,9 @@
 <a href="{% url 'orders:sales_stats' %}?q={{ product.sku|urlencode }}" class="btn btn-outline-info btn-sm mb-3">
   <i class="bi bi-graph-up-arrow"></i> Статистика продаж
 </a>
+<a href="{% url 'orders:stock_history' %}?q={{ product.sku|urlencode }}" class="btn btn-outline-info btn-sm mb-3">
+  <i class="bi bi-graph-up"></i> История остатков
+</a>
 {% endif %}
 
 <nav aria-label="breadcrumb">

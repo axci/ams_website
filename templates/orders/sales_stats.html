@@ -3,7 +3,10 @@
 
 {% block content %}
 <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
-  <h1 class="h4 mb-0"><i class="bi bi-graph-up-arrow"></i> Статистика продаж</h1>
+  <div class="d-flex align-items-center gap-2">
+    <h1 class="h4 mb-0"><i class="bi bi-graph-up-arrow"></i> Статистика продаж</h1>
+    <a href="{% url 'orders:stock_history' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-graph-up"></i> История остатков</a>
+  </div>
   <div class="btn-group btn-group-sm" role="group" aria-label="Единица измерения">
     <a href="{{ metric_link_base }}qty" class="btn btn-outline-primary {% if metric != 'weight' %}active{% endif %}">В штуках</a>
     <a href="{{ metric_link_base }}weight" class="btn btn-outline-primary {% if metric == 'weight' %}active{% endif %}">В весе (кг)</a>

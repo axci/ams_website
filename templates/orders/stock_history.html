@@ -1,0 +1,65 @@
+{% extends 'base.html' %}
+{% block title %}История остатков{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h4 mb-0"><i class="bi bi-graph-up"></i> История остатков</h1>
+  <a href="{% url 'orders:sales_stats' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-bar-chart"></i> Статистика продаж</a>
+</div>
+
+<form method="get" class="row g-2 align-items-end mb-3">
+  <div class="col-auto">
+    <label class="form-label small mb-0">Товар (код или название)</label>
+    <input type="text" name="q" value="{{ q }}" class="form-control form-control-sm" placeholder="напр. НФ-0014333" style="min-width:16rem">
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-0">Склад</label>
+    <select name="warehouse" class="form-select form-select-sm">
+      <option value="">Все склады</option>
+      {% for w in warehouses %}
+      <option value="{{ w.pk }}" {% if selected_warehouse == w.pk|stringformat:'s' %}selected{% endif %}>{{ w.name }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-search"></i> Показать</button>
+  </div>
+</form>
+
+{% if not q %}
+<div class="alert alert-info">Введите код или название товара, чтобы увидеть историю остатков по дням.</div>
+{% elif not has_data %}
+<div class="alert alert-warning">Нет данных об остатках по этому запросу. Загрузите файл из 1С в админке.</div>
+{% else %}
+{% if too_many %}<div class="alert alert-warning py-2 small">Показаны первые 12 рядов. Уточните запрос, чтобы сузить выборку.</div>{% endif %}
+<div class="card shadow-sm"><div class="card-body">
+  <div style="height:420px"><canvas id="stockChart"></canvas></div>
+</div></div>
+{{ chart|json_script:"stockChartData" }}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  var data = JSON.parse(document.getElementById("stockChartData").textContent);
+  var palette = ["#006BA2", "#EBB434", "#3EBCD2", "#D8494A", "#379A8B", "#B07AA1",
+                 "#EE8866", "#758D99", "#9C6B4E", "#4E79A7", "#59A14F", "#AF7AA1"];
+  new Chart(document.getElementById("stockChart"), {
+    type: "line",
+    data: {
+      labels: data.labels,
+      datasets: data.series.map(function (s, i) {
+        var c = palette[i % palette.length];
+        return { label: s.label, data: s.data, borderColor: c, backgroundColor: c,
+                 stepped: true, pointRadius: 0, borderWidth: 2, spanGaps: true };
+      }),
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: "index", intersect: false },
+      scales: { y: { beginAtZero: true, title: { display: true, text: "Остаток" } } },
+      plugins: { legend: { position: "bottom" } },
+    },
+  });
+})();
+</script>
+{% endif %}
+{% endblock %}
