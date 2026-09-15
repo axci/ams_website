@@ -1,4 +1,5 @@
 import logging
+from datetime import timedelta
 from decimal import Decimal
 from urllib.parse import quote
 
@@ -13,6 +14,8 @@ from django.db.models import (
     DecimalField,
     ExpressionWrapper,
     F,
+    Max,
+    Min,
     Q,
     Sum,
     Value,
@@ -559,8 +562,51 @@ def sales_stats(request):
     chart_time = {
         "day": _series(TruncDay, lambda d: d.strftime("%d.%m.%Y")),
         "week": _series(TruncWeek, lambda d: d.strftime("%d.%m.%Y")),
-        "month": _series(TruncMonth, lambda d: f"{RU_MONTHS_SHORT[d.month]} {d:%y}"),
     }
+
+    # Monthly view: a day-by-day stock line with sales bars that span each whole
+    # month. Same non-date filters; the date range still narrows it.
+    stock_snaps = StockSnapshot.objects.all()
+    if warehouse_id:
+        stock_snaps = stock_snaps.filter(warehouse_id=warehouse_id)
+    if brand_id:
+        stock_snaps = stock_snaps.filter(product__brand_id=brand_id)
+    if model_id:
+        stock_snaps = stock_snaps.filter(product__model_product_id=model_id)
+    if q:
+        stock_snaps = stock_snaps.filter(Q(sku__icontains=q) | Q(product__name__icontains=q))
+    if date_from:
+        stock_snaps = stock_snaps.filter(date__gte=date_from)
+    if date_to:
+        stock_snaps = stock_snaps.filter(date__lte=date_to)
+    daily_stock = {
+        r["date"]: float(r["q"] or 0)
+        for r in stock_snaps.values("date").annotate(q=Sum("quantity"))
+    }
+    month_sales = {}
+    for row in (
+        dated.annotate(bucket=TruncMonth("date")).values("bucket").annotate(q=Sum(value_expr))
+    ):
+        b = row["bucket"]
+        month_sales[(b.year, b.month)] = float(row["q"] or 0)
+
+    # Daily axis over the whole period (sales days ∪ stock days). Each day carries
+    # its month's total sales (so equal-height bars form a block per month) and
+    # that day's stock.
+    bounds = []
+    srange = dated.aggregate(a=Min("date"), b=Max("date"))
+    if srange["a"]:
+        bounds += [srange["a"].date(), srange["b"].date()]
+    if daily_stock:
+        bounds += [min(daily_stock), max(daily_stock)]
+    chart_month = {"labels": [], "sales": [], "stock": []}
+    if bounds:
+        day, end = min(bounds), max(bounds)
+        while day <= end:
+            chart_month["labels"].append(day.strftime("%d.%m.%Y"))
+            chart_month["sales"].append(month_sales.get((day.year, day.month), 0.0))
+            chart_month["stock"].append(daily_stock.get(day))
+            day += timedelta(days=1)
 
     # By client: top 10 by расход, the rest summed into «Другие».
     client_rows = list(
@@ -648,6 +694,7 @@ def sales_stats(request):
             "date_to": date_to,
             "base_qs": params.urlencode(),
             "chart_time": chart_time,
+            "chart_month": chart_month,
             "chart_clients": chart_clients,
             "chart_warehouses": chart_warehouses,
             "by_product": by_product,

@@ -131,6 +131,7 @@
   </div>
 </div>
 {{ chart_time|json_script:"chartTimeData" }}
+{{ chart_month|json_script:"chartMonthData" }}
 {{ chart_clients|json_script:"chartClientsData" }}
 {{ chart_warehouses|json_script:"chartWarehousesData" }}
 
@@ -202,27 +203,58 @@
 <script>
 (function () {
   var timeData = JSON.parse(document.getElementById("chartTimeData").textContent);
+  var monthData = JSON.parse(document.getElementById("chartMonthData").textContent);
   var clientData = JSON.parse(document.getElementById("chartClientsData").textContent);
   var warehouseData = JSON.parse(document.getElementById("chartWarehousesData").textContent);
-  var bucket = "month";
+  var unit = "{{ metric_unit }}";
+  var timeChart = null;
 
-  var timeChart = new Chart(document.getElementById("timeChart"), {
-    type: "bar",
-    data: {
-      labels: timeData[bucket].map(function (r) { return r[0]; }),
-      datasets: [{ label: "Продажи, {{ metric_unit }}", data: timeData[bucket].map(function (r) { return r[1]; }), backgroundColor: "#006BA2" }],
-    },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
-  });
+  function renderTime(bucket) {
+    if (timeChart) timeChart.destroy();
+    var cfg;
+    if (bucket === "month") {
+      // Daily axis: sales repeated per day form a block per month; stock is a
+      // day-by-day line on a secondary axis.
+      cfg = {
+        type: "bar",
+        data: {
+          labels: monthData.labels,
+          datasets: [
+            { type: "bar", label: "Продажи за месяц, " + unit, data: monthData.sales, backgroundColor: "#006BA2", borderColor: "#0A3D62", borderWidth: { top: 2, right: 0, bottom: 0, left: 0 }, borderSkipped: false, yAxisID: "y", order: 2, categoryPercentage: 1.0, barPercentage: 1.0 },
+            { type: "line", label: "Остаток, шт", data: monthData.stock, borderColor: "#EBB434", backgroundColor: "#EBB434", yAxisID: "y1", pointRadius: 0, borderWidth: 2, tension: 0, spanGaps: true, order: 1 },
+          ],
+        },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: { legend: { display: true } },
+          scales: {
+            x: { ticks: { maxTicksLimit: 12, maxRotation: 0, autoSkip: true } },
+            y: { beginAtZero: true, position: "left", title: { display: true, text: "Продажи" } },
+            y1: { beginAtZero: true, position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "Остаток, шт" } },
+          },
+        },
+      };
+    } else {
+      cfg = {
+        type: "bar",
+        data: {
+          labels: timeData[bucket].map(function (r) { return r[0]; }),
+          datasets: [{ label: "Продажи, " + unit, data: timeData[bucket].map(function (r) { return r[1]; }), backgroundColor: "#006BA2", borderColor: "#0A3D62", borderWidth: 1 }],
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
+      };
+    }
+    timeChart = new Chart(document.getElementById("timeChart"), cfg);
+  }
+
+  renderTime("month");
 
   document.querySelectorAll("[data-bucket]").forEach(function (btn) {
     btn.addEventListener("click", function () {
-      bucket = btn.getAttribute("data-bucket");
       document.querySelectorAll("[data-bucket]").forEach(function (b) { b.classList.remove("active"); });
       btn.classList.add("active");
-      timeChart.data.labels = timeData[bucket].map(function (r) { return r[0]; });
-      timeChart.data.datasets[0].data = timeData[bucket].map(function (r) { return r[1]; });
-      timeChart.update();
+      renderTime(btn.getAttribute("data-bucket"));
     });
   });
 
