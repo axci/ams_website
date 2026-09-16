@@ -207,40 +207,73 @@
   var clientData = JSON.parse(document.getElementById("chartClientsData").textContent);
   var warehouseData = JSON.parse(document.getElementById("chartWarehousesData").textContent);
   var unit = "{{ metric_unit }}";
+  var showStock = {{ show_stock_line|yesno:"true,false" }};
+  var RU_SHORT = ["", "янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сент", "окт", "нояб", "дек"];
   var timeChart = null;
 
   function renderTime(bucket) {
     if (timeChart) timeChart.destroy();
     var cfg;
     if (bucket === "month") {
-      // Daily axis: sales repeated per day form a block per month; stock is a
-      // day-by-day line on a secondary axis.
+      // Daily axis: sales repeated per day form a block per month, separated by
+      // a vertical line at each month boundary. The day-by-day stock line is
+      // added only for a single-product view.
+      var months = monthData.labels.map(function (l) { return l.slice(3, 5); });
+      var monthSep = {
+        id: "monthSep",
+        afterDatasetsDraw: function (chart) {
+          var xs = chart.scales.x, area = chart.chartArea, c = chart.ctx;
+          c.save(); c.strokeStyle = "#0A3D62"; c.lineWidth = 1;
+          for (var i = 1; i < months.length; i++) {
+            if (months[i] !== months[i - 1]) {
+              var px = (xs.getPixelForValue(i - 1) + xs.getPixelForValue(i)) / 2;
+              c.beginPath(); c.moveTo(px, area.top); c.lineTo(px, area.bottom); c.stroke();
+            }
+          }
+          c.restore();
+        },
+      };
+      var datasets = [
+        { type: "bar", label: "Продажи за месяц, " + unit, data: monthData.sales, backgroundColor: "#006BA2", borderWidth: 0, yAxisID: "y", order: 2, categoryPercentage: 1.0, barPercentage: 1.0 },
+      ];
+      var scales = {
+        x: {
+          grid: { display: false },
+          ticks: {
+            autoSkip: false, maxRotation: 0,
+            callback: function (value, index) {
+              var lbl = monthData.labels[index];
+              if (!lbl) return "";
+              if (index === 0 || lbl.slice(3, 5) !== monthData.labels[index - 1].slice(3, 5)) {
+                return RU_SHORT[parseInt(lbl.slice(3, 5), 10)] + " " + lbl.slice(8, 10);
+              }
+              return "";
+            },
+          },
+        },
+        y: { beginAtZero: true, position: "left", title: { display: true, text: "Продажи" } },
+      };
+      if (showStock) {
+        datasets.push({ type: "line", label: "Остаток, шт", data: monthData.stock, borderColor: "#EBB434", backgroundColor: "#EBB434", yAxisID: "y1", pointRadius: 0, borderWidth: 2, tension: 0, spanGaps: true, order: 1 });
+        scales.y1 = { beginAtZero: true, position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "Остаток, шт" } };
+      }
       cfg = {
         type: "bar",
-        data: {
-          labels: monthData.labels,
-          datasets: [
-            { type: "bar", label: "Продажи за месяц, " + unit, data: monthData.sales, backgroundColor: "#006BA2", borderColor: "#0A3D62", borderWidth: { top: 2, right: 0, bottom: 0, left: 0 }, borderSkipped: false, yAxisID: "y", order: 2, categoryPercentage: 1.0, barPercentage: 1.0 },
-            { type: "line", label: "Остаток, шт", data: monthData.stock, borderColor: "#EBB434", backgroundColor: "#EBB434", yAxisID: "y1", pointRadius: 0, borderWidth: 2, tension: 0, spanGaps: true, order: 1 },
-          ],
-        },
+        data: { labels: monthData.labels, datasets: datasets },
         options: {
           responsive: true, maintainAspectRatio: false,
           interaction: { mode: "index", intersect: false },
-          plugins: { legend: { display: true } },
-          scales: {
-            x: { ticks: { maxTicksLimit: 12, maxRotation: 0, autoSkip: true } },
-            y: { beginAtZero: true, position: "left", title: { display: true, text: "Продажи" } },
-            y1: { beginAtZero: true, position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "Остаток, шт" } },
-          },
+          plugins: { legend: { display: showStock } },
+          scales: scales,
         },
+        plugins: [monthSep],
       };
     } else {
       cfg = {
         type: "bar",
         data: {
           labels: timeData[bucket].map(function (r) { return r[0]; }),
-          datasets: [{ label: "Продажи, " + unit, data: timeData[bucket].map(function (r) { return r[1]; }), backgroundColor: "#006BA2", borderColor: "#0A3D62", borderWidth: 1 }],
+          datasets: [{ label: "Продажи, " + unit, data: timeData[bucket].map(function (r) { return r[1]; }), backgroundColor: "#006BA2" }],
         },
         options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
       };
