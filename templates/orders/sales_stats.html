@@ -124,6 +124,9 @@
       <div class="d-flex justify-content-between align-items-center mb-2">
         <span class="fw-semibold">Продажи по времени</span>
         <div class="d-flex gap-2">
+          <button type="button" id="toggleAvg" class="btn btn-sm btn-outline-secondary" aria-pressed="false" title="Скользящее среднее продаж за 30 дней" style="display:none; --bs-btn-color:#379A8B; --bs-btn-border-color:#379A8B; --bs-btn-hover-bg:#379A8B; --bs-btn-hover-border-color:#379A8B; --bs-btn-hover-color:#fff; --bs-btn-active-bg:#379A8B; --bs-btn-active-border-color:#379A8B; --bs-btn-active-color:#fff;">
+            <i class="bi bi-graph-up"></i> Ср. 30 дн
+          </button>
           {% if show_stock_line %}
           <button type="button" id="toggleStock" class="btn btn-sm btn-outline-warning active" aria-pressed="true" title="Показать или скрыть остаток">
             <i class="bi bi-eye"></i> Остаток
@@ -233,9 +236,19 @@
   var unit = "{{ metric_unit }}";
   var showStock = {{ show_stock_line|yesno:"true,false" }};
   var stockVisible = true;  // toggled by the «Остаток» button
+  var avgVisible = false;   // toggled by the «Ср. 30 дн» button (day view only)
   var currentBucket = "month";
+  var toggleStock = document.getElementById("toggleStock");
+  var toggleAvg = document.getElementById("toggleAvg");
   var RU_SHORT = ["", "янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сент", "окт", "нояб", "дек"];
   var timeChart = null;
+
+  // Остаток is meaningful only on the month view, the 30-day average only on
+  // the day view — show each toggle only where it applies.
+  function syncToggles() {
+    if (toggleStock) toggleStock.style.display = currentBucket === "month" ? "" : "none";
+    if (toggleAvg) toggleAvg.style.display = currentBucket === "day" ? "" : "none";
+  }
 
   function renderTime(bucket) {
     if (timeChart) timeChart.destroy();
@@ -310,15 +323,24 @@
         plugins: [monthSep],
       };
     } else {
+      var rows = timeData[bucket];
+      var avgOn = bucket === "day" && avgVisible;
+      var dsets = [{ type: "bar", label: "Продажи, " + unit, data: rows.map(function (r) { return r[1]; }), backgroundColor: "#006BA2", order: 2 }];
+      if (avgOn) {
+        dsets.push({ type: "line", label: "Среднее 30 дн, " + unit, data: rows.map(function (r) { return r[2]; }), borderColor: "#379A8B", backgroundColor: "#379A8B", pointRadius: 0, borderWidth: 2, tension: 0.3, spanGaps: true, order: 1 });
+      }
       cfg = {
         type: "bar",
-        data: {
-          labels: timeData[bucket].map(function (r) { return r[0]; }),
-          datasets: [{ label: "Продажи, " + unit, data: timeData[bucket].map(function (r) { return r[1]; }), backgroundColor: "#006BA2" }],
+        data: { labels: rows.map(function (r) { return r[0]; }), datasets: dsets },
+        options: {
+          responsive: true, maintainAspectRatio: false,
+          interaction: { mode: "index", intersect: false },
+          plugins: { legend: { display: avgOn } },
+          scales: { y: { beginAtZero: true } },
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } },
       };
     }
+    syncToggles();
     timeChart = new Chart(document.getElementById("timeChart"), cfg);
   }
 
@@ -332,13 +354,21 @@
     });
   });
 
-  var toggleStock = document.getElementById("toggleStock");
   if (toggleStock) {
     toggleStock.addEventListener("click", function () {
       stockVisible = !stockVisible;
       toggleStock.classList.toggle("active", stockVisible);
       toggleStock.setAttribute("aria-pressed", stockVisible ? "true" : "false");
       toggleStock.querySelector("i").className = stockVisible ? "bi bi-eye" : "bi bi-eye-slash";
+      renderTime(currentBucket);
+    });
+  }
+
+  if (toggleAvg) {
+    toggleAvg.addEventListener("click", function () {
+      avgVisible = !avgVisible;
+      toggleAvg.classList.toggle("active", avgVisible);
+      toggleAvg.setAttribute("aria-pressed", avgVisible ? "true" : "false");
       renderTime(currentBucket);
     });
   }

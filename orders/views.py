@@ -574,8 +574,35 @@ def sales_stats(request):
         )
         return [[label(r["bucket"]), float(r["q"] or 0)] for r in rows]
 
+    def _day_series():
+        # Continuous daily series (gaps filled with 0) carrying a trailing
+        # 30-day moving average of daily sales, so the client can overlay a
+        # smoothed line. Same metric as the bars; near the start the window is
+        # whatever days exist so far.
+        rows = list(
+            dated.annotate(bucket=TruncDay("date"))
+            .values("bucket")
+            .annotate(q=Sum(value_expr))
+            .order_by("bucket")
+        )
+        if not rows:
+            return []
+        by_day = {r["bucket"].date(): float(r["q"] or 0) for r in rows}
+        day, end = rows[0]["bucket"].date(), rows[-1]["bucket"].date()
+        days = []
+        while day <= end:
+            days.append(day)
+            day += timedelta(days=1)
+        vals = [by_day.get(d, 0.0) for d in days]
+        window = 30
+        out = []
+        for i, d in enumerate(days):
+            seg = vals[max(0, i - window + 1): i + 1]
+            out.append([d.strftime("%d.%m.%Y"), vals[i], round(sum(seg) / len(seg), 3)])
+        return out
+
     chart_time = {
-        "day": _series(TruncDay, lambda d: d.strftime("%d.%m.%Y")),
+        "day": _day_series(),
         "week": _series(TruncWeek, lambda d: d.strftime("%d.%m.%Y")),
     }
 
