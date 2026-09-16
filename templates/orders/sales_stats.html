@@ -219,15 +219,30 @@
       // a vertical line at each month boundary. The day-by-day stock line is
       // added only for a single-product view.
       var months = monthData.labels.map(function (l) { return l.slice(3, 5); });
+      // The middle day index of each month, so its label sits under the block.
+      var midIndex = {};
+      (function () {
+        var groups = {};
+        monthData.labels.forEach(function (l, i) {
+          var k = l.slice(3, 10);
+          (groups[k] = groups[k] || []).push(i);
+        });
+        Object.keys(groups).forEach(function (k) {
+          var a = groups[k];
+          midIndex[a[Math.floor(a.length / 2)]] = k;
+        });
+      })();
       var monthSep = {
         id: "monthSep",
         afterDatasetsDraw: function (chart) {
-          var xs = chart.scales.x, area = chart.chartArea, c = chart.ctx;
+          var xs = chart.scales.x, ys = chart.scales.y, c = chart.ctx;
+          var base = ys.getPixelForValue(0);
           c.save(); c.strokeStyle = "#0A3D62"; c.lineWidth = 1;
           for (var i = 1; i < months.length; i++) {
             if (months[i] !== months[i - 1]) {
               var px = (xs.getPixelForValue(i - 1) + xs.getPixelForValue(i)) / 2;
-              c.beginPath(); c.moveTo(px, area.top); c.lineTo(px, area.bottom); c.stroke();
+              var top = Math.max(monthData.sales[i - 1] || 0, monthData.sales[i] || 0);
+              c.beginPath(); c.moveTo(px, base); c.lineTo(px, ys.getPixelForValue(top)); c.stroke();
             }
           }
           c.restore();
@@ -243,11 +258,8 @@
             autoSkip: false, maxRotation: 0,
             callback: function (value, index) {
               var lbl = monthData.labels[index];
-              if (!lbl) return "";
-              if (index === 0 || lbl.slice(3, 5) !== monthData.labels[index - 1].slice(3, 5)) {
-                return RU_SHORT[parseInt(lbl.slice(3, 5), 10)] + " " + lbl.slice(8, 10);
-              }
-              return "";
+              if (!lbl || midIndex[index] === undefined) return "";
+              return RU_SHORT[parseInt(lbl.slice(3, 5), 10)] + " " + lbl.slice(8, 10);
             },
           },
         },
