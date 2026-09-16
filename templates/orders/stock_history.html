@@ -24,9 +24,19 @@
   <div class="col-auto">
     <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-search"></i> Показать</button>
   </div>
+  {% if selected_product %}<input type="hidden" name="product" value="{{ selected_product.pk }}">{% endif %}
 </form>
 
-{% if not q %}
+{% if selected_product %}
+<div class="mb-3">
+  <span class="badge rounded-pill text-bg-info-subtle border border-info-subtle text-info-emphasis">
+    <i class="bi bi-box-seam"></i> Товар: {{ selected_product.name }} ({{ selected_product.sku }})
+    <a href="{% url 'orders:stock_history' %}" class="text-decoration-none text-info-emphasis ms-1" title="Сбросить товар">&times;</a>
+  </span>
+</div>
+{% endif %}
+
+{% if not q and not selected_product %}
 <div class="alert alert-info">Введите код или название товара, чтобы увидеть историю остатков по дням.</div>
 {% elif not has_data %}
 <div class="alert alert-warning">Нет данных об остатках по этому запросу. Загрузите файл из 1С в админке.</div>

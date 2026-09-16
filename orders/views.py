@@ -451,13 +451,28 @@ def sales_stats(request):
     q = (request.GET.get("q") or "").strip()
     date_from = (request.GET.get("from") or "").strip()
     date_to = (request.GET.get("to") or "").strip()
+
+    # The free-text search (`q`) matches many products by substring, so a code
+    # that is a prefix of others narrows to several skus and the single-product
+    # stock line is dropped. The product page instead links with an exact
+    # `product` id, pinning the view to one product so its stock line always
+    # shows. A typed query wins, letting the user search away from the product.
+    selected_product = None
+    if not q:
+        product_pk = (request.GET.get("product") or "").strip()
+        if product_pk.isdigit():
+            selected_product = Product.objects.filter(pk=product_pk).first()
+    sku_exact = selected_product.sku if selected_product and selected_product.sku else ""
+
     if warehouse_id:
         records = records.filter(warehouse_id=warehouse_id)
     if brand_id:
         records = records.filter(product__brand_id=brand_id)
     if model_id:
         records = records.filter(product__model_product_id=model_id)
-    if q:
+    if sku_exact:
+        records = records.filter(sku=sku_exact)
+    elif q:
         records = records.filter(Q(sku__icontains=q) | Q(product__name__icontains=q))
     # Non-date filters applied — reused for the month/year-to-date windows, which
     # use their own date ranges and ignore the from/to filter.
@@ -573,16 +588,25 @@ def sales_stats(request):
         stock_snaps = stock_snaps.filter(product__brand_id=brand_id)
     if model_id:
         stock_snaps = stock_snaps.filter(product__model_product_id=model_id)
-    if q:
+    if sku_exact:
+        stock_snaps = stock_snaps.filter(sku=sku_exact)
+    elif q:
         stock_snaps = stock_snaps.filter(Q(sku__icontains=q) | Q(product__name__icontains=q))
     if date_from:
         stock_snaps = stock_snaps.filter(date__gte=date_from)
     if date_to:
         stock_snaps = stock_snaps.filter(date__lte=date_to)
-    daily_stock = {
-        r["date"]: float(r["q"] or 0)
-        for r in stock_snaps.values("date").annotate(q=Sum("quantity"))
-    }
+    # The day-by-day stock line is only meaningful for a single product; with
+    # many products together it is dropped. `.order_by()` clears the model's
+    # Meta ordering so DISTINCT counts skus (not sku+warehouse+date tuples) and
+    # the daily sum groups by date alone (across all warehouses).
+    show_stock_line = stock_snaps.order_by().values("sku").distinct().count() == 1
+    daily_stock = {}
+    if show_stock_line:
+        daily_stock = {
+            r["date"]: float(r["q"] or 0)
+            for r in stock_snaps.order_by().values("date").annotate(q=Sum("quantity"))
+        }
     month_sales = {}
     for row in (
         dated.annotate(bucket=TruncMonth("date")).values("bucket").annotate(q=Sum(value_expr))
@@ -689,12 +713,14 @@ def sales_stats(request):
             ).distinct().order_by("name"),
             "selected_warehouse": warehouse_id,
             "selected_brand": brand_id,
+            "selected_product": selected_product,
             "q": q,
             "date_from": date_from,
             "date_to": date_to,
             "base_qs": params.urlencode(),
             "chart_time": chart_time,
             "chart_month": chart_month,
+            "show_stock_line": show_stock_line,
             "chart_clients": chart_clients,
             "chart_warehouses": chart_warehouses,
             "by_product": by_product,
@@ -726,11 +752,22 @@ def stock_history(request):
     chart = {"labels": [], "series": []}
     too_many = False
 
-    if q:
+    # The product page links here with an exact `product` id; a typed query wins.
+    selected_product = None
+    if not q:
+        product_pk = (request.GET.get("product") or "").strip()
+        if product_pk.isdigit():
+            selected_product = Product.objects.filter(pk=product_pk).first()
+    sku_exact = selected_product.sku if selected_product and selected_product.sku else ""
+
+    if q or sku_exact:
         snaps = StockSnapshot.objects.all()
         if warehouse_id:
             snaps = snaps.filter(warehouse_id=warehouse_id)
-        snaps = snaps.filter(Q(sku__icontains=q) | Q(product__name__icontains=q))
+        if sku_exact:
+            snaps = snaps.filter(sku=sku_exact)
+        else:
+            snaps = snaps.filter(Q(sku__icontains=q) | Q(product__name__icontains=q))
         rows = list(
             snaps.order_by("date").values(
                 "sku", "product__name", "warehouse__name", "date", "quantity"
@@ -760,6 +797,7 @@ def stock_history(request):
         "orders/stock_history.html",
         {
             "q": q,
+            "selected_product": selected_product,
             "warehouses": Warehouse.objects.order_by("name"),
             "selected_warehouse": warehouse_id,
             "chart": chart,

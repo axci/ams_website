@@ -51,7 +51,17 @@
   </div>
   {% if selected_model %}<input type="hidden" name="model" value="{{ selected_model.pk }}">{% endif %}
   {% if metric == 'weight' %}<input type="hidden" name="metric" value="weight">{% endif %}
+  {% if selected_product %}<input type="hidden" name="product" value="{{ selected_product.pk }}">{% endif %}
 </form>
+
+{% if selected_product %}
+<div class="mb-3">
+  <span class="badge rounded-pill text-bg-info-subtle border border-info-subtle text-info-emphasis">
+    <i class="bi bi-box-seam"></i> Товар: {{ selected_product.name }} ({{ selected_product.sku }})
+    <a href="{% url 'orders:sales_stats' %}" class="text-decoration-none text-info-emphasis ms-1" title="Сбросить товар">&times;</a>
+  </span>
+</div>
+{% endif %}
 
 {% if selected_model %}
 <div class="mb-3">
