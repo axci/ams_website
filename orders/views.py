@@ -599,14 +599,37 @@ def sales_stats(request):
     # The day-by-day stock line is only meaningful for a single product; with
     # many products together it is dropped. `.order_by()` clears the model's
     # Meta ordering so DISTINCT counts skus (not sku+warehouse+date tuples) and
-    # the daily sum groups by date alone (across all warehouses).
-    show_stock_line = stock_snaps.order_by().values("sku").distinct().count() == 1
+    # the daily sum groups by date alone (across all warehouses). It is also
+    # hidden in weight mode — stock is tracked in units and must not share the
+    # kilogram sales axis.
+    show_stock_line = (
+        metric != "weight"
+        and stock_snaps.order_by().values("sku").distinct().count() == 1
+    )
     daily_stock = {}
     if show_stock_line:
         daily_stock = {
             r["date"]: float(r["q"] or 0)
             for r in stock_snaps.order_by().values("date").annotate(q=Sum("quantity"))
         }
+
+    # Inventory turnover in days = average day-by-day stock ÷ average daily units
+    # sold, over the period stock is tracked for. Summing every daily snapshot's
+    # quantity gives «unit-days» of stock; dividing by units sold in the same
+    # window collapses the day count and yields days directly. Units (штуки) for
+    # both — stock carries no weight — so it ignores the units/weight toggle and
+    # honours the current filters (including a single pinned product).
+    turnover_days = None
+    span = stock_snaps.aggregate(a=Min("date"), b=Max("date"), s=Sum("quantity"))
+    if span["a"]:
+        sold = (
+            base.filter(date__date__gte=span["a"], date__date__lte=span["b"])
+            .aggregate(s=Sum("quantity"))["s"]
+            or 0
+        )
+        if sold:
+            turnover_days = float(span["s"] or 0) / float(sold)
+
     month_sales = {}
     for row in (
         dated.annotate(bucket=TruncMonth("date")).values("bucket").annotate(q=Sum(value_expr))
@@ -721,6 +744,7 @@ def sales_stats(request):
             "chart_time": chart_time,
             "chart_month": chart_month,
             "show_stock_line": show_stock_line,
+            "turnover_days": turnover_days,
             "chart_clients": chart_clients,
             "chart_warehouses": chart_warehouses,
             "by_product": by_product,

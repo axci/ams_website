@@ -72,13 +72,13 @@
 {% endif %}
 
 <div class="row g-3 mb-3">
-  <div class="col-6 col-lg-3">
+  <div class="col-6 col-lg">
     <div class="card shadow-sm h-100"><div class="card-body">
       <div class="text-muted small">Всего продаж, {{ metric_unit }}</div>
       <div class="h3 mb-0">{{ totals.val|default:0|floatformat:0 }}</div>
     </div></div>
   </div>
-  <div class="col-6 col-lg-3">
+  <div class="col-6 col-lg">
     <div class="card shadow-sm h-100"><div class="card-body">
       <div class="text-muted small">Продажи с начала месяца, {{ metric_unit }}</div>
       <div class="h3 mb-0">{{ mtd.cur|floatformat:0 }}</div>
@@ -90,7 +90,7 @@
       </div>
     </div></div>
   </div>
-  <div class="col-6 col-lg-3">
+  <div class="col-6 col-lg">
     <div class="card shadow-sm h-100"><div class="card-body">
       <div class="text-muted small">Продажи с начала года, {{ metric_unit }}</div>
       <div class="h3 mb-0">{{ ytd.cur|floatformat:0 }}</div>
@@ -102,7 +102,14 @@
       </div>
     </div></div>
   </div>
-  <div class="col-6 col-lg-3">
+  <div class="col-6 col-lg">
+    <div class="card shadow-sm h-100"><div class="card-body">
+      <div class="text-muted small">Оборачиваемость, дней</div>
+      <div class="h3 mb-0">{% if turnover_days != None %}{{ turnover_days|floatformat:0 }}{% else %}—{% endif %}</div>
+      <div class="small text-muted">ср. остаток ÷ продажи в день, шт</div>
+    </div></div>
+  </div>
+  <div class="col-6 col-lg">
     <div class="card shadow-sm h-100"><div class="card-body">
       <div class="text-muted small">Контрагентов</div>
       <div class="h3 mb-0">{{ totals.clients }}</div>
@@ -116,10 +123,17 @@
     <div class="card shadow-sm"><div class="card-body">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <span class="fw-semibold">Продажи по времени</span>
-        <div class="btn-group btn-group-sm" role="group">
-          <button type="button" class="btn btn-outline-secondary" data-bucket="day">Дни</button>
-          <button type="button" class="btn btn-outline-secondary" data-bucket="week">Недели</button>
-          <button type="button" class="btn btn-outline-secondary active" data-bucket="month">Месяцы</button>
+        <div class="d-flex gap-2">
+          {% if show_stock_line %}
+          <button type="button" id="toggleStock" class="btn btn-sm btn-outline-warning active" aria-pressed="true" title="Показать или скрыть остаток">
+            <i class="bi bi-eye"></i> Остаток
+          </button>
+          {% endif %}
+          <div class="btn-group btn-group-sm" role="group">
+            <button type="button" class="btn btn-outline-secondary" data-bucket="day">Дни</button>
+            <button type="button" class="btn btn-outline-secondary" data-bucket="week">Недели</button>
+            <button type="button" class="btn btn-outline-secondary active" data-bucket="month">Месяцы</button>
+          </div>
         </div>
       </div>
       <div style="height:300px"><canvas id="timeChart"></canvas></div>
@@ -218,11 +232,15 @@
   var warehouseData = JSON.parse(document.getElementById("chartWarehousesData").textContent);
   var unit = "{{ metric_unit }}";
   var showStock = {{ show_stock_line|yesno:"true,false" }};
+  var stockVisible = true;  // toggled by the «Остаток» button
+  var currentBucket = "month";
   var RU_SHORT = ["", "янв", "фев", "мар", "апр", "май", "июн", "июл", "авг", "сент", "окт", "нояб", "дек"];
   var timeChart = null;
 
   function renderTime(bucket) {
     if (timeChart) timeChart.destroy();
+    currentBucket = bucket;
+    var stockOn = showStock && stockVisible;
     var cfg;
     if (bucket === "month") {
       // Daily axis: sales repeated per day form a block per month, separated by
@@ -275,9 +293,10 @@
         },
         y: { beginAtZero: true, position: "left", title: { display: true, text: "Продажи" } },
       };
-      if (showStock) {
-        datasets.push({ type: "line", label: "Остаток, шт", data: monthData.stock, borderColor: "#EBB434", backgroundColor: "#EBB434", yAxisID: "y1", pointRadius: 0, borderWidth: 2, tension: 0, spanGaps: true, order: 1 });
-        scales.y1 = { beginAtZero: true, position: "right", grid: { drawOnChartArea: false }, title: { display: true, text: "Остаток, шт" } };
+      if (stockOn) {
+        // Share the sales bars' y-axis so Продажи and Остаток sit on one scale.
+        datasets.push({ type: "line", label: "Остаток, шт", data: monthData.stock, borderColor: "#EBB434", backgroundColor: "#EBB434", yAxisID: "y", pointRadius: 0, borderWidth: 2, tension: 0, spanGaps: true, order: 1 });
+        scales.y.title.text = "Продажи и остаток";
       }
       cfg = {
         type: "bar",
@@ -285,7 +304,7 @@
         options: {
           responsive: true, maintainAspectRatio: false,
           interaction: { mode: "index", intersect: false },
-          plugins: { legend: { display: showStock } },
+          plugins: { legend: { display: stockOn } },
           scales: scales,
         },
         plugins: [monthSep],
@@ -312,6 +331,17 @@
       renderTime(btn.getAttribute("data-bucket"));
     });
   });
+
+  var toggleStock = document.getElementById("toggleStock");
+  if (toggleStock) {
+    toggleStock.addEventListener("click", function () {
+      stockVisible = !stockVisible;
+      toggleStock.classList.toggle("active", stockVisible);
+      toggleStock.setAttribute("aria-pressed", stockVisible ? "true" : "false");
+      toggleStock.querySelector("i").className = stockVisible ? "bi bi-eye" : "bi bi-eye-slash";
+      renderTime(currentBucket);
+    });
+  }
 
   new Chart(document.getElementById("clientsChart"), {
     type: "bar",
