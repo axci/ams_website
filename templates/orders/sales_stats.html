@@ -420,13 +420,24 @@
     options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } },
   });
 
+  var warehouseBase = "{{ warehouse_link_base|escapejs }}";
   new Chart(document.getElementById("warehousesChart"), {
     type: "bar",
     data: {
       labels: warehouseData.labels,
       datasets: [{ label: "Продажи, {{ metric_unit }}", data: warehouseData.values, backgroundColor: "#3EBCD2" }],
     },
-    options: { indexAxis: "y", responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { beginAtZero: true } } },
+    options: {
+      indexAxis: "y", responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: { x: { beginAtZero: true } },
+      onHover: function (e, els) { e.native.target.style.cursor = els.length ? "pointer" : "default"; },
+      onClick: function (e, els) {
+        if (!els.length) return;
+        var id = warehouseData.ids[els[0].index];
+        if (id != null) window.location.href = warehouseBase + id;
+      },
+    },
   });
 })();
 </script>

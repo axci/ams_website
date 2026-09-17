@@ -697,13 +697,17 @@ def sales_stats(request):
         values.append(others)
     chart_clients = {"labels": labels, "values": values}
 
-    # By warehouse (all warehouses present in the filtered set).
+    # By warehouse (all warehouses present in the filtered set). `ids` lets the
+    # chart link each bar to that warehouse's stats.
     wh_rows = (
-        records.values("warehouse__name").annotate(q=Sum(value_expr)).order_by("-q")
+        records.values("warehouse", "warehouse__name")
+        .annotate(q=Sum(value_expr))
+        .order_by("-q")
     )
     chart_warehouses = {
         "labels": [r["warehouse__name"] for r in wh_rows],
         "values": [float(r["q"] or 0) for r in wh_rows],
+        "ids": [r["warehouse"] for r in wh_rows],
     }
 
     # Rankings by расход (descending), top 50 each — respect the active filters.
@@ -769,6 +773,13 @@ def sales_stats(request):
     met_qs = metp.urlencode()
     metric_link_base = "?" + (met_qs + "&" if met_qs else "") + "metric="
 
+    # Warehouse drill-down: clicking a bar in «Продажи по складам» filters to it.
+    whp = request.GET.copy()
+    whp.pop("page", None)
+    whp.pop("warehouse", None)
+    wh_link_qs = whp.urlencode()
+    warehouse_link_base = "?" + (wh_link_qs + "&" if wh_link_qs else "") + "warehouse="
+
     # Quick date-range shortcuts (last 30 / 60 days): links that set `from` and
     # clear `to`, keeping the other filters. Highlight whichever is active.
     today = timezone.localdate()
@@ -820,6 +831,7 @@ def sales_stats(request):
             "metric": metric,
             "metric_unit": metric_unit,
             "metric_link_base": metric_link_base,
+            "warehouse_link_base": warehouse_link_base,
             "date_link_base": date_link_base,
             "d30": d30,
             "d60": d60,
