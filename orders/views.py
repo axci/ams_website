@@ -744,12 +744,46 @@ def sales_stats(request):
     model_link_base = "?" + (model_qs + "&" if model_qs else "") + "model="
     selected_model = ModelProduct.objects.filter(pk=model_id).first() if model_id else None
 
+    # Product drill-down: clicking a product in the «Товары» table opens its own
+    # sales statistics (an exact `product` pin), keeping the other filters. Drop
+    # the free-text `q`, which the exact product id replaces.
+    pp = request.GET.copy()
+    for k in ("page", "q", "product"):
+        pp.pop(k, None)
+    prod_qs = pp.urlencode()
+    product_link_base = "?" + (prod_qs + "&" if prod_qs else "") + "product="
+
+    # Sibling products (same model) for quick-switch buttons in the product block.
+    product_variants = []
+    if selected_product and selected_product.model_product_id:
+        product_variants = list(
+            Product.objects.filter(
+                model_product_id=selected_product.model_product_id, is_active=True
+            ).order_by("volume", "weight", "name")
+        )
+
     # Metric toggle (units / weight): keep the other filters, swap the metric.
     metp = request.GET.copy()
     metp.pop("page", None)
     metp.pop("metric", None)
     met_qs = metp.urlencode()
     metric_link_base = "?" + (met_qs + "&" if met_qs else "") + "metric="
+
+    # Quick date-range shortcuts (last 30 / 60 days): links that set `from` and
+    # clear `to`, keeping the other filters. Highlight whichever is active.
+    today = timezone.localdate()
+    d30 = (today - timedelta(days=30)).isoformat()
+    d60 = (today - timedelta(days=60)).isoformat()
+    dp = request.GET.copy()
+    for k in ("page", "from", "to"):
+        dp.pop(k, None)
+    date_qs = dp.urlencode()
+    date_link_base = "?" + (date_qs + "&" if date_qs else "") + "from="
+    active_range = None
+    if not date_to and date_from == d30:
+        active_range = 30
+    elif not date_to and date_from == d60:
+        active_range = 60
 
     return render(
         request,
@@ -780,10 +814,16 @@ def sales_stats(request):
             "by_subcategory": by_subcategory,
             "model_link_base": model_link_base,
             "model_qs": model_qs,
+            "product_link_base": product_link_base,
+            "product_variants": product_variants,
             "selected_model": selected_model,
             "metric": metric,
             "metric_unit": metric_unit,
             "metric_link_base": metric_link_base,
+            "date_link_base": date_link_base,
+            "d30": d30,
+            "d60": d60,
+            "active_range": active_range,
             "mtd": mtd,
             "ytd": ytd,
         },

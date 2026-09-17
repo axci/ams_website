@@ -7,7 +7,7 @@
       {% for r in rows %}
       <tr>
         <td>
-          {% if link_type == 'product' and r.pk %}<a href="{% url 'catalog:product_detail' r.pk %}" class="text-decoration-none">{{ r.label }}</a>
+          {% if link_type == 'product' and r.pk %}<a href="{{ product_link_base }}{{ r.pk }}" class="text-decoration-none">{{ r.label }}</a>
           {% elif link_type == 'model' and r.pk %}<a href="{{ model_link_base }}{{ r.pk }}" class="text-decoration-none">{{ r.label }}</a>
           {% else %}{{ r.label }}{% endif %}
           {% if r.sku %}<div class="small text-muted">{{ r.sku }}</div>{% endif %}

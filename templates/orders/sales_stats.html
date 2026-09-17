@@ -45,6 +45,13 @@
     <input type="date" name="to" value="{{ date_to }}" class="form-control form-control-sm">
   </div>
   <div class="col-auto">
+    <label class="form-label small mb-0 d-block">Быстрый период</label>
+    <div class="btn-group btn-group-sm" role="group" aria-label="Быстрый период">
+      <a href="{{ date_link_base }}{{ d30 }}" class="btn btn-outline-primary{% if active_range == 30 %} active{% endif %}">30 дней</a>
+      <a href="{{ date_link_base }}{{ d60 }}" class="btn btn-outline-primary{% if active_range == 60 %} active{% endif %}">60 дней</a>
+    </div>
+  </div>
+  <div class="col-auto">
     <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-funnel"></i> Показать</button>
     <a class="btn btn-sm btn-outline-secondary" href="{% url 'orders:sales_stats' %}">Сбросить</a>
     <a class="btn btn-sm btn-outline-success" href="?{% if base_qs %}{{ base_qs }}&{% endif %}export=xlsx"><i class="bi bi-file-earmark-excel"></i> Скачать в Excel</a>
@@ -72,6 +79,37 @@
 {% endif %}
 
 <div class="row g-3 mb-3">
+  {% if selected_product %}
+  <div class="col-12 col-lg-auto">
+    <div class="card shadow-sm h-100"><div class="card-body" style="max-width:22rem;">
+      <div class="d-flex align-items-center gap-3">
+        {% if selected_product.picture %}
+        <img src="{{ selected_product.picture.url }}" alt="{{ selected_product.name }}" class="rounded flex-shrink-0" style="width:56px;height:56px;object-fit:contain;">
+        {% else %}
+        <div class="d-flex align-items-center justify-content-center rounded bg-body-secondary text-muted flex-shrink-0" style="width:56px;height:56px;"><i class="bi bi-image fs-4"></i></div>
+        {% endif %}
+        <div style="min-width:0;">
+          <div class="fw-semibold text-truncate" title="{{ selected_product.name }}" style="max-width:15rem;">{{ selected_product.name }}</div>
+          <div class="small text-muted">Арт.: {{ selected_product.article|default:"—" }}</div>
+        </div>
+      </div>
+      {% if product_variants|length > 1 %}
+      <div class="mt-2 pt-2 border-top">
+        <div class="small text-muted mb-1 text-truncate" title="{{ selected_product.model_product.name }}">{{ selected_product.model_product.name }} — варианты:</div>
+        <div class="d-flex flex-wrap gap-1">
+          {% for v in product_variants %}
+            {% if v.pk == selected_product.pk %}
+            <span class="btn btn-sm btn-primary disabled">{% if v.volume %}{{ v.volume|floatformat:"-3" }} {{ v.volume_unit }}{% elif v.weight %}{{ v.weight|floatformat:"-3" }} {{ v.weight_unit }}{% else %}{{ v.article|default:v.sku }}{% endif %}</span>
+            {% else %}
+            <a class="btn btn-sm btn-outline-primary" href="{{ product_link_base }}{{ v.pk }}" title="{{ v.name }}">{% if v.volume %}{{ v.volume|floatformat:"-3" }} {{ v.volume_unit }}{% elif v.weight %}{{ v.weight|floatformat:"-3" }} {{ v.weight_unit }}{% else %}{{ v.article|default:v.sku }}{% endif %}</a>
+            {% endif %}
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+    </div></div>
+  </div>
+  {% endif %}
   <div class="col-6 col-lg">
     <div class="card shadow-sm h-100"><div class="card-body">
       <div class="text-muted small">Всего продаж, {{ metric_unit }}</div>
