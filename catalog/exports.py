@@ -78,7 +78,7 @@ EXTRA_COLUMNS = [
 def build_catalog_xlsx():
     """Return the full catalog (every product, every attribute) as .xlsx bytes."""
     price_types = list(PriceType.objects.order_by("name"))
-    warehouses = list(Warehouse.objects.order_by("name"))
+    warehouses = list(Warehouse.objects.filter(is_active=True).order_by("name"))
     products = (
         Product.objects.select_related(
             "brand", "category", "subcategory", "model_product"

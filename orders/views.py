@@ -38,6 +38,7 @@ from warehouses.availability import (
     own_warehouse_ids,
 )
 from warehouses.models import Stock, Warehouse
+from warehouses.transit import TRANSIT_PARENTS
 from warehouses.selection import get_current_warehouse
 
 from .emails import send_order_cancellation, send_order_emails
@@ -775,9 +776,24 @@ def sales_stats(request):
             .select_related("warehouse")
             .order_by("-quantity", "warehouse__name")
         )
+        # Transit warehouses (goods in transit) are kept off the charts but shown
+        # here under the main warehouse they feed. Only non-empty ones.
+        transit_rows = Stock.objects.filter(
+            product=selected_product, warehouse__name__in=TRANSIT_PARENTS
+        ).select_related("warehouse")
+        transit = sorted(
+            (
+                {"name": TRANSIT_PARENTS[s.warehouse.name], "qty": s.quantity}
+                for s in transit_rows
+                if s.quantity
+            ),
+            key=lambda r: (-r["qty"], r["name"]),
+        )
         current_stock = {
             "rows": [{"name": s.warehouse.name, "qty": s.quantity} for s in stock_rows],
             "total": sum(s.quantity for s in stock_rows),
+            "transit": transit,
+            "transit_total": sum(r["qty"] for r in transit),
         }
 
     # Metric toggle (units / weight): keep the other filters, swap the metric.
@@ -816,7 +832,7 @@ def sales_stats(request):
         {
             "page_obj": page,
             "totals": totals,
-            "warehouses": Warehouse.objects.order_by("name"),
+            "warehouses": Warehouse.objects.filter(is_active=True).order_by("name"),
             "brands": Brand.objects.filter(
                 products__sales_records__isnull=False
             ).distinct().order_by("name"),
@@ -916,7 +932,7 @@ def stock_history(request):
         {
             "q": q,
             "selected_product": selected_product,
-            "warehouses": Warehouse.objects.order_by("name"),
+            "warehouses": Warehouse.objects.filter(is_active=True).order_by("name"),
             "selected_warehouse": warehouse_id,
             "chart": chart,
             "too_many": too_many,

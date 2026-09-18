@@ -52,6 +52,16 @@ STOCK_FIELDS = {
     "stockKemerovo": "Кемерово",
     "stockNovokuznetsk": "Новокузнецк",
 }
+# Transit ("в пути") warehouses — shown only in the «Текущий остаток» block.
+# JSON field -> transit warehouse name; the names must match
+# warehouses/transit.py and migration 0007. A field name absent from the JSON
+# is simply skipped, never an error.
+TRANSIT_STOCK_FIELDS = {
+    "stockKemerovoTransit": "Оптовый КемеровоТранзит (товар поставщиков в пути)(АМС)",
+    "stockNovokuznetskTransit": "Новокузнецк Транзит (АМС)",
+    "stockNovosibirskTransit": "Склад Новосибирск Транзит (АМС)",
+}
+ALL_STOCK_FIELDS = {**STOCK_FIELDS, **TRANSIT_STOCK_FIELDS}
 
 CENTS = Decimal("0.01")
 
@@ -79,7 +89,7 @@ class Command(BaseCommand):
             raise CommandError("Expected a JSON array of products.")
 
         price_types = self._resolve(PriceType, PRICE_FIELDS.values(), "тип цены")
-        warehouses = self._resolve(Warehouse, STOCK_FIELDS.values(), "склад")
+        warehouses = self._resolve(Warehouse, ALL_STOCK_FIELDS.values(), "склад")
 
         dry = opts["dry_run"]
         skipped = errors = 0
@@ -179,7 +189,7 @@ class Command(BaseCommand):
                 continue
             prices[pt_name] = Decimal(str(val)).quantize(CENTS, rounding=ROUND_HALF_UP)
         stocks = {}
-        for field, wh_name in STOCK_FIELDS.items():
+        for field, wh_name in ALL_STOCK_FIELDS.items():
             val = row.get(field)
             if val is None or val == "":
                 continue
