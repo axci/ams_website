@@ -38,7 +38,7 @@ from warehouses.availability import (
     own_warehouse_ids,
 )
 from warehouses.models import Stock, Warehouse
-from warehouses.transit import TRANSIT_PARENTS
+from warehouses.transit import TRANSIT_LABELS
 from warehouses.selection import get_current_warehouse
 
 from .emails import send_order_cancellation, send_order_emails
@@ -779,11 +779,11 @@ def sales_stats(request):
         # Transit warehouses (goods in transit) are kept off the charts but shown
         # here under the main warehouse they feed. Only non-empty ones.
         transit_rows = Stock.objects.filter(
-            product=selected_product, warehouse__name__in=TRANSIT_PARENTS
+            product=selected_product, warehouse__name__in=TRANSIT_LABELS
         ).select_related("warehouse")
         transit = sorted(
             (
-                {"name": TRANSIT_PARENTS[s.warehouse.name], "qty": s.quantity}
+                {"name": TRANSIT_LABELS[s.warehouse.name], "qty": s.quantity}
                 for s in transit_rows
                 if s.quantity
             ),

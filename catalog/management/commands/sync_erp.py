@@ -57,9 +57,14 @@ STOCK_FIELDS = {
 # warehouses/transit.py and migration 0007. A field name absent from the JSON
 # is simply skipped, never an error.
 TRANSIT_STOCK_FIELDS = {
+    # supplier goods in transit -> destination warehouse
     "stockKemerovoTransit": "Оптовый КемеровоТранзит (товар поставщиков в пути)(АМС)",
     "stockNovokuznetskTransit": "Новокузнецк Транзит (АМС)",
     "stockNovosibirskTransit": "Склад Новосибирск Транзит (АМС)",
+    # transfers between the main warehouses
+    "stockKemNkzTransit": "Склад транзит Кемерово-Нкз (АМС)",
+    "stockNskNkzTransit": "Склад транзит Новосибирск-Нкз (АМС)",
+    "stockKemNskTransit": "Склад транзит Кемерово-Новосибирск (АМС)",
 }
 ALL_STOCK_FIELDS = {**STOCK_FIELDS, **TRANSIT_STOCK_FIELDS}
 
