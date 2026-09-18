@@ -155,6 +155,31 @@
   </div>
 </div>
 
+{% if selected_product %}
+<div class="row g-3 mb-3">
+  <div class="col-12 col-md-6 col-lg-4">
+    <div class="card shadow-sm h-100"><div class="card-body">
+      <div class="d-flex justify-content-between align-items-baseline mb-2">
+        <span class="text-muted small"><i class="bi bi-box-seam"></i> Текущий остаток, шт</span>
+        <span class="h4 mb-0">{{ current_stock.total }}</span>
+      </div>
+      {% if current_stock.rows %}
+      <ul class="list-unstyled small mb-0">
+        {% for r in current_stock.rows %}
+        <li class="d-flex justify-content-between border-top py-1">
+          <span class="text-body-secondary">{{ r.name }}</span>
+          <span class="fw-semibold">{{ r.qty }}</span>
+        </li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <div class="small text-muted">Нет данных об остатке.</div>
+      {% endif %}
+    </div></div>
+  </div>
+</div>
+{% endif %}
+
 {% if totals.n %}
 <div class="row g-3 mb-3">
   <div class="col-12">

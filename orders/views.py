@@ -766,6 +766,20 @@ def sales_stats(request):
             ).order_by("volume", "weight", "name")
         )
 
+    # Current live stock (from the 1C sync) for a pinned product: total and per
+    # active warehouse.
+    current_stock = None
+    if selected_product:
+        stock_rows = list(
+            Stock.objects.filter(product=selected_product, warehouse__is_active=True)
+            .select_related("warehouse")
+            .order_by("-quantity", "warehouse__name")
+        )
+        current_stock = {
+            "rows": [{"name": s.warehouse.name, "qty": s.quantity} for s in stock_rows],
+            "total": sum(s.quantity for s in stock_rows),
+        }
+
     # Metric toggle (units / weight): keep the other filters, swap the metric.
     metp = request.GET.copy()
     metp.pop("page", None)
@@ -827,6 +841,7 @@ def sales_stats(request):
             "model_qs": model_qs,
             "product_link_base": product_link_base,
             "product_variants": product_variants,
+            "current_stock": current_stock,
             "selected_model": selected_model,
             "metric": metric,
             "metric_unit": metric_unit,
