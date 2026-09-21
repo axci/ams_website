@@ -257,3 +257,62 @@ class StockSnapshot(models.Model):
 
     def __str__(self):
         return f"{self.sku} @ {self.warehouse_id} {self.date}: {self.quantity}"
+
+
+class PurchaseOrder(models.Model):
+    """A replenishment order to a supplier, built from sales velocity and
+    current stock. Warehouses are pooled (treated as one)."""
+
+    supplier = models.CharField("поставщик", max_length=255)
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="purchase_orders",
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    # Parameters the suggestion was built with (kept for the record).
+    delivery_days = models.PositiveIntegerField("срок поставки, дней", default=0)
+    safety_days = models.PositiveIntegerField("страховой запас, дней", default=0)
+    sales_period_days = models.PositiveIntegerField("период продаж, дней", default=90)
+    note = models.TextField("примечание", blank=True, default="")
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "заказ поставщику"
+        verbose_name_plural = "заказы поставщикам"
+
+    def __str__(self):
+        return f"Заказ №{self.pk} — {self.supplier}"
+
+    @property
+    def total_qty(self):
+        return sum(i.quantity for i in self.items.all())
+
+    @property
+    def positions(self):
+        return self.items.count()
+
+
+class PurchaseOrderItem(models.Model):
+    order = models.ForeignKey(
+        PurchaseOrder, on_delete=models.CASCADE, related_name="items"
+    )
+    product = models.ForeignKey(
+        "catalog.Product", on_delete=models.SET_NULL, null=True, related_name="+"
+    )
+    # Snapshots so the order stands on its own even if the product changes.
+    sku = models.CharField(max_length=64)
+    name = models.CharField(max_length=255)
+    quantity = models.PositiveIntegerField("заказать", default=0)
+    current_stock = models.IntegerField("остаток на момент заказа", default=0)
+    avg_daily_sales = models.DecimalField(
+        "продаж в день", max_digits=12, decimal_places=3, default=0
+    )
+    suggested_qty = models.PositiveIntegerField("рекомендовано", default=0)
+
+    class Meta:
+        ordering = ["-quantity", "name"]
+
+    def __str__(self):
+        return f"{self.sku} × {self.quantity}"

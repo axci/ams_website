@@ -5,7 +5,16 @@ from django.contrib import admin, messages
 from django.shortcuts import redirect, render
 from django.urls import path
 
-from .models import Cart, CartItem, Order, OrderItem, SalesRecord, StockSnapshot
+from .models import (
+    Cart,
+    CartItem,
+    Order,
+    OrderItem,
+    PurchaseOrder,
+    PurchaseOrderItem,
+    SalesRecord,
+    StockSnapshot,
+)
 from .sales_import import import_sales
 from .stock_import import import_stock
 
@@ -155,3 +164,20 @@ class StockSnapshotAdmin(admin.ModelAdmin):
             "opts": self.model._meta,
         }
         return render(request, "admin/orders/stocksnapshot/import_excel.html", context)
+
+
+class PurchaseOrderItemInline(admin.TabularInline):
+    model = PurchaseOrderItem
+    extra = 0
+    fields = ("sku", "name", "current_stock", "avg_daily_sales", "suggested_qty", "quantity")
+    readonly_fields = ("sku", "name", "current_stock", "avg_daily_sales", "suggested_qty")
+
+
+@admin.register(PurchaseOrder)
+class PurchaseOrderAdmin(admin.ModelAdmin):
+    list_display = ("id", "supplier", "created_at", "positions", "total_qty", "created_by")
+    list_filter = ("supplier", "created_at")
+    search_fields = ("supplier", "items__sku", "items__name")
+    date_hierarchy = "created_at"
+    inlines = (PurchaseOrderItemInline,)
+    readonly_fields = ("created_at",)

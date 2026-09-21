@@ -1,0 +1,49 @@
+{% extends 'base.html' %}
+{% block title %}Заказ поставщику №{{ order.pk }}{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h4 mb-0">Заказ поставщику №{{ order.pk }}</h1>
+  <div class="d-flex gap-2">
+    <a href="{% url 'orders:supply_order_xlsx' order.pk %}" class="btn btn-sm btn-outline-success"><i class="bi bi-file-earmark-excel"></i> Скачать в Excel</a>
+    <a href="{% url 'orders:supply_order_list' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-clock-history"></i> Все заказы</a>
+    <a href="{% url 'orders:supply_order' %}" class="btn btn-sm btn-primary"><i class="bi bi-plus-lg"></i> Новый</a>
+  </div>
+</div>
+
+<div class="mb-3 small text-muted">
+  Поставщик: <strong class="text-body">{{ order.supplier }}</strong> ·
+  {{ order.created_at|date:"d.m.Y H:i" }} ·
+  срок поставки {{ order.delivery_days }} дн. · страховой запас {{ order.safety_days }} дн. ·
+  период продаж {{ order.sales_period_days }} дн.
+  {% if order.created_by %}· {{ order.created_by.get_full_name|default:order.created_by.username }}{% endif %}
+</div>
+
+<div class="table-responsive">
+  <table class="table table-sm align-middle">
+    <thead class="table-light">
+      <tr>
+        <th>Товар</th>
+        <th class="text-end">Остаток</th>
+        <th class="text-end">Продаж/день</th>
+        <th class="text-end">Рекоменд.</th>
+        <th class="text-end">Заказано</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for it in order.items.all %}
+      <tr>
+        <td>{{ it.name }}<div class="small text-muted">{{ it.sku }}</div></td>
+        <td class="text-end">{{ it.current_stock }}</td>
+        <td class="text-end">{{ it.avg_daily_sales|floatformat:"-2" }}</td>
+        <td class="text-end">{{ it.suggested_qty }}</td>
+        <td class="text-end fw-semibold">{{ it.quantity }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr class="fw-semibold"><td colspan="4" class="text-end">Итого:</td><td class="text-end">{{ order.total_qty }}</td></tr>
+    </tfoot>
+  </table>
+</div>
+{% endblock %}

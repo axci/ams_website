@@ -96,6 +96,9 @@
           <ul class="dropdown-menu dropdown-menu-end">
             <li><a class="dropdown-item" href="{% url 'profile' %}"><i class="bi bi-person"></i> Профиль</a></li>
             <li><a class="dropdown-item" href="{% url 'orders:order_list' %}"><i class="bi bi-receipt"></i> Мои заказы</a></li>
+            {% if user.can_order_supply or user.is_superuser %}
+            <li><a class="dropdown-item" href="{% url 'orders:supply_order' %}"><i class="bi bi-truck"></i> Заказ поставщику</a></li>
+            {% endif %}
             {% if user.is_staff %}
             <li><a class="dropdown-item" href="/admin/"><i class="bi bi-gear"></i> Админка</a></li>
             {% endif %}

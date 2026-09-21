@@ -1,6 +1,7 @@
 import logging
 from datetime import timedelta
 from decimal import Decimal
+from math import ceil
 from urllib.parse import quote
 
 from django.contrib import messages
@@ -44,7 +45,17 @@ from warehouses.selection import get_current_warehouse
 from .emails import send_order_cancellation, send_order_emails
 from .forms import CheckoutForm
 from .invoices import build_invoice_xlsx
-from .models import CartItem, Favorite, Order, OrderItem, SalesRecord, StockSnapshot
+from .purchase_export import build_purchase_order_xlsx
+from .models import (
+    CartItem,
+    Favorite,
+    Order,
+    OrderItem,
+    PurchaseOrder,
+    PurchaseOrderItem,
+    SalesRecord,
+    StockSnapshot,
+)
 from .sales_export import build_sales_xlsx
 from .utils import get_or_create_cart
 
@@ -939,3 +950,179 @@ def stock_history(request):
             "has_data": bool(chart["series"]),
         },
     )
+
+
+# --- Replenishment: order to a supplier ------------------------------------
+
+
+def can_order_supply(user):
+    """Authorisation for the «Заказ поставщику» (replenishment) section."""
+    return user.is_superuser or getattr(user, "can_order_supply", False)
+
+
+def _supply_rows(supplier, delivery, safety, period):
+    """Per-product replenishment rows for one supplier: stock pooled across all
+    active warehouses, average daily sales over `period` days, and a suggested
+    quantity to bring stock up to (delivery + safety) days of demand."""
+    products = list(
+        Product.objects.filter(supplier=supplier, is_active=True).order_by("name")
+    )
+    if not products:
+        return []
+    ids = [p.pk for p in products]
+    skus = [p.sku for p in products]
+    stock_map = {
+        r["product"]: int(r["q"] or 0)
+        for r in Stock.objects.filter(product_id__in=ids, warehouse__is_active=True)
+        .values("product")
+        .annotate(q=Sum("quantity"))
+    }
+    start = timezone.localdate() - timedelta(days=period)
+    sales_map = {
+        r["sku"]: float(r["q"] or 0)
+        for r in SalesRecord.objects.filter(sku__in=skus, date__date__gte=start)
+        .values("sku")
+        .annotate(q=Sum("quantity"))
+    }
+    rows = []
+    for p in products:
+        stock = stock_map.get(p.pk, 0)
+        sold = sales_map.get(p.sku, 0.0)
+        ads = sold / period
+        suggested = max(0, ceil(ads * (delivery + safety) - stock))
+        rows.append(
+            {
+                "product": p,
+                "sku": p.sku,
+                "name": p.name,
+                "article": p.article,
+                "stock": stock,
+                "sold": sold,
+                "ads": round(ads, 2),
+                "suggested": suggested,
+            }
+        )
+    rows.sort(key=lambda r: (-r["suggested"], -r["sold"], r["name"]))
+    return rows
+
+
+@login_required
+def supply_order(request):
+    """Build and place a replenishment order for a chosen supplier."""
+    if not can_order_supply(request.user):
+        raise PermissionDenied
+
+    suppliers = list(
+        Product.objects.exclude(supplier="")
+        .values_list("supplier", flat=True)
+        .distinct()
+        .order_by("supplier")
+    )
+    src = request.POST if request.method == "POST" else request.GET
+    supplier = (src.get("supplier") or "").strip()
+
+    def _int(name, default):
+        try:
+            return max(0, int(src.get(name) or default))
+        except (TypeError, ValueError):
+            return default
+
+    delivery = _int("delivery", 14)
+    safety = _int("safety", 7)
+    period = _int("period", 90) or 90
+
+    rows = _supply_rows(supplier, delivery, safety, period) if supplier else []
+
+    if request.method == "POST" and supplier:
+        with transaction.atomic():
+            order = PurchaseOrder.objects.create(
+                supplier=supplier,
+                created_by=request.user,
+                delivery_days=delivery,
+                safety_days=safety,
+                sales_period_days=period,
+            )
+            items = []
+            for r in rows:
+                try:
+                    qty = int(request.POST.get("qty_%d" % r["product"].pk) or 0)
+                except (TypeError, ValueError):
+                    qty = 0
+                if qty > 0:
+                    items.append(
+                        PurchaseOrderItem(
+                            order=order,
+                            product=r["product"],
+                            sku=r["sku"],
+                            name=r["name"],
+                            quantity=qty,
+                            current_stock=r["stock"],
+                            avg_daily_sales=r["ads"],
+                            suggested_qty=r["suggested"],
+                        )
+                    )
+            if not items:
+                order.delete()
+                messages.warning(request, "Не выбрано ни одной позиции для заказа.")
+            else:
+                PurchaseOrderItem.objects.bulk_create(items)
+                messages.success(
+                    request, f"Заказ №{order.pk} создан: позиций {len(items)}."
+                )
+                return redirect("orders:supply_order_detail", pk=order.pk)
+
+    return render(
+        request,
+        "orders/supply_order.html",
+        {
+            "suppliers": suppliers,
+            "supplier": supplier,
+            "delivery": delivery,
+            "safety": safety,
+            "period": period,
+            "rows": rows,
+            "total_suggested": sum(r["suggested"] for r in rows),
+        },
+    )
+
+
+@login_required
+def supply_order_list(request):
+    if not can_order_supply(request.user):
+        raise PermissionDenied
+    page = Paginator(
+        PurchaseOrder.objects.select_related("created_by")
+        .annotate(n_pos=Count("items"), sum_qty=Sum("items__quantity"))
+        .order_by("-created_at"),
+        50,
+    ).get_page(request.GET.get("page"))
+    return render(request, "orders/supply_order_list.html", {"page_obj": page})
+
+
+@login_required
+def supply_order_detail(request, pk):
+    if not can_order_supply(request.user):
+        raise PermissionDenied
+    order = get_object_or_404(
+        PurchaseOrder.objects.prefetch_related("items"), pk=pk
+    )
+    return render(request, "orders/supply_order_detail.html", {"order": order})
+
+
+@login_required
+def supply_order_xlsx(request, pk):
+    if not can_order_supply(request.user):
+        raise PermissionDenied
+    order = get_object_or_404(PurchaseOrder.objects.prefetch_related("items"), pk=pk)
+    filename = f"заказ_поставщику_{order.pk}.xlsx"
+    response = HttpResponse(
+        build_purchase_order_xlsx(order),
+        content_type=(
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        ),
+    )
+    response["Content-Disposition"] = (
+        f"attachment; filename=purchase_order_{order.pk}.xlsx; "
+        f"filename*=UTF-8''{quote(filename)}"
+    )
+    return response

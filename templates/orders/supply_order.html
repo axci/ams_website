@@ -1,0 +1,84 @@
+{% extends 'base.html' %}
+{% block title %}Заказ поставщику{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+  <h1 class="h4 mb-0"><i class="bi bi-truck"></i> Заказ поставщику</h1>
+  <a href="{% url 'orders:supply_order_list' %}" class="btn btn-sm btn-outline-secondary"><i class="bi bi-clock-history"></i> История заказов</a>
+</div>
+
+<form method="get" class="row g-2 align-items-end mb-3">
+  <div class="col-auto">
+    <label class="form-label small mb-0">Поставщик</label>
+    <select name="supplier" class="form-select form-select-sm" style="min-width:16rem">
+      <option value="">— выберите —</option>
+      {% for s in suppliers %}
+      <option value="{{ s }}" {% if s == supplier %}selected{% endif %}>{{ s }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-0">Срок поставки, дней</label>
+    <input type="number" name="delivery" value="{{ delivery }}" min="0" class="form-control form-control-sm" style="width:8rem">
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-0">Страховой запас, дней</label>
+    <input type="number" name="safety" value="{{ safety }}" min="0" class="form-control form-control-sm" style="width:8rem">
+  </div>
+  <div class="col-auto">
+    <label class="form-label small mb-0">Период продаж, дней</label>
+    <input type="number" name="period" value="{{ period }}" min="1" class="form-control form-control-sm" style="width:8rem">
+  </div>
+  <div class="col-auto">
+    <button class="btn btn-sm btn-primary" type="submit"><i class="bi bi-calculator"></i> Рассчитать</button>
+  </div>
+</form>
+
+{% if not supplier %}
+<div class="alert alert-info">Выберите поставщика — заказ рассчитывается по продажам и остаткам (склады считаются как один).</div>
+{% elif not rows %}
+<div class="alert alert-warning">У этого поставщика нет активных товаров.</div>
+{% else %}
+<form method="post">
+  {% csrf_token %}
+  <input type="hidden" name="supplier" value="{{ supplier }}">
+  <input type="hidden" name="delivery" value="{{ delivery }}">
+  <input type="hidden" name="safety" value="{{ safety }}">
+  <input type="hidden" name="period" value="{{ period }}">
+  <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
+    <div class="small text-muted">Рекомендовано = продаж/день × ({{ delivery }} + {{ safety }}) − остаток. «Заказать» можно изменить.</div>
+    <button class="btn btn-sm btn-success" type="submit"><i class="bi bi-cart-check"></i> Оформить заказ</button>
+  </div>
+  <div class="table-responsive">
+    <table class="table table-sm table-hover align-middle mb-2">
+      <thead class="table-light">
+        <tr>
+          <th>Товар</th>
+          <th class="text-end">Остаток</th>
+          <th class="text-end">Продажи за {{ period }} дн.</th>
+          <th class="text-end">Продаж/день</th>
+          <th class="text-end">Рекоменд.</th>
+          <th class="text-end" style="width:7rem">Заказать</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr {% if r.suggested %}class="table-warning"{% endif %}>
+          <td>{{ r.name }}<div class="small text-muted">{{ r.sku }}{% if r.article %} · {{ r.article }}{% endif %}</div></td>
+          <td class="text-end">{{ r.stock }}</td>
+          <td class="text-end">{{ r.sold|floatformat:"-2" }}</td>
+          <td class="text-end">{{ r.ads|floatformat:"-2" }}</td>
+          <td class="text-end">{{ r.suggested }}</td>
+          <td class="text-end"><input type="number" name="qty_{{ r.product.pk }}" value="{{ r.suggested }}" min="0" class="form-control form-control-sm text-end"></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+      <tfoot>
+        <tr class="fw-semibold"><td colspan="4"></td><td class="text-end">Σ {{ total_suggested }}</td><td></td></tr>
+      </tfoot>
+    </table>
+  </div>
+  <button class="btn btn-sm btn-success" type="submit"><i class="bi bi-cart-check"></i> Оформить заказ</button>
+</form>
+{% endif %}
+{% endblock %}

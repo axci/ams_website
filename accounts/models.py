@@ -51,6 +51,12 @@ class User(AbstractUser):
         help_text="Разрешает просмотр раздела «Статистика продаж». "
         "Суперпользователям доступ открыт всегда.",
     )
+    can_order_supply = models.BooleanField(
+        "доступ к заказу поставщикам",
+        default=False,
+        help_text="Разрешает раздел «Заказ поставщику» (пополнение запасов). "
+        "Суперпользователям доступ открыт всегда.",
+    )
     free_delivery_min = models.DecimalField(
         "мин. сумма для доставки",
         max_digits=12,
