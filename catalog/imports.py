@@ -5,8 +5,8 @@ The first row is the header. Recognised product columns (case-insensitive):
     sku, article, name, category, subcategory, model product (model_product),
     weight, volume, viscosity, description (описание),
     pack quantity (количество штук в упаковке),
-    manufacturer number (manufacturer_number), price, brand,
-    certificate (сертификат соответствия — a link or text)
+    manufacturer number (manufacturer_number), supplier (поставщик),
+    price, brand, certificate (сертификат соответствия — a link or text)
 
 A header that matches a price type name («Розничные», «Крупный ОПТ», …) fills
 that type's per-product price. Columns the catalog export adds for information
@@ -71,6 +71,8 @@ FIELD_ALIASES = {
     "описание": "description",
     "manufacturer number": "manufacturer_number",
     "manufacturer_number": "manufacturer_number",
+    "supplier": "supplier",
+    "поставщик": "supplier",
     "mann_cross": "mann_cross",
     "mann cross": "mann_cross",
     "mann": "mann_cross",
@@ -108,7 +110,7 @@ IGNORED_COLUMNS = {
     "created_at", "updated_at",
 }
 
-TEXT_LIMITS ={"sku": 64, "article": 64, "manufacturer_number": 64, "mann_cross": 255, "mahl_cross": 255, "sakura_cross": 255, "knecht_cross": 255, "oem_cross": 10000, "certificate": 500, "name": 200, "viscosity": 20, "weight_unit": 16, "volume_unit": 16}
+TEXT_LIMITS ={"sku": 64, "article": 64, "manufacturer_number": 64, "supplier": 255, "mann_cross": 255, "mahl_cross": 255, "sakura_cross": 255, "knecht_cross": 255, "oem_cross": 10000, "certificate": 500, "name": 200, "viscosity": 20, "weight_unit": 16, "volume_unit": 16}
 
 
 @dataclass
@@ -313,6 +315,8 @@ def import_products(file_obj, default_brand=None):
                 defaults["article"] = _text(values.get("article"), 64)
             if "manufacturer_number" in values:
                 defaults["manufacturer_number"] = _text(values.get("manufacturer_number"), 64)
+            if "supplier" in values:
+                defaults["supplier"] = _text(values.get("supplier"), 255)
             if "mann_cross" in values:
                 defaults["mann_cross"] = _text(values.get("mann_cross"), 255)
             if "mahl_cross" in values:
