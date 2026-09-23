@@ -452,7 +452,7 @@ def can_view_sales(user):
 def sales_stats(request):
     """Role-gated external sales statistics (imported from 1C). Filterable by
     date range and warehouse, with totals over the whole filtered set."""
-    if not can_view_sales(request.user):
+    if not (can_view_sales(request.user) or can_order_supply(request.user)):
         raise PermissionDenied
 
     records = SalesRecord.objects.select_related("warehouse", "product", "product__brand")
@@ -889,7 +889,7 @@ def stock_history(request):
     """Role-gated stock-over-time chart. Pick a product (code or name) and
     optionally a warehouse; each (product × warehouse) is a line over the
     imported period. Capped at 12 lines — narrow the search for more."""
-    if not can_view_sales(request.user):
+    if not (can_view_sales(request.user) or can_order_supply(request.user)):
         raise PermissionDenied
 
     q = (request.GET.get("q") or "").strip()
@@ -965,7 +965,9 @@ def _supply_rows(supplier, delivery, safety, period):
     active warehouses, average daily sales over `period` days, and a suggested
     quantity to bring stock up to (delivery + safety) days of demand."""
     products = list(
-        Product.objects.filter(supplier=supplier, is_active=True).order_by("name")
+        Product.objects.filter(supplier=supplier, is_active=True)
+        .select_related("brand", "category", "subcategory")
+        .order_by("brand__name", "category__name", "subcategory__name", "name")
     )
     if not products:
         return []
@@ -996,13 +998,16 @@ def _supply_rows(supplier, delivery, safety, period):
                 "sku": p.sku,
                 "name": p.name,
                 "article": p.article,
+                "brand": p.brand.name if p.brand_id else "",
+                "category": p.category.name if p.category_id else "",
+                "subcategory": p.subcategory.name if p.subcategory_id else "",
                 "stock": stock,
                 "sold": sold,
                 "ads": round(ads, 2),
                 "suggested": suggested,
             }
         )
-    rows.sort(key=lambda r: (-r["suggested"], -r["sold"], r["name"]))
+    # Ordered by brand → category → subcategory → name (in the DB query above).
     return rows
 
 

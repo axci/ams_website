@@ -64,7 +64,13 @@
       <tbody>
         {% for r in rows %}
         <tr {% if r.suggested %}class="table-warning"{% endif %}>
-          <td>{{ r.name }}<div class="small text-muted">{{ r.sku }}{% if r.article %} · {{ r.article }}{% endif %}</div></td>
+          <td>
+            <a href="{% url 'orders:sales_stats' %}?product={{ r.product.pk }}" class="text-decoration-none">{{ r.name }}</a>
+            {% if r.brand or r.category or r.subcategory %}
+            <div class="small text-muted">{{ r.brand }}{% if r.category %} · {{ r.category }}{% endif %}{% if r.subcategory %} · {{ r.subcategory }}{% endif %}</div>
+            {% endif %}
+            <div class="small text-muted">{{ r.sku }}{% if r.article %} · {{ r.article }}{% endif %}</div>
+          </td>
           <td class="text-end">{{ r.stock }}</td>
           <td class="text-end">{{ r.sold|floatformat:"-2" }}</td>
           <td class="text-end">{{ r.ads|floatformat:"-2" }}</td>
