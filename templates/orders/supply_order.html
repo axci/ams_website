@@ -55,6 +55,7 @@
         <tr>
           <th>Бренд</th>
           <th>Товар</th>
+          <th>Артикул</th>
           <th class="text-end">Остаток</th>
           <th class="text-end">Продажи за {{ period }} дн.</th>
           <th class="text-end">Продаж/день</th>
@@ -66,13 +67,8 @@
         {% for r in rows %}
         <tr {% if r.suggested %}class="table-warning"{% endif %}>
           <td>{{ r.brand }}</td>
-          <td>
-            <a href="{% url 'orders:sales_stats' %}?product={{ r.product.pk }}" class="text-decoration-none">{{ r.name }}</a>
-            {% if r.category or r.subcategory or r.model %}
-            <div class="small text-muted">{% if r.category %}{{ r.category }}{% endif %}{% if r.subcategory %} · {{ r.subcategory }}{% endif %}{% if r.model %} · {{ r.model }}{% endif %}</div>
-            {% endif %}
-            <div class="small text-muted">{{ r.sku }}{% if r.article %} · {{ r.article }}{% endif %}</div>
-          </td>
+          <td><a href="{% url 'orders:sales_stats' %}?product={{ r.product.pk }}" class="text-decoration-none">{{ r.name }}</a></td>
+          <td>{{ r.article }}</td>
           <td class="text-end">{{ r.stock }}</td>
           <td class="text-end">{{ r.sold|floatformat:"-2" }}</td>
           <td class="text-end">{{ r.ads|floatformat:"-2" }}</td>
@@ -82,7 +78,7 @@
         {% endfor %}
       </tbody>
       <tfoot>
-        <tr class="fw-semibold"><td colspan="5"></td><td class="text-end">Σ {{ total_suggested }}</td><td></td></tr>
+        <tr class="fw-semibold"><td colspan="6"></td><td class="text-end">Σ {{ total_suggested }}</td><td></td></tr>
       </tfoot>
     </table>
   </div>
