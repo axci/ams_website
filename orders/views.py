@@ -966,8 +966,15 @@ def _supply_rows(supplier, delivery, safety, period):
     quantity to bring stock up to (delivery + safety) days of demand."""
     products = list(
         Product.objects.filter(supplier=supplier, is_active=True)
-        .select_related("brand", "category", "subcategory")
-        .order_by("brand__name", "category__name", "subcategory__name", "name")
+        .select_related("brand", "category", "subcategory", "model_product")
+        .order_by(
+            "brand__name",
+            "category__name",
+            "subcategory__name",
+            "model_product__name",
+            "volume",
+            "name",
+        )
     )
     if not products:
         return []
@@ -1001,13 +1008,15 @@ def _supply_rows(supplier, delivery, safety, period):
                 "brand": p.brand.name if p.brand_id else "",
                 "category": p.category.name if p.category_id else "",
                 "subcategory": p.subcategory.name if p.subcategory_id else "",
+                "model": p.model_product.name if p.model_product_id else "",
                 "stock": stock,
                 "sold": sold,
                 "ads": round(ads, 2),
                 "suggested": suggested,
             }
         )
-    # Ordered by brand → category → subcategory → name (in the DB query above).
+    # Ordered by brand → category → subcategory → model → volume → name (in the
+    # DB query above).
     return rows
 
 
