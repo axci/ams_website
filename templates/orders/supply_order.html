@@ -1,4 +1,5 @@
 {% extends 'base.html' %}
+{% load l10n %}
 {% block title %}Заказ поставщику{% endblock %}
 
 {% block content %}
@@ -50,17 +51,18 @@
     <button class="btn btn-sm btn-success" type="submit"><i class="bi bi-cart-check"></i> Оформить заказ</button>
   </div>
   <div class="table-responsive">
-    <table class="table table-sm table-hover align-middle mb-2">
+    <table id="supplyTable" class="table table-sm table-hover align-middle mb-2">
       <thead class="table-light">
         <tr>
           <th>Бренд</th>
           <th>Товар</th>
           <th>Артикул</th>
+          <th class="text-end">Упаковка</th>
           <th class="text-end">Остаток</th>
-          <th class="text-end">Продажи за {{ period }} дн.</th>
-          <th class="text-end">Продаж/день</th>
-          <th class="text-end">Рекоменд.</th>
-          <th class="text-end" style="width:7rem">Заказать</th>
+          <th class="text-end" data-sort="sold" style="cursor:pointer" title="Сортировать">Продажи за {{ period }} дн.<span class="sort-ind"></span></th>
+          <th class="text-end" data-sort="ads" style="cursor:pointer" title="Сортировать">Продаж/день<span class="sort-ind"></span></th>
+          <th class="text-end" data-sort="suggested" style="cursor:pointer" title="Сортировать">Рекоменд.<span class="sort-ind"></span></th>
+          <th class="text-end" data-sort="qty" style="width:7rem;cursor:pointer" title="Сортировать">Заказать<span class="sort-ind"></span></th>
         </tr>
       </thead>
       <tbody>
@@ -69,20 +71,50 @@
           <td>{{ r.brand }}</td>
           <td><a href="{% url 'orders:sales_stats' %}?product={{ r.product.pk }}" class="text-decoration-none">{{ r.name }}</a></td>
           <td>{{ r.article }}</td>
+          <td class="text-end">{{ r.pack_quantity|default:"" }}</td>
           <td class="text-end">{{ r.stock }}</td>
-          <td class="text-end">{{ r.sold|floatformat:"-2" }}</td>
-          <td class="text-end">{{ r.ads|floatformat:"-2" }}</td>
-          <td class="text-end">{{ r.suggested }}</td>
+          <td class="text-end" data-col="sold" data-val="{{ r.sold|unlocalize }}">{{ r.sold|floatformat:"-2" }}</td>
+          <td class="text-end" data-col="ads" data-val="{{ r.ads|unlocalize }}">{{ r.ads|floatformat:"-2" }}</td>
+          <td class="text-end" data-col="suggested" data-val="{{ r.suggested|unlocalize }}">{{ r.suggested }}</td>
           <td class="text-end"><input type="number" name="qty_{{ r.product.pk }}" value="{{ r.suggested }}" min="0" class="form-control form-control-sm text-end"></td>
         </tr>
         {% endfor %}
       </tbody>
       <tfoot>
-        <tr class="fw-semibold"><td colspan="6"></td><td class="text-end">Σ {{ total_suggested }}</td><td></td></tr>
+        <tr class="fw-semibold"><td colspan="7"></td><td class="text-end">Σ {{ total_suggested }}</td><td></td></tr>
       </tfoot>
     </table>
   </div>
   <button class="btn btn-sm btn-success" type="submit"><i class="bi bi-cart-check"></i> Оформить заказ</button>
 </form>
+
+<script>
+(function () {
+  var table = document.getElementById("supplyTable");
+  if (!table) return;
+  var tbody = table.querySelector("tbody");
+  function valOf(row, key) {
+    if (key === "qty") {
+      var inp = row.querySelector('input[type="number"]');
+      return inp ? parseFloat(inp.value) || 0 : 0;
+    }
+    var cell = row.querySelector('td[data-col="' + key + '"]');
+    return cell ? parseFloat(cell.getAttribute("data-val")) || 0 : 0;
+  }
+  var curKey = null, curDir = -1;
+  table.querySelectorAll("th[data-sort]").forEach(function (th) {
+    th.addEventListener("click", function () {
+      var key = th.getAttribute("data-sort");
+      curDir = key === curKey ? -curDir : -1;  // first click: descending
+      curKey = key;
+      var rows = Array.prototype.slice.call(tbody.querySelectorAll("tr"));
+      rows.sort(function (a, b) { return (valOf(a, key) - valOf(b, key)) * curDir; });
+      rows.forEach(function (r) { tbody.appendChild(r); });
+      table.querySelectorAll("th[data-sort] .sort-ind").forEach(function (s) { s.textContent = ""; });
+      th.querySelector(".sort-ind").textContent = curDir === 1 ? " ▲" : " ▼";
+    });
+  });
+})();
+</script>
 {% endif %}
 {% endblock %}

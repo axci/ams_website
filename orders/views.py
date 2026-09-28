@@ -1006,6 +1006,7 @@ def _supply_rows(supplier, delivery, safety, period):
                 "name": p.name,
                 "article": p.article,
                 "brand": p.brand.name if p.brand_id else "",
+                "pack_quantity": p.pack_quantity,
                 "stock": stock,
                 "sold": sold,
                 "ads": round(ads, 2),
