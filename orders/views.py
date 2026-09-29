@@ -987,9 +987,17 @@ def _supply_rows(supplier, delivery, safety, period):
         .annotate(q=Sum("quantity"))
     }
     start = timezone.localdate() - timedelta(days=period)
+    sold_qs = SalesRecord.objects.filter(sku__in=skus, date__date__gte=start)
     sales_map = {
         r["sku"]: float(r["q"] or 0)
-        for r in SalesRecord.objects.filter(sku__in=skus, date__date__gte=start)
+        for r in sold_qs.values("sku").annotate(q=Sum("quantity"))
+    }
+    # Sales via Ozon (Контрагент «ИНТЕРНЕТ РЕШЕНИЯ ООО»). Case-sensitive contains
+    # on the distinctive part: Postgres does not case-fold Cyrillic here, and 1C
+    # stores this name in a consistent upper case.
+    ozon_map = {
+        r["sku"]: float(r["q"] or 0)
+        for r in sold_qs.filter(client__contains="ИНТЕРНЕТ РЕШЕНИЯ")
         .values("sku")
         .annotate(q=Sum("quantity"))
     }
@@ -1009,6 +1017,7 @@ def _supply_rows(supplier, delivery, safety, period):
                 "pack_quantity": p.pack_quantity,
                 "stock": stock,
                 "sold": sold,
+                "ozon": ozon_map.get(p.sku, 0.0),
                 "ads": round(ads, 2),
                 "suggested": suggested,
             }
