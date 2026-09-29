@@ -50,7 +50,10 @@
     <div class="small text-muted">Рекомендовано = продаж/день × ({{ delivery }} + {{ safety }}) − остаток. «Заказать» можно изменить.</div>
     <button class="btn btn-sm btn-success" type="submit"><i class="bi bi-cart-check"></i> Оформить заказ</button>
   </div>
-  <div class="table-responsive">
+  <style>
+    #supplyTable thead th { position: sticky; top: 0; z-index: 2; background-color: var(--bs-table-bg, #f8f9fa); }
+  </style>
+  <div class="table-responsive" style="max-height:75vh">
     <table id="supplyTable" class="table table-sm table-hover align-middle mb-2">
       <thead class="table-light">
         <tr>
@@ -64,6 +67,7 @@
           <th class="text-end">Упаковка</th>
           <th class="text-end" data-sort="suggested" style="cursor:pointer" title="Сортировать">Рекоменд.<span class="sort-ind"></span></th>
           <th class="text-end" data-sort="qty" style="width:7rem;cursor:pointer" title="Сортировать">Заказать<span class="sort-ind"></span></th>
+          <th>Предупреждение</th>
         </tr>
       </thead>
       <tbody>
@@ -79,11 +83,12 @@
           <td class="text-end">{{ r.pack_quantity|default:"" }}</td>
           <td class="text-end" data-col="suggested" data-val="{{ r.suggested|unlocalize }}">{{ r.suggested }}</td>
           <td class="text-end"><input type="number" name="qty_{{ r.product.pk }}" value="{{ r.suggested }}" min="0" class="form-control form-control-sm text-end"></td>
+          <td class="small text-danger">{% if r.warning %}<i class="bi bi-exclamation-triangle"></i> {{ r.warning }}{% endif %}</td>
         </tr>
         {% endfor %}
       </tbody>
       <tfoot>
-        <tr class="fw-semibold"><td colspan="8"></td><td class="text-end">Σ {{ total_suggested }}</td><td></td></tr>
+        <tr class="fw-semibold"><td colspan="8"></td><td class="text-end">Σ {{ total_suggested }}</td><td></td><td></td></tr>
       </tfoot>
     </table>
   </div>

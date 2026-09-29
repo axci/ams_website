@@ -1,4 +1,5 @@
 import logging
+from collections import defaultdict
 from datetime import timedelta
 from decimal import Decimal
 from math import ceil
@@ -1001,12 +1002,25 @@ def _supply_rows(supplier, delivery, safety, period):
         .values("sku")
         .annotate(q=Sum("quantity"))
     }
+    # Largest single (named) customer per product, to flag sales concentration.
+    top_client = {}  # sku -> (client, qty)
+    for r in (
+        sold_qs.exclude(client="").values("sku", "client").annotate(q=Sum("quantity"))
+    ):
+        qty = float(r["q"] or 0)
+        cur = top_client.get(r["sku"])
+        if cur is None or qty > cur[1]:
+            top_client[r["sku"]] = (r["client"], qty)
     rows = []
     for p in products:
         stock = stock_map.get(p.pk, 0)
         sold = sales_map.get(p.sku, 0.0)
         ads = sold / period
         suggested = max(0, ceil(ads * (delivery + safety) - stock))
+        warning = ""
+        top = top_client.get(p.sku)
+        if sold > 0 and top and top[1] / sold > 0.5:
+            warning = "доля продаж покупателю %s - %d%%" % (top[0], round(top[1] / sold * 100))
         rows.append(
             {
                 "product": p,
@@ -1020,6 +1034,7 @@ def _supply_rows(supplier, delivery, safety, period):
                 "ozon": ozon_map.get(p.sku, 0.0),
                 "ads": round(ads, 2),
                 "suggested": suggested,
+                "warning": warning,
             }
         )
     # Ordered by brand → category → subcategory → model → volume → name (in the
