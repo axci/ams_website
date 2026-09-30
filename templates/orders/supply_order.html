@@ -61,7 +61,10 @@
           <th>Товар</th>
           <th>Артикул</th>
           <th class="text-end">Остаток</th>
-          <th class="text-end" data-sort="sold" style="cursor:pointer" title="Сортировать">Продажи за {{ period }} дн.<span class="sort-ind"></span></th>
+          <th class="text-end" data-sort="sold" style="cursor:pointer" title="Сортировать">Продажи за {{ period }} дн. <button type="button" id="whToggle" class="btn btn-sm btn-outline-secondary py-0 px-1" title="Продажи по складам">+</button><span class="sort-ind"></span></th>
+          <th class="text-end wh-col d-none" data-sort="nsk" style="cursor:pointer" title="Новосибирск">Нск<span class="sort-ind"></span></th>
+          <th class="text-end wh-col d-none" data-sort="kem" style="cursor:pointer" title="Кемерово">Кем<span class="sort-ind"></span></th>
+          <th class="text-end wh-col d-none" data-sort="nkz" style="cursor:pointer" title="Новокузнецк">Нкз<span class="sort-ind"></span></th>
           <th class="text-end" data-sort="ozon" style="cursor:pointer" title="Сортировать">Продажи Ozon<span class="sort-ind"></span></th>
           <th class="text-end" data-sort="ads" style="cursor:pointer" title="Сортировать">Продаж/день<span class="sort-ind"></span></th>
           <th class="text-end">Упаковка</th>
@@ -78,6 +81,9 @@
           <td>{{ r.article }}</td>
           <td class="text-end">{{ r.stock }}</td>
           <td class="text-end" data-col="sold" data-val="{{ r.sold|unlocalize }}">{{ r.sold|floatformat:"-2" }}</td>
+          <td class="text-end wh-col d-none" data-col="nsk" data-val="{{ r.nsk|unlocalize }}">{{ r.nsk|floatformat:"-2" }}</td>
+          <td class="text-end wh-col d-none" data-col="kem" data-val="{{ r.kem|unlocalize }}">{{ r.kem|floatformat:"-2" }}</td>
+          <td class="text-end wh-col d-none" data-col="nkz" data-val="{{ r.nkz|unlocalize }}">{{ r.nkz|floatformat:"-2" }}</td>
           <td class="text-end" data-col="ozon" data-val="{{ r.ozon|unlocalize }}">{{ r.ozon|floatformat:"-2" }}</td>
           <td class="text-end" data-col="ads" data-val="{{ r.ads|unlocalize }}">{{ r.ads|floatformat:"-2" }}</td>
           <td class="text-end">{{ r.pack_quantity|default:"" }}</td>
@@ -88,7 +94,7 @@
         {% endfor %}
       </tbody>
       <tfoot>
-        <tr class="fw-semibold"><td colspan="8"></td><td class="text-end">Σ {{ total_suggested }}</td><td></td><td></td></tr>
+        <tr class="fw-semibold"><td colspan="5"></td><td class="wh-col d-none"></td><td class="wh-col d-none"></td><td class="wh-col d-none"></td><td colspan="3"></td><td class="text-end">Σ {{ total_suggested }}</td><td></td><td></td></tr>
       </tfoot>
     </table>
   </div>
@@ -121,6 +127,18 @@
       th.querySelector(".sort-ind").textContent = curDir === 1 ? " ▲" : " ▼";
     });
   });
+
+  // «+» reveals the per-warehouse sales columns (Нск / Кем / Нкз).
+  var whToggle = document.getElementById("whToggle");
+  if (whToggle) {
+    whToggle.addEventListener("click", function (e) {
+      e.stopPropagation();  // don't sort the «Продажи» column
+      var cols = table.querySelectorAll(".wh-col");
+      var show = cols.length && cols[0].classList.contains("d-none");
+      cols.forEach(function (c) { c.classList.toggle("d-none", !show); });
+      whToggle.textContent = show ? "−" : "+";
+    });
+  }
 })();
 </script>
 {% endif %}

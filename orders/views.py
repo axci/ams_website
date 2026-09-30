@@ -1002,6 +1002,20 @@ def _supply_rows(supplier, delivery, safety, period):
         .values("sku")
         .annotate(q=Sum("quantity"))
     }
+    # Period sales split by the three main warehouses (for the hidden Нск/Кем/Нкз
+    # columns).
+    wh_key = {}
+    for w in Warehouse.objects.filter(
+        name__in=["Новосибирск", "Кемерово", "Новокузнецк"]
+    ):
+        wh_key[w.id] = {"Новосибирск": "nsk", "Кемерово": "kem", "Новокузнецк": "nkz"}[
+            w.name
+        ]
+    wh_sales = defaultdict(lambda: {"nsk": 0.0, "kem": 0.0, "nkz": 0.0})
+    for r in sold_qs.values("sku", "warehouse").annotate(q=Sum("quantity")):
+        key = wh_key.get(r["warehouse"])
+        if key:
+            wh_sales[r["sku"]][key] += float(r["q"] or 0)
     # Largest single (named) customer per product, to flag sales concentration.
     top_client = {}  # sku -> (client, qty)
     for r in (
@@ -1032,6 +1046,9 @@ def _supply_rows(supplier, delivery, safety, period):
                 "stock": stock,
                 "sold": sold,
                 "ozon": ozon_map.get(p.sku, 0.0),
+                "nsk": wh_sales.get(p.sku, {}).get("nsk", 0.0),
+                "kem": wh_sales.get(p.sku, {}).get("kem", 0.0),
+                "nkz": wh_sales.get(p.sku, {}).get("nkz", 0.0),
                 "ads": round(ads, 2),
                 "suggested": suggested,
                 "warning": warning,
