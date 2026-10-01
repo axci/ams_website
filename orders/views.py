@@ -961,6 +961,23 @@ def can_order_supply(user):
     return user.is_superuser or getattr(user, "can_order_supply", False)
 
 
+# Order for the per-warehouse stock breakdown: the three main warehouses first,
+# then the rest (transit) by name. Short column labels; the full name is shown
+# on hover.
+_WH_MAIN_ORDER = {"Новокузнецк": 0, "Кемерово": 1, "Новосибирск": 2}
+WH_SHORT_LABELS = {
+    "Новокузнецк": "Нкз",
+    "Кемерово": "Кем",
+    "Новосибирск": "Нск",
+    "Новокузнецк Транзит (АМС)": "Нкз тр.",
+    "Оптовый КемеровоТранзит (товар поставщиков в пути)(АМС)": "Кем тр.",
+    "Склад Новосибирск Транзит (АМС)": "Нск тр.",
+    "Склад транзит Кемерово-Нкз (АМС)": "Кем↔Нкз",
+    "Склад транзит Новосибирск-Нкз (АМС)": "Нск↔Нкз",
+    "Склад транзит Кемерово-Новосибирск (АМС)": "Кем↔Нск",
+}
+
+
 def _supply_rows(supplier, delivery, safety, period):
     """Per-product replenishment rows for one supplier: stock pooled across all
     active warehouses, average daily sales over `period` days, and a suggested
@@ -978,7 +995,7 @@ def _supply_rows(supplier, delivery, safety, period):
         )
     )
     if not products:
-        return []
+        return [], []
     ids = [p.pk for p in products]
     skus = [p.sku for p in products]
     stock_map = {
@@ -987,6 +1004,22 @@ def _supply_rows(supplier, delivery, safety, period):
         .values("product")
         .annotate(q=Sum("quantity"))
     }
+    # Per-warehouse stock for the (toggleable) Остаток breakdown — all warehouses,
+    # the main ones first. `stock_map` above (active only) remains the pooled total.
+    stock_warehouses = [
+        {"id": w.id, "label": WH_SHORT_LABELS.get(w.name, w.name), "name": w.name}
+        for w in sorted(
+            Warehouse.objects.all(),
+            key=lambda w: (_WH_MAIN_ORDER.get(w.name, 99), w.name),
+        )
+    ]
+    stock_by_wh = defaultdict(dict)
+    for r in (
+        Stock.objects.filter(product_id__in=ids)
+        .values("product", "warehouse")
+        .annotate(q=Sum("quantity"))
+    ):
+        stock_by_wh[r["product"]][r["warehouse"]] = int(r["q"] or 0)
     start = timezone.localdate() - timedelta(days=period)
     sold_qs = SalesRecord.objects.filter(sku__in=skus, date__date__gte=start)
     sales_map = {
@@ -1049,6 +1082,10 @@ def _supply_rows(supplier, delivery, safety, period):
                 "nsk": wh_sales.get(p.sku, {}).get("nsk", 0.0),
                 "kem": wh_sales.get(p.sku, {}).get("kem", 0.0),
                 "nkz": wh_sales.get(p.sku, {}).get("nkz", 0.0),
+                "wh_stock": [
+                    {"id": w["id"], "val": stock_by_wh.get(p.pk, {}).get(w["id"], 0)}
+                    for w in stock_warehouses
+                ],
                 "ads": round(ads, 2),
                 "suggested": suggested,
                 "warning": warning,
@@ -1056,7 +1093,7 @@ def _supply_rows(supplier, delivery, safety, period):
         )
     # Ordered by brand → category → subcategory → model → volume → name (in the
     # DB query above).
-    return rows
+    return rows, stock_warehouses
 
 
 @login_required
@@ -1084,7 +1121,9 @@ def supply_order(request):
     safety = _int("safety", 7)
     period = _int("period", 90) or 90
 
-    rows = _supply_rows(supplier, delivery, safety, period) if supplier else []
+    rows, stock_warehouses = (
+        _supply_rows(supplier, delivery, safety, period) if supplier else ([], [])
+    )
 
     if request.method == "POST" and supplier:
         with transaction.atomic():
@@ -1134,6 +1173,7 @@ def supply_order(request):
             "safety": safety,
             "period": period,
             "rows": rows,
+            "stock_warehouses": stock_warehouses,
             "total_suggested": sum(r["suggested"] for r in rows),
         },
     )

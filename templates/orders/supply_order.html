@@ -60,7 +60,10 @@
           <th>Бренд</th>
           <th>Товар</th>
           <th>Артикул</th>
-          <th class="text-end">Остаток</th>
+          <th class="text-end">Остаток <button type="button" id="stockToggle" class="btn btn-sm btn-outline-secondary py-0 px-1" title="Остаток по складам">+</button></th>
+          {% for w in stock_warehouses %}
+          <th class="text-end stock-col d-none" data-sort="whs{{ w.id }}" style="cursor:pointer" title="{{ w.name }}">{{ w.label }}<span class="sort-ind"></span></th>
+          {% endfor %}
           <th class="text-end" data-sort="sold" style="cursor:pointer" title="Сортировать">Продажи за {{ period }} дн. <button type="button" id="whToggle" class="btn btn-sm btn-outline-secondary py-0 px-1" title="Продажи по складам">+</button><span class="sort-ind"></span></th>
           <th class="text-end wh-col d-none" data-sort="nsk" style="cursor:pointer" title="Новосибирск">Нск<span class="sort-ind"></span></th>
           <th class="text-end wh-col d-none" data-sort="kem" style="cursor:pointer" title="Кемерово">Кем<span class="sort-ind"></span></th>
@@ -80,6 +83,9 @@
           <td><a href="{% url 'orders:sales_stats' %}?product={{ r.product.pk }}" class="text-decoration-none">{{ r.name }}</a></td>
           <td>{{ r.article }}</td>
           <td class="text-end">{{ r.stock }}</td>
+          {% for s in r.wh_stock %}
+          <td class="text-end stock-col d-none" data-col="whs{{ s.id }}" data-val="{{ s.val|unlocalize }}">{{ s.val }}</td>
+          {% endfor %}
           <td class="text-end" data-col="sold" data-val="{{ r.sold|unlocalize }}">{{ r.sold|floatformat:"-2" }}</td>
           <td class="text-end wh-col d-none" data-col="nsk" data-val="{{ r.nsk|unlocalize }}">{{ r.nsk|floatformat:"-2" }}</td>
           <td class="text-end wh-col d-none" data-col="kem" data-val="{{ r.kem|unlocalize }}">{{ r.kem|floatformat:"-2" }}</td>
@@ -94,7 +100,7 @@
         {% endfor %}
       </tbody>
       <tfoot>
-        <tr class="fw-semibold"><td colspan="5"></td><td class="wh-col d-none"></td><td class="wh-col d-none"></td><td class="wh-col d-none"></td><td colspan="3"></td><td class="text-end">Σ {{ total_suggested }}</td><td></td><td></td></tr>
+        <tr class="fw-semibold"><td colspan="4"></td>{% for w in stock_warehouses %}<td class="stock-col d-none"></td>{% endfor %}<td></td><td class="wh-col d-none"></td><td class="wh-col d-none"></td><td class="wh-col d-none"></td><td colspan="3"></td><td class="text-end">Σ {{ total_suggested }}</td><td></td><td></td></tr>
       </tfoot>
     </table>
   </div>
@@ -128,17 +134,20 @@
     });
   });
 
-  // «+» reveals the per-warehouse sales columns (Нск / Кем / Нкз).
-  var whToggle = document.getElementById("whToggle");
-  if (whToggle) {
-    whToggle.addEventListener("click", function (e) {
-      e.stopPropagation();  // don't sort the «Продажи» column
-      var cols = table.querySelectorAll(".wh-col");
+  // A «+» button reveals a group of hidden columns (and toggles to «−»).
+  function wireToggle(btnId, colClass) {
+    var btn = document.getElementById(btnId);
+    if (!btn) return;
+    btn.addEventListener("click", function (e) {
+      e.stopPropagation();  // don't trigger a column sort
+      var cols = table.querySelectorAll("." + colClass);
       var show = cols.length && cols[0].classList.contains("d-none");
       cols.forEach(function (c) { c.classList.toggle("d-none", !show); });
-      whToggle.textContent = show ? "−" : "+";
+      btn.textContent = show ? "−" : "+";
     });
   }
+  wireToggle("whToggle", "wh-col");      // Продажи → Нск / Кем / Нкз
+  wireToggle("stockToggle", "stock-col"); // Остаток → per-warehouse stock
 })();
 </script>
 {% endif %}
