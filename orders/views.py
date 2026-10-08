@@ -46,7 +46,7 @@ from warehouses.selection import get_current_warehouse
 from .emails import send_order_cancellation, send_order_emails
 from .forms import CheckoutForm
 from .invoices import build_invoice_xlsx
-from .purchase_export import build_purchase_order_xlsx
+from .purchase_export import build_purchase_order_xlsx, build_supply_xlsx
 from .models import (
     CartItem,
     Favorite,
@@ -1124,6 +1124,19 @@ def supply_order(request):
     rows, stock_warehouses = (
         _supply_rows(supplier, delivery, safety, period) if supplier else ([], [])
     )
+
+    if request.GET.get("export") == "xlsx" and supplier:
+        filename = f"заказ_поставщику_{supplier[:40]}.xlsx"
+        response = HttpResponse(
+            build_supply_xlsx(rows, stock_warehouses, supplier, period),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+        )
+        response["Content-Disposition"] = (
+            f"attachment; filename=supply_order.xlsx; filename*=UTF-8''{quote(filename)}"
+        )
+        return response
 
     if request.method == "POST" and supplier:
         with transaction.atomic():

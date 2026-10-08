@@ -48,7 +48,10 @@
   <input type="hidden" name="period" value="{{ period }}">
   <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-2">
     <div class="small text-muted">Рекомендовано = продаж/день × ({{ delivery }} + {{ safety }}) − остаток. «Заказать» можно изменить.</div>
-    <button class="btn btn-sm btn-success" type="submit"><i class="bi bi-cart-check"></i> Оформить заказ</button>
+    <div class="d-flex gap-2">
+      <a class="btn btn-sm btn-outline-success" href="?supplier={{ supplier|urlencode }}&amp;delivery={{ delivery }}&amp;safety={{ safety }}&amp;period={{ period }}&amp;export=xlsx"><i class="bi bi-file-earmark-excel"></i> Скачать в Excel</a>
+      <button class="btn btn-sm btn-success" type="submit"><i class="bi bi-cart-check"></i> Оформить заказ</button>
+    </div>
   </div>
   <style>
     #supplyTable thead th { position: sticky; top: 0; z-index: 2; background-color: var(--bs-table-bg, #f8f9fa); }
