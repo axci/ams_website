@@ -26,9 +26,10 @@
       <span class="navbar-toggler-icon"></span>
     </button>
 
-    <div class="collapse navbar-collapse" id="mainNav">
-      {% if request.resolver_match.namespace == 'catalog' %}
-      <form class="d-flex ms-lg-3 my-2 my-lg-0 flex-grow-1" role="search" method="get"
+    <div class="collapse navbar-collapse flex-lg-wrap" id="mainNav">
+      {% if request.resolver_match.namespace == 'catalog' or request.resolver_match.view_name == 'orders:cart' %}
+      {# Own full-width row under the links on desktop, so the box stays long however many links there are. #}
+      <form class="d-flex w-100 order-lg-last my-2 mt-lg-1 mb-lg-1" role="search" method="get"
             action="{% url 'catalog:product_list' %}">
         <input class="form-control me-2" type="search" name="q" placeholder="Поиск по наименованию, артиклу, бренду..."
                value="{{ request.GET.q }}">

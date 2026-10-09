@@ -4,7 +4,7 @@
   "use strict";
 
   var input = document.querySelector('form[role="search"] input[name="q"]');
-  if (!input) return; // search box only exists on catalog pages
+  if (!input) return; // search box only exists on catalog pages and the cart
   var form = input.closest("form");
   form.style.position = "relative";
   input.setAttribute("autocomplete", "off");
