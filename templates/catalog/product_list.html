@@ -3,7 +3,7 @@
 
 {% block banner %}
 {% if banner_slides %}
-<div id="homeBanner" class="carousel slide" data-bs-ride="carousel">
+<div id="homeBanner" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000" data-bs-pause="false">
   {% if banner_slides|length > 1 %}
   <div class="carousel-indicators">
     {% for slide in banner_slides %}
@@ -38,6 +38,13 @@
   </button>
   {% endif %}
 </div>
+<script>
+  // Bootstrap only auto-starts data-bs-ride carousels on window "load", i.e. after
+  // every product image has loaded. Start it as soon as the page is parsed instead.
+  document.addEventListener("DOMContentLoaded", function () {
+    bootstrap.Carousel.getOrCreateInstance(document.getElementById("homeBanner"));
+  });
+</script>
 {% endif %}
 {% endblock %}
 

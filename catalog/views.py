@@ -287,9 +287,7 @@ def product_list(request):
     is_landing = not any(
         [query, brand_slug, category_id, subcategory_id, volume_value, viscosity_value, in_stock, request.GET.get("page")]
     )
-    banner_slides = (
-        BannerSlide.objects.filter(is_active=True)[:7] if is_landing else []
-    )
+    banner_slides = BannerSlide.objects.filter(is_active=True) if is_landing else []
 
     context = {
         "banner_slides": banner_slides,
