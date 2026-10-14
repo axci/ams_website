@@ -22,7 +22,7 @@ from warehouses.availability import (
 from warehouses.selection import get_current_warehouse
 
 from .models import BannerSlide, Brand, Category, Product, ProductPrice, SubCategory
-from .pricing import brand_discounts_for_user, price_type_for_user
+from .pricing import brand_discount_percent, brand_discounts_for_user, price_type_for_user
 from .visibility import visible_brands_q, visible_products_q
 
 
@@ -56,16 +56,19 @@ def _with_effective_price(products, price_type, user=None):
     if not discounts:
         return products.annotate(effective_price=base)
 
-    # Per-brand discount percent for this viewer (0 for un-discounted brands).
+    # Per-brand discount percent for this viewer (0 for un-discounted brands),
+    # exposed as `discount_percent` so templates can show «Скидка X% применена».
     percent = Case(
         *[When(brand_id=bid, then=Value(pct)) for bid, pct in discounts.items()],
         default=Value(Decimal("0")),
         output_field=DecimalField(max_digits=5, decimal_places=2),
     )
+    products = products.annotate(discount_percent=percent)
     return products.annotate(
         effective_price=Round(
             ExpressionWrapper(
-                base * (Value(Decimal("100")) - percent) / Value(Decimal("100")),
+                base * (Value(Decimal("100")) - F("discount_percent"))
+                / Value(Decimal("100")),
                 output_field=DecimalField(max_digits=12, decimal_places=2),
             ),
             2,
@@ -358,6 +361,7 @@ def product_detail(request, pk):
     # Price shown depends on the viewer's price type (guests → «Розничные»).
     price_type = price_type_for_user(request.user)
     price = product.price_for_user(request.user)
+    discount_percent = brand_discount_percent(request.user, product.brand_id)
     # Other products of the same model (different volume or weight), ordered by
     # volume then weight so weight-only variants sort by weight.
     variants = []
@@ -387,6 +391,7 @@ def product_detail(request, pk):
         "own_available": own_available,
         "variants": variants,
         "price": price,
+        "discount_percent": discount_percent,
         "price_type": price_type,
         "favorite_ids": _favorite_ids(request.user),
         "recently_viewed": recently_viewed,

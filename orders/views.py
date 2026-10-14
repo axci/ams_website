@@ -33,7 +33,7 @@ from django.views.decorators.http import require_POST
 
 from accounts.models import DeliveryAddress
 from catalog.models import Brand, ModelProduct, Product
-from catalog.pricing import price_type_for_user
+from catalog.pricing import brand_discount_percent, price_type_for_user
 from warehouses.availability import (
     annotate_availability,
     own_available_map,
@@ -430,6 +430,9 @@ def wishlist(request):
         product = by_id.get(pid)
         if product is not None:
             product.effective_price = product.price_for_user(request.user)
+            product.discount_percent = brand_discount_percent(
+                request.user, product.brand_id
+            )
             products.append(product)
     return render(
         request,

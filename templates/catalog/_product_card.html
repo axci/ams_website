@@ -31,6 +31,9 @@
             {% else %}<span class="badge text-bg-secondary">Нет в наличии</span>{% endif %}
           {% endif %}
         </div>
+        {% if product.discount_percent %}
+        <div class="small text-success mb-2"><i class="bi bi-tag"></i> Скидка {{ product.discount_percent|floatformat:"-2" }}% применена</div>
+        {% endif %}
         {% if user.is_authenticated %}
         <form method="post" action="{% url 'orders:add_to_cart' product.pk %}" class="d-flex gap-1">
           {% csrf_token %}

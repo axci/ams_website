@@ -55,7 +55,10 @@
       Артикул: <strong>{{ product.article }}</strong>
       {% if product.manufacturer_number %}<span class="ms-3">Номер произв.: <strong>{{ product.manufacturer_number }}</strong></span>{% endif %}
     </div>
-    <div class="h4 mb-3">{{ price|rubles }}</div>
+    <div class="h4 {% if discount_percent %}mb-1{% else %}mb-3{% endif %}">{{ price|rubles }}</div>
+    {% if discount_percent %}
+    <div class="text-success mb-3"><i class="bi bi-tag"></i> Скидка {{ discount_percent|floatformat:"-2" }}% применена</div>
+    {% endif %}
 
     {% if product.model_product or product.weight or product.volume or product.pack_quantity %}
     <ul class="list-unstyled small text-body-secondary mb-3">
