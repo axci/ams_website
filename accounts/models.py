@@ -1,6 +1,7 @@
 from decimal import Decimal
 
 from django.contrib.auth.models import AbstractUser
+from django.core.validators import MaxValueValidator, MinValueValidator
 from django.db import models
 
 
@@ -137,6 +138,47 @@ class Company(models.Model):
 
     def __str__(self):
         return self.company_name or self.code or f"Компания #{self.pk}"
+
+
+class CompanyBrandDiscount(models.Model):
+    """A percentage discount a company gets on a particular brand.
+
+    Applied on top of the price-type price everywhere the company's users see
+    or pay a price (catalog, product page, cart, order). When a user belongs
+    to several companies, the best (largest) discount for the brand wins."""
+
+    company = models.ForeignKey(
+        Company,
+        on_delete=models.CASCADE,
+        related_name="brand_discounts",
+        verbose_name="компания",
+    )
+    brand = models.ForeignKey(
+        "catalog.Brand",
+        on_delete=models.CASCADE,
+        related_name="company_discounts",
+        verbose_name="бренд",
+    )
+    percent = models.DecimalField(
+        "скидка, %",
+        max_digits=5,
+        decimal_places=2,
+        default=0,
+        validators=[MinValueValidator(Decimal("0")), MaxValueValidator(Decimal("100"))],
+    )
+
+    class Meta:
+        verbose_name = "скидка на бренд"
+        verbose_name_plural = "скидки на бренды"
+        ordering = ["brand__name"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["company", "brand"], name="unique_company_brand_discount"
+            )
+        ]
+
+    def __str__(self):
+        return f"{self.brand} −{self.percent}%"
 
 
 class RegistrationRequest(models.Model):

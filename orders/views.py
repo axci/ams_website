@@ -429,7 +429,7 @@ def wishlist(request):
     for pid in fav_ids:  # preserve "newest first" order
         product = by_id.get(pid)
         if product is not None:
-            product.effective_price = product.price_for(price_type)
+            product.effective_price = product.price_for_user(request.user)
             products.append(product)
     return render(
         request,

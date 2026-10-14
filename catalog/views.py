@@ -6,8 +6,8 @@ from urllib.parse import quote
 import openpyxl
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import DecimalField, F, Func, IntegerField, OuterRef, Q, Subquery, TextField, Value
-from django.db.models.functions import Coalesce, Concat
+from django.db.models import Case, DecimalField, ExpressionWrapper, F, Func, IntegerField, OuterRef, Q, Subquery, TextField, Value, When
+from django.db.models.functions import Coalesce, Concat, Round
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
@@ -22,7 +22,7 @@ from warehouses.availability import (
 from warehouses.selection import get_current_warehouse
 
 from .models import BannerSlide, Brand, Category, Product, ProductPrice, SubCategory
-from .pricing import price_type_for_user
+from .pricing import brand_discounts_for_user, price_type_for_user
 from .visibility import visible_brands_q, visible_products_q
 
 
@@ -32,23 +32,45 @@ def _viscosity_key(value):
     return (int(match.group(1)), int(match.group(2))) if match else (10**6, 10**6)
 
 
-def _with_effective_price(products, price_type):
+def _with_effective_price(products, price_type, user=None):
     """Annotate each product with `effective_price` for the given price type,
-    falling back to the product's base `price` when no per-type price exists."""
+    falling back to the product's base `price` when no per-type price exists.
+
+    When `user` has per-company brand discounts, the best discount for each
+    brand is applied on top of the price-type price."""
     if price_type is not None:
         price_sub = ProductPrice.objects.filter(
             product=OuterRef("pk"), price_type=price_type
         ).values("price")[:1]
-        return products.annotate(
-            effective_price=Coalesce(
-                Subquery(
-                    price_sub,
-                    output_field=DecimalField(max_digits=12, decimal_places=2),
-                ),
-                F("price"),
-            )
+        base = Coalesce(
+            Subquery(
+                price_sub,
+                output_field=DecimalField(max_digits=12, decimal_places=2),
+            ),
+            F("price"),
         )
-    return products.annotate(effective_price=F("price"))
+    else:
+        base = F("price")
+
+    discounts = brand_discounts_for_user(user)
+    if not discounts:
+        return products.annotate(effective_price=base)
+
+    # Per-brand discount percent for this viewer (0 for un-discounted brands).
+    percent = Case(
+        *[When(brand_id=bid, then=Value(pct)) for bid, pct in discounts.items()],
+        default=Value(Decimal("0")),
+        output_field=DecimalField(max_digits=5, decimal_places=2),
+    )
+    return products.annotate(
+        effective_price=Round(
+            ExpressionWrapper(
+                base * (Value(Decimal("100")) - percent) / Value(Decimal("100")),
+                output_field=DecimalField(max_digits=12, decimal_places=2),
+            ),
+            2,
+        )
+    )
 
 
 RECENT_KEY = "recently_viewed"
@@ -75,6 +97,7 @@ def _recently_viewed(
         .filter(visible_products_q(warehouse_ids))
         .select_related("brand"),
         price_type,
+        request.user,
     )
     by_id = {p.pk: p for p in products}
     result = []
@@ -269,7 +292,7 @@ def product_list(request):
 
     # Prices shown depend on the viewer's price type (guests → «Розничные»).
     price_type = price_type_for_user(request.user)
-    products = _with_effective_price(products, price_type)
+    products = _with_effective_price(products, price_type, request.user)
 
     # Explicit ordering: the Sum annotations above drop the model's default
     # ordering, which would make pagination inconsistent.
@@ -334,7 +357,7 @@ def product_detail(request, pk):
     own_available = sum(row["qty"] for row in warehouse_stock if row["is_own"])
     # Price shown depends on the viewer's price type (guests → «Розничные»).
     price_type = price_type_for_user(request.user)
-    price = product.price_for(price_type)
+    price = product.price_for_user(request.user)
     # Other products of the same model (different volume or weight), ordered by
     # volume then weight so weight-only variants sort by weight.
     variants = []
@@ -345,6 +368,7 @@ def product_detail(request, pk):
                     model_product_id=product.model_product_id, is_active=True
                 ),
                 price_type,
+                request.user,
             ).order_by("volume", "weight", "name")
         )
 
@@ -413,7 +437,7 @@ def product_price_xlsx(request):
     price_type = price_type_for_user(request.user)
     products = _filtered_products(request)
     products = annotate_availability(products, own_ids)
-    products = _with_effective_price(products, price_type)
+    products = _with_effective_price(products, price_type, request.user)
     if request.GET.get("in_stock") == "1":
         products = products.filter(total_qty__gt=0)
     products = products.order_by(

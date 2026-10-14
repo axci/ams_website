@@ -42,10 +42,9 @@ class CartItem(models.Model):
 
     @property
     def unit_price(self):
-        """Unit price for the cart owner's price type."""
-        from catalog.pricing import price_type_for_user
-
-        return self.product.price_for(price_type_for_user(self.cart.user))
+        """Unit price for the cart owner: their price type with any
+        per-company brand discount applied."""
+        return self.product.price_for_user(self.cart.user)
 
     @property
     def subtotal(self):

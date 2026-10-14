@@ -1,3 +1,5 @@
+from decimal import ROUND_HALF_UP, Decimal
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
@@ -321,6 +323,19 @@ class Product(models.Model):
             if pp is not None:
                 return pp.price
         return self.price
+
+    def price_for_user(self, user):
+        """Price a user actually pays: their price-type price with any
+        per-company discount on this product's brand applied on top."""
+        from .pricing import brand_discount_percent, price_type_for_user
+
+        price = self.price_for(price_type_for_user(user))
+        percent = brand_discount_percent(user, self.brand_id)
+        if percent:
+            price = (price * (Decimal("100") - percent) / Decimal("100")).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
+        return price
 
 
 class PriceType(models.Model):

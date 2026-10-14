@@ -17,7 +17,13 @@ from warehouses.models import Manager, Warehouse
 
 from .emails import send_credentials
 from .imports import import_companies
-from .models import Company, DeliveryAddress, RegistrationRequest, User
+from .models import (
+    Company,
+    CompanyBrandDiscount,
+    DeliveryAddress,
+    RegistrationRequest,
+    User,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +43,15 @@ class DeliveryAddressInline(admin.TabularInline):
     model = DeliveryAddress
     extra = 0
     fields = ("label", "address")
+
+
+class CompanyBrandDiscountInline(admin.TabularInline):
+    """Per-brand discounts for a company, edited on the Company page."""
+
+    model = CompanyBrandDiscount
+    extra = 1
+    autocomplete_fields = ("brand",)
+    fields = ("brand", "percent")
 
 
 @admin.register(User)
@@ -86,6 +101,7 @@ class CompanyAdmin(admin.ModelAdmin):
     list_filter = ("type",)
     search_fields = ("code", "company_name", "inn", "kpp")
     filter_horizontal = ("users",)
+    inlines = [CompanyBrandDiscountInline]
 
     def get_queryset(self, request):
         return super().get_queryset(request).prefetch_related("users")
