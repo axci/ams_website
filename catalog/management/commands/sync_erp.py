@@ -3,7 +3,7 @@
 The service returns a JSON array like::
 
     [{"code": "УТ000016035", "name": "...", "article": "...",
-      "priceOpt": 3825, "priceRetail": 4618.21,
+      "priceOpt": 3825, "priceRetail": 4618.21, "priceInternet": 4300,
       "stockNovokuznetsk": 0, "stockKemerovo": 0, "stockNovosibirsk": 22}, ...]
 
 Products are matched by ``code`` == ``Product.sku``. Only prices and stock are
@@ -45,6 +45,7 @@ from warehouses.models import Stock, Warehouse
 PRICE_FIELDS = {
     "priceOpt": "Крупный ОПТ",
     "priceRetail": "Розничные",
+    "priceInternet": "интернет-магазин",
 }
 # JSON field -> warehouse name
 STOCK_FIELDS = {
