@@ -52,6 +52,8 @@ def _price_list_products(price_type, warehouse, in_stock_only=False):
             ),
         )
     )
+    # Never list a product with no price.
+    products = products.filter(list_price__gt=0)
     if in_stock_only:
         products = products.filter(free_stock__gt=0)
     return products.order_by("brand__name", "name")
