@@ -67,7 +67,9 @@ class UserAdmin(BaseUserAdmin):
         "companies__code", "companies__company_name", "companies__inn",
     )
     filter_horizontal = BaseUserAdmin.filter_horizontal + ("warehouses",)
-    autocomplete_fields = ("manager", "manager_profile")
+    autocomplete_fields = (
+        "manager", "manager_profile", "price_list_price_type", "price_list_warehouse",
+    )
     inlines = [CompanyUsersInline, DeliveryAddressInline]
     fieldsets = BaseUserAdmin.fieldsets + (
         (
@@ -80,6 +82,17 @@ class UserAdmin(BaseUserAdmin):
                 "fields": ("manager_profile",),
                 "description": "Свяжите логин с профилем менеджера, чтобы дать "
                 "доступ в «Кабинет менеджера» с его клиентами.",
+            },
+        ),
+        (
+            "Рассылка прайса (значения по умолчанию)",
+            {
+                "fields": (
+                    "price_list_price_type", "price_list_warehouse",
+                    "price_list_recipients", "price_list_in_stock_only",
+                ),
+                "description": "Подставляются в блок «Отправить прайс» в профиле "
+                "у пользователей с правом «Рассылка прайса».",
             },
         ),
     )

@@ -75,6 +75,34 @@ class User(AbstractUser):
             "Остаток на других складах доступен с пометкой «Доставка 7 дней»."
         ),
     )
+    # Defaults pre-filled in the «Отправить прайс» block (for «Рассылка прайса»).
+    price_list_price_type = models.ForeignKey(
+        "catalog.PriceType",
+        on_delete=models.SET_NULL,
+        related_name="+",
+        blank=True,
+        null=True,
+        verbose_name="прайс: тип цены по умолчанию",
+    )
+    price_list_warehouse = models.ForeignKey(
+        "warehouses.Warehouse",
+        on_delete=models.SET_NULL,
+        related_name="+",
+        blank=True,
+        null=True,
+        verbose_name="прайс: склад по умолчанию",
+    )
+    price_list_recipients = models.CharField(
+        "прайс: email получателей по умолчанию",
+        max_length=500,
+        blank=True,
+        default="",
+        help_text="Один или несколько адресов через запятую.",
+    )
+    price_list_in_stock_only = models.BooleanField(
+        "прайс: только товары в наличии на складе",
+        default=False,
+    )
 
     def __str__(self):
         return self.get_full_name() or self.username

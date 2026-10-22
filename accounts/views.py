@@ -64,7 +64,12 @@ def profile(request):
     from catalog.price_list import send_price_list_email
 
     can_send_price_list = request.user.has_perm("catalog.send_price_list")
-    form = ProfilePriceListForm()
+    form = ProfilePriceListForm(initial={
+        "price_type": request.user.price_list_price_type_id,
+        "warehouse": request.user.price_list_warehouse_id,
+        "recipients": request.user.price_list_recipients,
+        "in_stock_only": request.user.price_list_in_stock_only,
+    })
     if request.method == "POST" and request.POST.get("form") == "price_list":
         if not can_send_price_list:
             raise PermissionDenied
