@@ -358,6 +358,9 @@ class PriceType(models.Model):
         ordering = ["order", "name"]
         verbose_name = "тип цены"
         verbose_name_plural = "типы цен"
+        permissions = [
+            ("send_price_list", "Может отправлять прайс-лист по email"),
+        ]
 
     def __str__(self):
         return self.name

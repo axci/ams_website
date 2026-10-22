@@ -53,7 +53,14 @@ class PriceTypeAdmin(admin.ModelAdmin):
     search_fields = ("name",)
     actions = ["send_price_list"]
 
-    @admin.action(description="Отправить прайс-лист по email…")
+    def has_send_price_list_permission(self, request):
+        """Gate the «отправить прайс-лист» action (superusers always pass)."""
+        return request.user.has_perm("catalog.send_price_list")
+
+    @admin.action(
+        permissions=["send_price_list"],
+        description="Отправить прайс-лист по email…",
+    )
     def send_price_list(self, request, queryset):
         """Email an .xlsx price list for the selected price type. Asks for the
         warehouse and recipients on an intermediate page before sending."""
