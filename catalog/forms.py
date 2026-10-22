@@ -5,7 +5,7 @@ from django.core.validators import validate_email
 
 from warehouses.models import Warehouse
 
-from .models import Brand
+from .models import Brand, PriceType
 
 
 class PriceListEmailForm(forms.Form):
@@ -33,6 +33,27 @@ class PriceListEmailForm(forms.Form):
         for email in emails:
             validate_email(email)
         return emails
+
+
+class ProfilePriceListForm(PriceListEmailForm):
+    """The «Отправить прайс» block on the profile page — same as the admin form
+    plus a price-type picker, and styled with Bootstrap classes."""
+
+    price_type = forms.ModelChoiceField(
+        queryset=PriceType.objects.order_by("order", "name"),
+        label="Тип цены",
+        widget=forms.Select(attrs={"class": "form-select form-select-sm"}),
+    )
+    field_order = ["price_type", "warehouse", "recipients", "in_stock_only"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["warehouse"].widget.attrs["class"] = "form-select form-select-sm"
+        self.fields["recipients"].widget.attrs = {
+            "class": "form-control form-control-sm",
+            "placeholder": "адрес@почта.ру, ещё@почта.ру",
+        }
+        self.fields["in_stock_only"].widget.attrs["class"] = "form-check-input"
 
 
 class ProductImportForm(forms.Form):

@@ -27,6 +27,44 @@
       </div>
     </div>
   </div>
+
+  {% if can_send_price_list %}
+  <div class="col-md-6">
+    <div class="card shadow-sm h-100">
+      <div class="card-header"><i class="bi bi-envelope-arrow-up"></i> Отправить прайс</div>
+      <div class="card-body">
+        <p class="small text-muted mb-3">Excel-прайс (артикул, бренд, наименование, свободный остаток на выбранном складе, цена) будет отправлен на указанные адреса.</p>
+        <form method="post">
+          {% csrf_token %}
+          <input type="hidden" name="form" value="price_list">
+          {% if price_list_form.non_field_errors %}<div class="alert alert-danger py-1 px-2 small">{{ price_list_form.non_field_errors|striptags }}</div>{% endif %}
+          <div class="mb-2">
+            <label for="{{ price_list_form.price_type.id_for_label }}" class="form-label small mb-1">Тип цены</label>
+            {{ price_list_form.price_type }}
+            {% if price_list_form.price_type.errors %}<div class="text-danger small">{{ price_list_form.price_type.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="mb-2">
+            <label for="{{ price_list_form.warehouse.id_for_label }}" class="form-label small mb-1">Склад (для свободного остатка)</label>
+            {{ price_list_form.warehouse }}
+            {% if price_list_form.warehouse.errors %}<div class="text-danger small">{{ price_list_form.warehouse.errors|striptags }}</div>{% endif %}
+          </div>
+          <div class="mb-2">
+            <label for="{{ price_list_form.recipients.id_for_label }}" class="form-label small mb-1">Email получателей</label>
+            {{ price_list_form.recipients }}
+            {% if price_list_form.recipients.errors %}<div class="text-danger small">{{ price_list_form.recipients.errors|striptags }}</div>{% endif %}
+            <div class="form-text">Один или несколько адресов через запятую.</div>
+          </div>
+          <div class="form-check mb-3">
+            {{ price_list_form.in_stock_only }}
+            <label for="{{ price_list_form.in_stock_only.id_for_label }}" class="form-check-label small">Только товары в наличии на складе</label>
+          </div>
+          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-send"></i> Отправить прайс</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <div class="col-md-6">
     <div class="card shadow-sm h-100">
       <div class="card-header">Мои склады</div>

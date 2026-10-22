@@ -60,7 +60,39 @@ def register(request):
 
 @login_required
 def profile(request):
-    return render(request, "accounts/profile.html")
+    from catalog.forms import ProfilePriceListForm
+    from catalog.price_list import send_price_list_email
+
+    can_send_price_list = request.user.has_perm("catalog.send_price_list")
+    form = ProfilePriceListForm()
+    if request.method == "POST" and request.POST.get("form") == "price_list":
+        if not can_send_price_list:
+            raise PermissionDenied
+        form = ProfilePriceListForm(request.POST)
+        if form.is_valid():
+            recipients = form.cleaned_data["recipients"]
+            try:
+                send_price_list_email(
+                    form.cleaned_data["price_type"],
+                    form.cleaned_data["warehouse"],
+                    recipients,
+                    form.cleaned_data["in_stock_only"],
+                )
+            except Exception:  # noqa: BLE001
+                logger.exception("Profile price list email failed")
+                messages.error(
+                    request, "Не удалось отправить прайс. Попробуйте позже."
+                )
+            else:
+                messages.success(
+                    request, "Прайс отправлен: " + ", ".join(recipients) + "."
+                )
+            return redirect("profile")
+    return render(
+        request,
+        "accounts/profile.html",
+        {"can_send_price_list": can_send_price_list, "price_list_form": form},
+    )
 
 
 @login_required
