@@ -27,6 +27,10 @@ XLSX_CONTENT_TYPE = (
 
 HEADERS = ["Артикул", "Бренд", "Наименование", "Свободный остаток", "Цена"]
 
+# Brand names shown differently in the exported price list (display only — the
+# catalog keeps the original name).
+BRAND_LABEL_OVERRIDES = {"SCT (Germany)": "SCT"}
+
 
 def _price_list_products(price_type, warehouse, in_stock_only=False):
     """Active products annotated with the type's price and the warehouse stock."""
@@ -79,9 +83,10 @@ def build_price_list_xlsx(price_type, warehouse, in_stock_only=False):
     ws.freeze_panes = "A3"
 
     for p in _price_list_products(price_type, warehouse, in_stock_only).iterator():
+        brand = p.brand.name if p.brand_id else ""
         ws.append([
             p.article,
-            p.brand.name if p.brand_id else "",
+            BRAND_LABEL_OVERRIDES.get(brand, brand),
             p.name,
             p.free_stock,
             float(p.list_price or 0),
