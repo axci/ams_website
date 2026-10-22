@@ -1,6 +1,7 @@
 from urllib.parse import quote
 
 from django.contrib import admin, messages
+from django.contrib.admin.helpers import ACTION_CHECKBOX_NAME
 from django.db import models
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
@@ -12,8 +13,9 @@ from tinymce.widgets import TinyMCE
 from warehouses.models import Stock
 
 from .exports import build_catalog_xlsx
-from .forms import ProductImportForm
+from .forms import PriceListEmailForm, ProductImportForm
 from .imports import import_products
+from .price_list import send_price_list_email
 from .models import (
     BannerSlide,
     Brand,
@@ -49,6 +51,59 @@ class PriceTypeAdmin(admin.ModelAdmin):
     list_display = ("name", "order", "is_public", "is_default")
     list_editable = ("order", "is_public", "is_default")
     search_fields = ("name",)
+    actions = ["send_price_list"]
+
+    @admin.action(description="Отправить прайс-лист по email…")
+    def send_price_list(self, request, queryset):
+        """Email an .xlsx price list for the selected price type. Asks for the
+        warehouse and recipients on an intermediate page before sending."""
+        if queryset.count() != 1:
+            self.message_user(
+                request, "Выберите ровно один тип цены.", level=messages.ERROR
+            )
+            return
+        price_type = queryset.first()
+
+        if request.POST.get("confirm"):
+            form = PriceListEmailForm(request.POST)
+            if form.is_valid():
+                recipients = form.cleaned_data["recipients"]
+                try:
+                    send_price_list_email(
+                        price_type,
+                        form.cleaned_data["warehouse"],
+                        recipients,
+                        form.cleaned_data["in_stock_only"],
+                    )
+                except Exception as exc:
+                    self.message_user(
+                        request,
+                        f"Не удалось отправить письмо: {exc}",
+                        level=messages.ERROR,
+                    )
+                else:
+                    self.message_user(
+                        request,
+                        f"Прайс «{price_type.name}» отправлен: "
+                        + ", ".join(recipients) + ".",
+                        level=messages.SUCCESS,
+                    )
+                return
+        else:
+            form = PriceListEmailForm()
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Отправка прайс-листа по email",
+            "price_type": price_type,
+            "form": form,
+            "selected": list(queryset.values_list("pk", flat=True)),
+            "action_checkbox_name": ACTION_CHECKBOX_NAME,
+            "opts": self.model._meta,
+        }
+        return render(
+            request, "admin/catalog/pricetype/send_price_list.html", context
+        )
 
 
 @admin.register(Brand)
