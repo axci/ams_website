@@ -29,7 +29,10 @@ HEADERS = ["Артикул", "Бренд", "Наименование", "Своб
 
 # Brand names shown differently in the exported price list (display only — the
 # catalog keeps the original name).
-BRAND_LABEL_OVERRIDES = {"SCT (Germany)": "SCT"}
+BRAND_LABEL_OVERRIDES = {
+    "SCT (Germany)": "SCT",
+    "Аляska": "Alaska",
+}
 
 
 def _price_list_products(price_type, warehouse, in_stock_only=False):
