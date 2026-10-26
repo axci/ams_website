@@ -17,10 +17,12 @@ from .models import Order
 
 logger = logging.getLogger("cml_exchange")
 
-# Map a site warehouse name to its 1С склад name, when they differ. Empty =
-# send the site name as-is (e.g. "Новосибирск"). Fill in if 1С names its
-# складах differently, e.g. {"Новосибирск": "Основной склад (Новосибирск)"}.
-WAREHOUSE_1C_NAMES = {}
+# Map a site warehouse name to its 1С склад name, when they differ. A name not
+# listed is sent as-is (Новокузнецк matches 1С already).
+WAREHOUSE_1C_NAMES = {
+    "Кемерово": "Оптовый Кемерово",
+    "Новосибирск": "Склад Новосибирск",
+}
 
 
 class AmsCmlHandler(BaseHandler):
