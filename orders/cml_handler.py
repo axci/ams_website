@@ -24,6 +24,9 @@ WAREHOUSE_1C_NAMES = {
     "Новосибирск": "Склад Новосибирск",
 }
 
+# Fixed «Ответственный» (1С пользователь) set on every exported site order.
+RESPONSIBLE_1C = "a-sibir.ru"
+
 
 class AmsCmlHandler(BaseHandler):
     # ---------- orders: site -> 1С ----------
@@ -61,13 +64,16 @@ class AmsCmlHandler(BaseHandler):
                 delivery_method=o.get_delivery_method_display(),
                 delivery_address=o.shipping_address,
                 cancelled=(o.status == Order.Status.CANCELLED),
-                # The order's warehouse, as a «Склад» requisite (1С matches it by
-                # name). WAREHOUSE_1C_NAMES remaps a site name to its 1С name.
-                extra=(
-                    {"Склад": WAREHOUSE_1C_NAMES.get(o.warehouse.name, o.warehouse.name)}
-                    if o.warehouse_id else {}
-                ),
+                extra=self._extra(o),
             )
+
+    def _extra(self, o):
+        """Document-level requisites 1С reads: the fixed «Ответственный» and the
+        order's «Склад» (remapped to its 1С name)."""
+        extra = {"Ответственный": RESPONSIBLE_1C}
+        if o.warehouse_id:
+            extra["Склад"] = WAREHOUSE_1C_NAMES.get(o.warehouse.name, o.warehouse.name)
+        return extra
 
     def _customer(self, o):
         """Build the 1С контрагент from the order's company (B2B) or user."""
