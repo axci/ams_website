@@ -43,13 +43,51 @@ class OrderItemInline(admin.TabularInline):
         return obj.subtotal
 
 
+class Exported1CFilter(admin.SimpleListFilter):
+    title = "выгрузка в 1С"
+    parameter_name = "exported_1c"
+
+    def lookups(self, request, model_admin):
+        return [("yes", "Выгружен"), ("no", "Не выгружен")]
+
+    def queryset(self, request, queryset):
+        if self.value() == "yes":
+            return queryset.filter(exported_to_1c_at__isnull=False)
+        if self.value() == "no":
+            return queryset.filter(exported_to_1c_at__isnull=True)
+        return queryset
+
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "warehouse", "status", "payment_method", "delivery_method", "total", "created_at")
-    list_filter = ("status", "payment_method", "delivery_method", "warehouse", "created_at")
+    list_display = ("id", "user", "warehouse", "status", "payment_method", "delivery_method", "total", "exported_1c", "created_at")
+    list_filter = ("status", "payment_method", "delivery_method", "warehouse", Exported1CFilter, "created_at")
     search_fields = ("id", "user__username", "user__company_name", "items__sku")
     readonly_fields = ("total", "created_at", "updated_at")
     inlines = [OrderItemInline]
+    actions = ["mark_not_exported_1c", "mark_exported_1c"]
+
+    @admin.display(description="В 1С", boolean=True, ordering="exported_to_1c_at")
+    def exported_1c(self, obj):
+        return obj.is_exported_to_1c
+
+    @admin.action(description="Пометить как НЕ выгруженные в 1С (отправить заново)")
+    def mark_not_exported_1c(self, request, queryset):
+        updated = queryset.update(exported_to_1c_at=None)
+        self.message_user(
+            request,
+            f"Помечено как невыгруженные: {updated}. "
+            "Будут выгружены при следующем обмене с 1С.",
+        )
+
+    @admin.action(description="Пометить как выгруженные в 1С")
+    def mark_exported_1c(self, request, queryset):
+        from django.utils import timezone
+
+        updated = queryset.filter(exported_to_1c_at__isnull=True).update(
+            exported_to_1c_at=timezone.now()
+        )
+        self.message_user(request, f"Помечено как выгруженные: {updated}.")
 
 
 class SalesImportForm(forms.Form):

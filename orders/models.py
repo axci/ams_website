@@ -126,6 +126,11 @@ class Order(models.Model):
         """Buyer collects the order at the warehouse instead of delivery."""
         return self.delivery_method == self.DeliveryMethod.PICKUP
 
+    @property
+    def is_exported_to_1c(self):
+        """Whether this order has been exported to 1С (CommerceML)."""
+        return self.exported_to_1c_at is not None
+
     def recalculate_total(self, save=True):
         self.total = sum((item.subtotal for item in self.items.all()), start=0)
         if save:
