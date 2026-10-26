@@ -17,6 +17,11 @@ from .models import Order
 
 logger = logging.getLogger("cml_exchange")
 
+# Map a site warehouse name to its 1С склад name, when they differ. Empty =
+# send the site name as-is (e.g. "Новосибирск"). Fill in if 1С names its
+# складах differently, e.g. {"Новосибирск": "Основной склад (Новосибирск)"}.
+WAREHOUSE_1C_NAMES = {}
+
 
 class AmsCmlHandler(BaseHandler):
     # ---------- orders: site -> 1С ----------
@@ -24,7 +29,7 @@ class AmsCmlHandler(BaseHandler):
         """New orders not yet exported to 1С, oldest first."""
         orders = (
             Order.objects.filter(exported_to_1c_at__isnull=True)
-            .select_related("user", "company")
+            .select_related("user", "company", "warehouse")
             .prefetch_related("items__product")
             .order_by("created_at")
         )
@@ -54,6 +59,12 @@ class AmsCmlHandler(BaseHandler):
                 delivery_method=o.get_delivery_method_display(),
                 delivery_address=o.shipping_address,
                 cancelled=(o.status == Order.Status.CANCELLED),
+                # The order's warehouse, as a «Склад» requisite (1С matches it by
+                # name). WAREHOUSE_1C_NAMES remaps a site name to its 1С name.
+                extra=(
+                    {"Склад": WAREHOUSE_1C_NAMES.get(o.warehouse.name, o.warehouse.name)}
+                    if o.warehouse_id else {}
+                ),
             )
 
     def _customer(self, o):
