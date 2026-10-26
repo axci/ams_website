@@ -40,6 +40,8 @@ class OrderItem:
     unit: str = "шт"
     unit_code: str = "796"            # код ОКЕИ, 796 — штука
     is_service: bool = False
+    article: str = ""                 # Артикул — для сопоставления номенклатуры
+    code: str = ""                    # Код номенклатуры — для сопоставления
 
     @property
     def amount(self) -> Decimal:
@@ -175,6 +177,10 @@ def build_orders_xml(orders: Iterable[OrderData]) -> bytes:
         for item in items:
             g = _sub(goods, "Товар")
             _sub(g, "Ид", item.product_id)
+            if item.article:
+                _sub(g, "Артикул", item.article)
+            if item.code:
+                _sub(g, "Код", item.code)
             _sub(g, "Наименование", item.name)
             _sub(g, "БазоваяЕдиница", item.unit, Код=item.unit_code,
                  НаименованиеПолное="Штука" if item.unit_code == "796" else item.unit)
