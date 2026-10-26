@@ -101,6 +101,10 @@ class Order(models.Model):
     comment = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    exported_to_1c_at = models.DateTimeField(
+        "выгружен в 1С", null=True, blank=True,
+        help_text="Проставляется при выгрузке заказа в 1С (CommerceML).",
+    )
 
     class Meta:
         ordering = ["-created_at"]

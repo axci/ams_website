@@ -107,7 +107,7 @@ INSTALLED_APPS = [
 CML_EXCHANGE = {
     "USERNAME": os.environ.get("CML_USERNAME", ""),
     "PASSWORD": os.environ.get("CML_PASSWORD", ""),
-    "HANDLER": "cml_exchange.handlers.LoggingHandler",
+    "HANDLER": "orders.cml_handler.AmsCmlHandler",
     "DIR": BASE_DIR / "var" / "1c_exchange",
 }
 
