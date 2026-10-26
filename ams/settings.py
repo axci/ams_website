@@ -98,7 +98,18 @@ INSTALLED_APPS = [
     "orders",
     "news",
     "about",
+    "cml_exchange",
 ]
+
+# 1С (CommerceML) exchange — endpoint at /1c/exchange. Credentials come from the
+# environment. Start with the logging handler just to confirm 1С can connect,
+# then switch HANDLER to the ams model mapping.
+CML_EXCHANGE = {
+    "USERNAME": os.environ.get("CML_USERNAME", ""),
+    "PASSWORD": os.environ.get("CML_PASSWORD", ""),
+    "HANDLER": "cml_exchange.handlers.LoggingHandler",
+    "DIR": BASE_DIR / "var" / "1c_exchange",
+}
 
 # TinyMCE rich-text editor (admin only). Static is self-hosted (served from our
 # own domain via WhiteNoise), which matters because CDNs are throttled in RU.
