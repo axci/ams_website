@@ -25,7 +25,7 @@ WAREHOUSE_1C_NAMES = {
 }
 
 # Fixed «Ответственный» (1С пользователь) set on every exported site order.
-RESPONSIBLE_1C = "a-sibir.ru"
+RESPONSIBLE_1C = "Робот"
 
 
 class AmsCmlHandler(BaseHandler):
