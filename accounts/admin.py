@@ -74,7 +74,7 @@ class UserAdmin(BaseUserAdmin):
     fieldsets = BaseUserAdmin.fieldsets + (
         (
             "Настройки покупателя",
-            {"fields": ("manager", "price_type", "show_stock", "can_view_sales", "can_order_supply", "free_delivery_min", "warehouses")},
+            {"fields": ("manager", "price_type", "organization_1c", "show_stock", "can_view_sales", "can_order_supply", "free_delivery_min", "warehouses")},
         ),
         (
             "Доступ менеджера",

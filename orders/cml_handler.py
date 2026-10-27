@@ -27,6 +27,9 @@ WAREHOUSE_1C_NAMES = {
 # Fixed «Ответственный» (1С пользователь) set on every exported site order.
 RESPONSIBLE_1C = "Робот"
 
+# Organization-продавец when a buyer has none set on their account.
+DEFAULT_ORG_1C = "Автомеханика-Сибирь ООО"
+
 # Map a site warehouse name to its 1С подразделение name, when they differ.
 # Empty = send the warehouse name as-is (Кемерово/Новокузнецк/Новосибирск match).
 PODRAZDELENIE_1C_NAMES = {}
@@ -74,13 +77,21 @@ class AmsCmlHandler(BaseHandler):
     def _extra(self, o):
         """Document-level requisites 1С reads: the fixed «Ответственный» and the
         order's «Склад» (remapped to its 1С name)."""
-        extra = {"Ответственный": RESPONSIBLE_1C}
+        extra = {
+            "Ответственный": RESPONSIBLE_1C,
+            "Организация": self._organization(o),
+        }
         if o.warehouse_id:
             extra["Склад"] = WAREHOUSE_1C_NAMES.get(o.warehouse.name, o.warehouse.name)
             extra["Подразделение"] = PODRAZDELENIE_1C_NAMES.get(
                 o.warehouse.name, o.warehouse.name
             )
         return extra
+
+    @staticmethod
+    def _organization(o):
+        org = (o.user.organization_1c or "").strip() if o.user_id else ""
+        return org or DEFAULT_ORG_1C
 
     def _customer(self, o):
         """Build the 1С контрагент from the order's company (B2B) or user."""

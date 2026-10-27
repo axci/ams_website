@@ -75,6 +75,14 @@ class User(AbstractUser):
             "Остаток на других складах доступен с пометкой «Доставка 7 дней»."
         ),
     )
+    organization_1c = models.CharField(
+        "организация (1С)",
+        max_length=200,
+        blank=True,
+        default="Автомеханика-Сибирь ООО",
+        help_text="Организация-продавец, под которой заказы этого покупателя "
+        "загружаются в 1С.",
+    )
     # Defaults pre-filled in the «Отправить прайс» block (for «Рассылка прайса»).
     price_list_price_type = models.ForeignKey(
         "catalog.PriceType",
