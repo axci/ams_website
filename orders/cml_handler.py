@@ -27,6 +27,10 @@ WAREHOUSE_1C_NAMES = {
 # Fixed «Ответственный» (1С пользователь) set on every exported site order.
 RESPONSIBLE_1C = "Робот"
 
+# Map a site warehouse name to its 1С подразделение name, when they differ.
+# Empty = send the warehouse name as-is (Кемерово/Новокузнецк/Новосибирск match).
+PODRAZDELENIE_1C_NAMES = {}
+
 
 class AmsCmlHandler(BaseHandler):
     # ---------- orders: site -> 1С ----------
@@ -73,6 +77,9 @@ class AmsCmlHandler(BaseHandler):
         extra = {"Ответственный": RESPONSIBLE_1C}
         if o.warehouse_id:
             extra["Склад"] = WAREHOUSE_1C_NAMES.get(o.warehouse.name, o.warehouse.name)
+            extra["Подразделение"] = PODRAZDELENIE_1C_NAMES.get(
+                o.warehouse.name, o.warehouse.name
+            )
         return extra
 
     def _customer(self, o):
