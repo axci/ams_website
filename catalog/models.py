@@ -126,6 +126,14 @@ class Product(models.Model):
     # Additional, non-unique references.
     article = models.CharField("артикул", max_length=64, blank=True, db_index=True)
     manufacturer_number = models.CharField("Номер производителя", max_length=64, blank=True, db_index=True)
+    nkoil_code = models.CharField(
+        "код НК-Нефть",
+        max_length=64,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Код товара в системе НК-Нефть — для загрузки заказов из Excel.",
+    )
     supplier = models.CharField("поставщик", max_length=255, blank=True, default="")
     # Cross-reference numbers (used for the «Фильтры» category). Searchable in the
     # catalog — case- and separator-insensitive, so «CU 2945» == «CU2945» ==
