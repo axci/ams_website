@@ -6,16 +6,19 @@ from django.contrib.auth.admin import UserAdmin as BaseUserAdmin
 from django.contrib.auth.password_validation import validate_password
 from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import path, reverse
 from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.utils.html import format_html
+from urllib.parse import quote
 
 from catalog.models import PriceType
 from warehouses.models import Manager, Warehouse
 
 from .emails import send_credentials
+from .exports import build_users_xlsx
 from .imports import import_companies
 from .models import (
     Company,
@@ -97,10 +100,29 @@ class UserAdmin(BaseUserAdmin):
         ),
     )
 
+    actions = ["export_users_xlsx"]
+
     @admin.display(description="Компании")
     def company_list(self, obj):
         names = [c.company_name or c.code or "—" for c in obj.companies.all()[:3]]
         return ", ".join(names) or "—"
+
+    @admin.action(description="Скачать выбранных в Excel (все данные)")
+    def export_users_xlsx(self, request, queryset):
+        users = queryset.select_related("manager", "price_type").prefetch_related(
+            "warehouses", "companies"
+        )
+        filename = f"пользователи_{timezone.localdate():%d.%m.%Y}.xlsx"
+        response = HttpResponse(
+            build_users_xlsx(users),
+            content_type=(
+                "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            ),
+        )
+        response["Content-Disposition"] = (
+            f"attachment; filename=users.xlsx; filename*=UTF-8''{quote(filename)}"
+        )
+        return response
 
 
 class CompanyImportForm(forms.Form):
