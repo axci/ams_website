@@ -53,14 +53,16 @@ class AmsCmlHandler(BaseHandler):
                 customer=self._customer(o),
                 items=[
                     CmlOrderItem(
-                        # 1С matches номенклатура by the 1С code (sku), sent as both
-                        # <Ид> and <Код>. Артикул is intentionally NOT sent — several
-                        # products can share an article, which causes mismatches.
+                        # УНФ currently matches номенклатура by Артикул, so send it
+                        # (plus the 1С code as <Ид>/<Код>). NOTE: articles aren't
+                        # unique — shared-article products can mismatch until УНФ is
+                        # switched to match by Код.
                         product_id=it.sku or (it.product.sku if it.product_id else ""),
                         name=it.name,
                         quantity=it.quantity,
                         price=it.price,
                         code=it.sku or (it.product.sku if it.product_id else ""),
+                        article=(it.product.article if it.product_id else ""),
                     )
                     for it in o.items.all()
                 ],
