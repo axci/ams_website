@@ -105,6 +105,15 @@ class Order(models.Model):
         "выгружен в 1С", null=True, blank=True,
         help_text="Проставляется при выгрузке заказа в 1С (CommerceML).",
     )
+    imported_from_email = models.ForeignKey(
+        "ImportedOrderEmail",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="orders",
+        verbose_name="импортирован из письма",
+        help_text="Письмо, из xlsx-вложения которого создан этот заказ.",
+    )
 
     class Meta:
         ordering = ["-created_at"]
@@ -157,6 +166,32 @@ class OrderItem(models.Model):
         if self.price is None or self.quantity is None:
             return None
         return self.price * self.quantity
+
+
+class ImportedOrderEmail(models.Model):
+    """One client email processed by the `import_email_orders` command.
+
+    Kept so the same message is never imported twice (matched by Message-ID)
+    and so the office can trace which orders came from which email, with the
+    per-line match report preserved for review.
+    """
+
+    message_id = models.CharField("Message-ID", max_length=255, unique=True)
+    sender = models.CharField("отправитель", max_length=255, blank=True)
+    subject = models.CharField("тема", max_length=500, blank=True)
+    received_at = models.DateTimeField("дата письма", null=True, blank=True)
+    processed_at = models.DateTimeField("импортировано", auto_now_add=True)
+    order_count = models.PositiveIntegerField("создано заказов", default=0)
+    report = models.TextField("отчёт об импорте", blank=True, default="")
+
+    class Meta:
+        verbose_name = "импорт заказов из почты"
+        verbose_name_plural = "импорт заказов из почты"
+        ordering = ["-processed_at"]
+
+    def __str__(self):
+        subject = self.subject or "(без темы)"
+        return f"{self.sender} · {subject[:60]}"
 
 
 class Favorite(models.Model):

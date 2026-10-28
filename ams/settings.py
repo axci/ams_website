@@ -111,6 +111,25 @@ CML_EXCHANGE = {
     "DIR": BASE_DIR / "var" / "1c_exchange",
 }
 
+# Email order import — the `import_email_orders` command polls this IMAP mailbox
+# for order spreadsheets sent by whitelisted clients and turns each «Точка
+# продаж» section into a pending Order. See orders/email_import.py.
+EMAIL_ORDER_IMPORT = {
+    "IMAP_HOST": os.environ.get("ORDER_IMAP_HOST", "imap.yandex.ru"),
+    "IMAP_PORT": int(os.environ.get("ORDER_IMAP_PORT", "993")),
+    "USERNAME": os.environ.get("ORDER_IMAP_USER", ""),
+    "PASSWORD": os.environ.get("ORDER_IMAP_PASSWORD", ""),
+    "MAILBOX": os.environ.get("ORDER_IMAP_MAILBOX", "INBOX"),
+    # Only messages from these senders are processed (comma-separated).
+    "ALLOWED_SENDERS": env_list("ORDER_ALLOWED_SENDERS"),
+    # Warehouse new imported orders are placed on (destinations handled later).
+    "DEFAULT_WAREHOUSE": os.environ.get("ORDER_DEFAULT_WAREHOUSE", "Новокузнецк"),
+    # Sender→site-login map, e.g. "pria_ru@mail.ru=nk-oil". The only way a
+    # sender is resolved to an account; unmapped senders are reported, not
+    # guessed (never matched against an account's email).
+    "SENDER_USER_MAP": os.environ.get("ORDER_SENDER_USER_MAP", ""),
+}
+
 # TinyMCE rich-text editor (admin only). Static is self-hosted (served from our
 # own domain via WhiteNoise), which matters because CDNs are throttled in RU.
 TINYMCE_DEFAULT_CONFIG = {

@@ -8,6 +8,7 @@ from django.urls import path
 from .models import (
     Cart,
     CartItem,
+    ImportedOrderEmail,
     Order,
     OrderItem,
     PurchaseOrder,
@@ -58,18 +59,37 @@ class Exported1CFilter(admin.SimpleListFilter):
         return queryset
 
 
+class ImportedFilter(admin.SimpleListFilter):
+    title = "импорт из почты"
+    parameter_name = "imported"
+
+    def lookups(self, request, model_admin):
+        return [("yes", "Из письма"), ("no", "Обычные")]
+
+    def queryset(self, request, queryset):
+        if self.value() == "yes":
+            return queryset.filter(imported_from_email__isnull=False)
+        if self.value() == "no":
+            return queryset.filter(imported_from_email__isnull=True)
+        return queryset
+
+
 @admin.register(Order)
 class OrderAdmin(admin.ModelAdmin):
-    list_display = ("id", "user", "warehouse", "status", "payment_method", "delivery_method", "total", "exported_1c", "created_at")
-    list_filter = ("status", "payment_method", "delivery_method", "warehouse", Exported1CFilter, "created_at")
+    list_display = ("id", "user", "warehouse", "status", "payment_method", "delivery_method", "total", "exported_1c", "from_email", "created_at")
+    list_filter = ("status", "payment_method", "delivery_method", "warehouse", Exported1CFilter, ImportedFilter, "created_at")
     search_fields = ("id", "user__username", "user__company_name", "items__sku")
-    readonly_fields = ("total", "created_at", "updated_at")
+    readonly_fields = ("total", "created_at", "updated_at", "imported_from_email")
     inlines = [OrderItemInline]
     actions = ["mark_not_exported_1c", "mark_exported_1c"]
 
     @admin.display(description="В 1С", boolean=True, ordering="exported_to_1c_at")
     def exported_1c(self, obj):
         return obj.is_exported_to_1c
+
+    @admin.display(description="Из почты", boolean=True, ordering="imported_from_email")
+    def from_email(self, obj):
+        return obj.imported_from_email_id is not None
 
     @admin.action(description="Пометить как НЕ выгруженные в 1С (отправить заново)")
     def mark_not_exported_1c(self, request, queryset):
@@ -219,3 +239,17 @@ class PurchaseOrderAdmin(admin.ModelAdmin):
     date_hierarchy = "created_at"
     inlines = (PurchaseOrderItemInline,)
     readonly_fields = ("created_at",)
+
+
+@admin.register(ImportedOrderEmail)
+class ImportedOrderEmailAdmin(admin.ModelAdmin):
+    list_display = ("processed_at", "sender", "subject", "order_count", "received_at")
+    search_fields = ("sender", "subject", "message_id")
+    date_hierarchy = "processed_at"
+    readonly_fields = (
+        "message_id", "sender", "subject", "received_at", "processed_at",
+        "order_count", "report",
+    )
+
+    def has_add_permission(self, request):
+        return False  # created only by the import command
