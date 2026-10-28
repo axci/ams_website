@@ -42,6 +42,7 @@ PRODUCT_COLUMNS = [
     ("article", lambda p: p.article),
     ("manufacturer_number", lambda p: p.manufacturer_number),
     ("nkoil_code", lambda p: p.nkoil_code),
+    ("guid", lambda p: p.guid),
     ("supplier", lambda p: p.supplier),
     ("mann_cross", lambda p: p.mann_cross),
     ("mahl_cross", lambda p: p.mahl_cross),

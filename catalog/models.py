@@ -134,6 +134,15 @@ class Product(models.Model):
         db_index=True,
         help_text="Код товара в системе НК-Нефть — для загрузки заказов из Excel.",
     )
+    guid = models.CharField(
+        "GUID (1С)",
+        max_length=50,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Идентификатор (Ид) товара в 1С — для точного сопоставления "
+        "номенклатуры при выгрузке заказов.",
+    )
     supplier = models.CharField("поставщик", max_length=255, blank=True, default="")
     # Cross-reference numbers (used for the «Фильтры» category). Searchable in the
     # catalog — case- and separator-insensitive, so «CU 2945» == «CU2945» ==

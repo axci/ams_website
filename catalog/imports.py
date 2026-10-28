@@ -75,6 +75,10 @@ FIELD_ALIASES = {
     "nkoil code": "nkoil_code",
     "код нк-нефть": "nkoil_code",
     "код нк нефть": "nkoil_code",
+    "guid": "guid",
+    "guid 1с": "guid",
+    "ид": "guid",
+    "идентификатор": "guid",
     "supplier": "supplier",
     "поставщик": "supplier",
     "mann_cross": "mann_cross",
@@ -114,7 +118,7 @@ IGNORED_COLUMNS = {
     "created_at", "updated_at",
 }
 
-TEXT_LIMITS ={"sku": 64, "article": 64, "manufacturer_number": 64, "nkoil_code": 64, "supplier": 255, "mann_cross": 255, "mahl_cross": 255, "sakura_cross": 255, "knecht_cross": 255, "oem_cross": 10000, "certificate": 500, "name": 200, "viscosity": 20, "weight_unit": 16, "volume_unit": 16}
+TEXT_LIMITS ={"sku": 64, "article": 64, "manufacturer_number": 64, "nkoil_code": 64, "guid": 50, "supplier": 255, "mann_cross": 255, "mahl_cross": 255, "sakura_cross": 255, "knecht_cross": 255, "oem_cross": 10000, "certificate": 500, "name": 200, "viscosity": 20, "weight_unit": 16, "volume_unit": 16}
 
 
 @dataclass
@@ -321,6 +325,8 @@ def import_products(file_obj, default_brand=None):
                 defaults["manufacturer_number"] = _text(values.get("manufacturer_number"), 64)
             if "nkoil_code" in values:
                 defaults["nkoil_code"] = _text(values.get("nkoil_code"), 64)
+            if "guid" in values:
+                defaults["guid"] = _text(values.get("guid"), 50)
             if "supplier" in values:
                 defaults["supplier"] = _text(values.get("supplier"), 255)
             if "mann_cross" in values:
