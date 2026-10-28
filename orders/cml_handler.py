@@ -51,21 +51,7 @@ class AmsCmlHandler(BaseHandler):
                 number=o.invoice_number,
                 created=o.created_at,
                 customer=self._customer(o),
-                items=[
-                    CmlOrderItem(
-                        # УНФ currently matches номенклатура by Артикул, so send it
-                        # (plus the 1С code as <Ид>/<Код>). NOTE: articles aren't
-                        # unique — shared-article products can mismatch until УНФ is
-                        # switched to match by Код.
-                        product_id=it.sku or (it.product.sku if it.product_id else ""),
-                        name=it.name,
-                        quantity=it.quantity,
-                        price=it.price,
-                        code=it.sku or (it.product.sku if it.product_id else ""),
-                        article=(it.product.article if it.product_id else ""),
-                    )
-                    for it in o.items.all()
-                ],
+                items=[self._item(it) for it in o.items.all()],
                 comment=o.comment,
                 status=o.get_status_display(),
                 payment_method=o.get_payment_method_display(),
@@ -93,6 +79,24 @@ class AmsCmlHandler(BaseHandler):
     def _organization(o):
         org = (o.user.organization_1c or "").strip() if o.user_id else ""
         return org or DEFAULT_ORG_1C
+
+    @staticmethod
+    def _item(it):
+        """One CommerceML order line. When the product has a 1С GUID, match
+        номенклатура exactly by <Ид> = guid and send no Артикул (so shared
+        articles can't mismatch). Without a GUID, fall back to Артикул, with the
+        1С code (sku) in <Ид>/<Код>."""
+        sku = it.sku or (it.product.sku if it.product_id else "")
+        guid = (it.product.guid or "").strip() if it.product_id else ""
+        if guid:
+            return CmlOrderItem(
+                product_id=guid, name=it.name, quantity=it.quantity,
+                price=it.price, code=sku,
+            )
+        return CmlOrderItem(
+            product_id=sku, name=it.name, quantity=it.quantity, price=it.price,
+            code=sku, article=(it.product.article if it.product_id else ""),
+        )
 
     def _customer(self, o):
         """Build the 1С контрагент from the order's company (B2B) or user."""
