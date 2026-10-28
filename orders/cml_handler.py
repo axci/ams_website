@@ -82,20 +82,18 @@ class AmsCmlHandler(BaseHandler):
 
     @staticmethod
     def _item(it):
-        """One CommerceML order line. When the product has a 1С GUID, match
-        номенклатура exactly by <Ид> = guid and send no Артикул (so shared
-        articles can't mismatch). Without a GUID, fall back to Артикул, with the
-        1С code (sku) in <Ид>/<Код>."""
+        """One CommerceML order line. Match номенклатура by the 1С GUID, sent as
+        <Ид> (with the 1С code in <Код>). No Артикул — matching is by GUID only;
+        a product without a GUID falls back to its sku in <Ид> (which won't match,
+        signalling that its guid still needs to be filled in)."""
         sku = it.sku or (it.product.sku if it.product_id else "")
         guid = (it.product.guid or "").strip() if it.product_id else ""
-        if guid:
-            return CmlOrderItem(
-                product_id=guid, name=it.name, quantity=it.quantity,
-                price=it.price, code=sku,
-            )
         return CmlOrderItem(
-            product_id=sku, name=it.name, quantity=it.quantity, price=it.price,
-            code=sku, article=(it.product.article if it.product_id else ""),
+            product_id=guid or sku,
+            name=it.name,
+            quantity=it.quantity,
+            price=it.price,
+            code=sku,
         )
 
     def _customer(self, o):
