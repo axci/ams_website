@@ -27,7 +27,14 @@ from django.conf import settings
 from django.db import transaction
 
 POINT_PREFIX = "Точка продаж:"
-HEADER_FIRST_CELL = "Код товара"
+# Columns are located by these header labels, because the client's layout
+# varies — e.g. one file is 4 columns with «К заказу» in column D, another is
+# 9 columns with «К заказу» in column E (and a «Цена (закупка)» column in D).
+CODE_HEADER = "Код товара"
+NAME_HEADER = "Наименование товара"
+QTY_HEADER = "К заказу"
+# Fallback 0-based positions if a header row is missing (the original layout).
+DEFAULT_COLS = {"code": 0, "name": 1, "qty": 3}
 # A trailing position count the client appends to a point-of-sale name, e.g.
 # "АЗС №25 … (10)" — the "(10)" is the number of lines, not part of the name.
 _TRAILING_COUNT = re.compile(r"\s*\(\d+\)\s*$")
@@ -72,28 +79,48 @@ def _parse_qty(value):
     return rounded if rounded > 0 else None
 
 
+def _header_columns(cells):
+    """Map code/name/qty to 0-based indices from a header row, falling back to
+    the default layout for any label that isn't found."""
+    labels = {i: _clean(c).lower() for i, c in enumerate(cells)}
+    cols = dict(DEFAULT_COLS)
+    for key, header in (("code", CODE_HEADER), ("name", NAME_HEADER), ("qty", QTY_HEADER)):
+        for i, text in labels.items():
+            if text == header.lower():
+                cols[key] = i
+                break
+    return cols
+
+
 def parse_order_rows(rows):
     """Turn an iterable of row value-tuples into a list of :class:`ParsedOrder`.
 
     Accepts any iterable of sequences (cell values, left to right), so it can be
-    tested without a real workbook. Sections with no item lines are dropped.
+    tested without a real workbook. Columns are located from the header row (see
+    :func:`_header_columns`); the code column (col A) anchors section markers and
+    subtotal rows in every layout seen. Sections with no item lines are dropped.
     """
     orders = []
     current = None
+    cols = dict(DEFAULT_COLS)
+
+    def at(cells, key):
+        i = cols[key]
+        return cells[i] if 0 <= i < len(cells) else None
+
     for idx, row in enumerate(rows, start=1):
         cells = list(row) if row is not None else []
-        col_a = _clean(cells[0]) if len(cells) > 0 else ""
-        col_b = _clean(cells[1]) if len(cells) > 1 else ""
-        col_d = cells[3] if len(cells) > 3 else None
+        code = _clean(at(cells, "code"))
 
-        if col_a == HEADER_FIRST_CELL:
-            continue  # header row
-        if col_a.startswith(POINT_PREFIX):
-            name = _TRAILING_COUNT.sub("", col_a[len(POINT_PREFIX):].strip()).strip()
+        if code == CODE_HEADER:
+            cols = _header_columns(cells)  # lock column positions from the header
+            continue
+        if code.startswith(POINT_PREFIX):
+            name = _TRAILING_COUNT.sub("", code[len(POINT_PREFIX):].strip()).strip()
             current = ParsedOrder(point_of_sale=name)
             orders.append(current)
             continue
-        if not col_a:
+        if not code:
             continue  # subtotal / grand-total row (code column empty)
 
         # An item line. Tolerate items that appear before any marker row.
@@ -101,7 +128,12 @@ def parse_order_rows(rows):
             current = ParsedOrder(point_of_sale="")
             orders.append(current)
         current.items.append(
-            ParsedLine(code=col_a, name=col_b, quantity=_parse_qty(col_d) or 0, row=idx)
+            ParsedLine(
+                code=code,
+                name=_clean(at(cells, "name")),
+                quantity=_parse_qty(at(cells, "qty")) or 0,
+                row=idx,
+            )
         )
 
     return [order for order in orders if order.items]
