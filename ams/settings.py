@@ -112,21 +112,36 @@ CML_EXCHANGE = {
 }
 
 # Email order import — the `import_email_orders` command polls this IMAP mailbox
-# for order spreadsheets sent by whitelisted clients and turns each «Точка
-# продаж» section into a pending Order. See orders/email_import.py.
+# and, per source profile, turns client order spreadsheets into pending Orders
+# (see orders/email_import.py). Client-specific config (folders, senders, maps)
+# lives in the environment because this repo is public: name the clients in
+# ORDER_SOURCES (e.g. "nkoil,avramenko") and give each an ORDER_<NAME>_* group.
+def _order_source(name):
+    key = name.strip().upper().replace("-", "_")
+    return {
+        "name": name.strip(),
+        "folder": os.environ.get(f"ORDER_{key}_FOLDER", name.strip()),
+        # "nkoil_sections" (Точка продаж, match nkoil_code) or "price_list"
+        # (filled catalog, match sku).
+        "format": os.environ.get(f"ORDER_{key}_FORMAT", "nkoil_sections"),
+        "match_by": os.environ.get(f"ORDER_{key}_MATCH_BY", "nkoil_code"),
+        "senders": env_list(f"ORDER_{key}_SENDERS"),
+        "sender_user_map": os.environ.get(f"ORDER_{key}_USER_MAP", ""),
+        "resolve_by_email": env_bool(f"ORDER_{key}_RESOLVE_BY_EMAIL", False),
+    }
+
+
 EMAIL_ORDER_IMPORT = {
     "IMAP_HOST": os.environ.get("ORDER_IMAP_HOST", "imap.yandex.ru"),
     "IMAP_PORT": int(os.environ.get("ORDER_IMAP_PORT", "993")),
     "USERNAME": os.environ.get("ORDER_IMAP_USER", ""),
     "PASSWORD": os.environ.get("ORDER_IMAP_PASSWORD", ""),
-    "MAILBOX": os.environ.get("ORDER_IMAP_MAILBOX", "INBOX"),
-    # Only messages from these senders are processed (comma-separated).
-    "ALLOWED_SENDERS": env_list("ORDER_ALLOWED_SENDERS"),
     # Warehouse new imported orders are placed on (destinations handled later).
     "DEFAULT_WAREHOUSE": os.environ.get("ORDER_DEFAULT_WAREHOUSE", "Новокузнецк"),
-    # Sender→site-login map, e.g. "pria_ru@mail.ru=nk-oil". The only way a
-    # sender is resolved to an account; unmapped senders are reported, not
-    # guessed (never matched against an account's email).
+    "SOURCES": [_order_source(n) for n in env_list("ORDER_SOURCES")],
+    # Legacy single-source keys, used only if ORDER_SOURCES is empty.
+    "MAILBOX": os.environ.get("ORDER_IMAP_MAILBOX", "INBOX"),
+    "ALLOWED_SENDERS": env_list("ORDER_ALLOWED_SENDERS"),
     "SENDER_USER_MAP": os.environ.get("ORDER_SENDER_USER_MAP", ""),
 }
 
