@@ -2,17 +2,23 @@
 
 Connects to the configured IMAP mailbox and walks each *source profile*
 (``settings.EMAIL_ORDER_IMPORT["SOURCES"]``): for every profile it opens that
-profile's folder, finds messages from allowed senders carrying an .xlsx/.xls
-attachment, and turns them into pending Orders (see :mod:`orders.email_import`).
-Messages are matched to :class:`orders.models.ImportedOrderEmail` by Message-ID
-so a run never imports the same email twice; processed messages are flagged
-\\Seen.
+profile's folder, finds order emails and turns them into pending Orders (see
+:mod:`orders.email_import`).
+
+Which emails are imported is decided by two things, never by read/unread (so a
+manager opening a message in webmail changes nothing):
+
+* a **date cutoff** (``ORDER_SINCE`` / ``--since``) — only emails dated strictly
+  after it are considered, which excludes pre-automation orders handled manually;
+* **Message-ID dedup** (:class:`orders.models.ImportedOrderEmail`) — the same
+  email is never imported twice.
 
 Usage::
 
-    python manage.py import_email_orders              # process new (UNSEEN) mail
+    python manage.py import_email_orders              # emails after ORDER_SINCE
     python manage.py import_email_orders --dry-run     # report only, write nothing
-    python manage.py import_email_orders --all         # also re-scan read mail
+    python manage.py import_email_orders --since 2026-10-30
+    python manage.py import_email_orders --all         # ignore the cutoff (full load)
     python manage.py import_email_orders --source nkoil  # one profile only
 """
 
@@ -21,11 +27,13 @@ import hashlib
 import imaplib
 import io
 import logging
+from datetime import date, timezone as dt_timezone
 from email.header import decode_header, make_header
 from email.utils import parseaddr, parsedate_to_datetime
 
 from django.core.management.base import BaseCommand, CommandError
 from django.db import transaction
+from django.utils import timezone as dj_timezone
 
 from orders.email_import import (
     create_orders_for_email,
@@ -44,6 +52,13 @@ SPREADSHEET_CTS = {
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",  # .xlsx
     "application/vnd.ms-excel",  # .xls
 }
+_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun",
+           "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
+
+
+def _imap_date(d):
+    """A date as IMAP SEARCH wants it, e.g. 30-Oct-2026 (locale-independent)."""
+    return f"{d.day:02d}-{_MONTHS[d.month - 1]}-{d.year}"
 
 
 def _decode(value):
@@ -54,6 +69,22 @@ def _decode(value):
         return str(make_header(decode_header(value)))
     except Exception:
         return str(value)
+
+
+def _local_date(date_header):
+    """The local (site-timezone) calendar date of an email's Date header, or
+    None if it's missing/unparseable."""
+    if not date_header:
+        return None
+    try:
+        dt = parsedate_to_datetime(date_header)
+    except (TypeError, ValueError):
+        return None
+    if dt is None:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=dt_timezone.utc)
+    return dj_timezone.localtime(dt).date()
 
 
 def _spreadsheet_attachments(msg):
@@ -73,7 +104,7 @@ def _spreadsheet_attachments(msg):
 
 
 class Command(BaseCommand):
-    help = "Импорт заказов из xlsx/xls-вложений писем (IMAP)."
+    help = "Импорт заказов из xlsx/xls-вложений писем (IMAP), по дате отсечки."
 
     def add_arguments(self, parser):
         parser.add_argument(
@@ -81,12 +112,17 @@ class Command(BaseCommand):
             help="Разобрать и показать результат, ничего не записывая.",
         )
         parser.add_argument(
-            "--all", action="store_true",
-            help="Сканировать все письма, а не только непрочитанные.",
+            "--since", default=None,
+            help="Импортировать письма строго позже этой даты (ГГГГ-ММ-ДД); "
+                 "по умолчанию из ORDER_SINCE.",
         )
         parser.add_argument(
-            "--limit", type=int, default=25,
-            help="Максимум писем на источник за запуск (по умолчанию 25).",
+            "--all", action="store_true",
+            help="Игнорировать дату отсечки — разовая полная загрузка.",
+        )
+        parser.add_argument(
+            "--limit", type=int, default=0,
+            help="Максимум писем на источник (0 — без ограничения).",
         )
         parser.add_argument(
             "--source", default=None,
@@ -117,23 +153,41 @@ class Command(BaseCommand):
         if not sources:
             raise CommandError("Не настроен ни один источник (ORDER_SOURCES).")
 
+        cutoff = None
+        if not opts["all"]:
+            raw = (opts["since"] or config.get("SINCE", "") or "").strip()
+            if raw:
+                try:
+                    cutoff = date.fromisoformat(raw)
+                except ValueError:
+                    raise CommandError(
+                        f"Неверная дата отсечки: {raw!r} (ожидается ГГГГ-ММ-ДД)."
+                    )
+
+        # One query up front; dedup checks are then in-memory.
+        imported_ids = set(ImportedOrderEmail.objects.values_list("message_id", flat=True))
+
         host = config.get("IMAP_HOST", "imap.yandex.ru")
         port = int(config.get("IMAP_PORT", 993))
         self.stdout.write(
-            f"Подключение к {host}:{port} как {username}"
+            f"Подключение к {host}:{port} как {username}; "
+            + (f"письма после {cutoff}" if cutoff else "все письма (без отсечки)")
             + (" [DRY-RUN]" if dry_run else "")
         )
 
-        totals = {"emails": 0, "orders": 0, "skipped_sender": 0, "no_user": 0}
+        totals = {"emails": 0, "orders": 0, "skipped_sender": 0,
+                  "before_cutoff": 0, "no_user": 0}
         conn = imaplib.IMAP4_SSL(host, port)
         try:
             conn.login(username, password)
             for source in sources:
-                self._process_source(conn, source, warehouse, dry_run, host, opts, totals)
+                self._process_source(
+                    conn, source, warehouse, cutoff, imported_ids, dry_run, host, opts, totals
+                )
             self.stdout.write(self.style.SUCCESS(
                 "Готово: обработано писем {emails}, создано заказов {orders}, "
-                "пропущено по отправителю {skipped_sender}, без аккаунта {no_user}."
-                .format(**totals)
+                "пропущено по отправителю {skipped_sender}, раньше отсечки "
+                "{before_cutoff}, без аккаунта {no_user}.".format(**totals)
             ))
         finally:
             try:
@@ -142,48 +196,78 @@ class Command(BaseCommand):
                 pass
 
     # -- per-source --------------------------------------------------------- #
-    def _process_source(self, conn, source, warehouse, dry_run, host, opts, totals):
+    def _process_source(self, conn, source, warehouse, cutoff, imported_ids,
+                         dry_run, host, opts, totals):
         name = source.get("name", "?")
         folder = source.get("folder", "INBOX")
         typ, _ = conn.select(folder)
         if typ != "OK":
             self.stderr.write(f"[{name}] не удалось открыть папку {folder!r}: {typ}.")
             return
-        criteria = "ALL" if opts["all"] else "UNSEEN"
-        typ, data = conn.search(None, criteria)
+        # Server-side date filter (coarse, by INTERNALDATE); the Date-header check
+        # per message is the precise "strictly after" gate.
+        if cutoff is not None:
+            typ, data = conn.search(None, "SINCE", _imap_date(cutoff))
+        else:
+            typ, data = conn.search(None, "ALL")
         if typ != "OK":
             self.stderr.write(f"[{name}] IMAP SEARCH вернул {typ}.")
             return
         uids = data[0].split()
-        if opts["limit"]:
+        if opts["limit"] and opts["limit"] > 0:
             uids = uids[-opts["limit"]:]
-        self.stdout.write(f"[{name}] папка {folder}: писем ({criteria}) {len(uids)}")
+        self.stdout.write(f"[{name}] папка {folder}: писем к проверке {len(uids)}")
         for uid in uids:
-            self._process_uid(conn, uid, source, warehouse, dry_run, host, totals)
+            self._process_uid(
+                conn, uid, source, warehouse, cutoff, imported_ids, dry_run, host, totals
+            )
 
     # -- per-message -------------------------------------------------------- #
-    def _process_uid(self, conn, uid, source, warehouse, dry_run, host, totals):
+    def _process_uid(self, conn, uid, source, warehouse, cutoff, imported_ids,
+                     dry_run, host, totals):
         name = source.get("name", "?")
-        typ, msg_data = conn.fetch(uid, "(RFC822)")
-        if typ != "OK" or not msg_data or not msg_data[0]:
-            self.stderr.write(f"[{name}] UID {uid!r}: не удалось получить письмо.")
+        # Cheap header peek first (does not touch the \Seen flag).
+        typ, hdata = conn.fetch(
+            uid, "(BODY.PEEK[HEADER.FIELDS (MESSAGE-ID FROM DATE SUBJECT)])"
+        )
+        if typ != "OK" or not hdata or not isinstance(hdata[0], tuple):
+            self.stderr.write(f"[{name}] UID {uid!r}: не удалось получить заголовки.")
             return
-        raw = msg_data[0][1]
-        msg = email_lib.message_from_bytes(raw)
+        head = email_lib.message_from_bytes(hdata[0][1])
+        sender = parseaddr(head.get("From", ""))[1].lower()
+        subject = _decode(head.get("Subject", ""))
 
-        sender = parseaddr(msg.get("From", ""))[1].lower()
-        subject = _decode(msg.get("Subject", ""))
         if not sender_allowed(sender, source):
             totals["skipped_sender"] += 1
-            return  # leave unseen; not a client of this source
+            return
 
-        message_id = (msg.get("Message-ID") or "").strip()
-        if not message_id:
-            message_id = f"<ams-{hashlib.sha1(raw).hexdigest()}@{host}>"
-        if ImportedOrderEmail.objects.filter(message_id=message_id).exists():
-            self._mark_seen(conn, uid, dry_run)
+        if cutoff is not None:
+            msg_date = _local_date(head.get("Date"))
+            if msg_date is None:
+                self.stderr.write(
+                    f"  [{name}] {sender}: «{subject}» — без даты, пропуск."
+                )
+                return
+            if msg_date <= cutoff:
+                totals["before_cutoff"] += 1
+                return  # pre-cutoff (old / manually handled)
+
+        message_id = (head.get("Message-ID") or "").strip()
+        if message_id and message_id in imported_ids:
             return  # already imported
 
+        # Passed the cheap checks — fetch the full message (still peek, no \Seen).
+        typ, bdata = conn.fetch(uid, "(BODY.PEEK[])")
+        if typ != "OK" or not bdata or not isinstance(bdata[0], tuple):
+            self.stderr.write(f"[{name}] UID {uid!r}: не удалось получить письмо.")
+            return
+        raw = bdata[0][1]
+        if not message_id:
+            message_id = f"<ams-{hashlib.sha1(raw).hexdigest()}@{host}>"
+            if message_id in imported_ids:
+                return
+
+        msg = email_lib.message_from_bytes(raw)
         attachments = list(_spreadsheet_attachments(msg))
         if not attachments:
             self.stdout.write(f"  [{name}] {sender}: «{subject}» — нет вложений, пропуск.")
@@ -193,10 +277,9 @@ class Command(BaseCommand):
         if user is None:
             totals["no_user"] += 1
             self.stderr.write(
-                f"  [{name}] {sender}: «{subject}» — отправитель не сопоставлен "
-                "с аккаунтом. Оставлено непрочитанным."
+                f"  [{name}] {sender}: «{subject}» — отправитель не сопоставлен с аккаунтом."
             )
-            return  # leave unseen so it imports once the mapping is fixed
+            return
 
         fmt = source.get("format", "nkoil_sections")
         sections = []
@@ -244,6 +327,7 @@ class Command(BaseCommand):
             source_email.order_count = len(result.created_orders)
             source_email.report = result.render_report()
             source_email.save(update_fields=["order_count", "report"])
+        imported_ids.add(message_id)
 
         totals["emails"] += 1
         totals["orders"] += len(result.created_orders)
@@ -254,12 +338,3 @@ class Command(BaseCommand):
                 f"       не найдено товаров: {len(result.unmatched)} "
                 "(см. отчёт в админке → «Импорт заказов из почты»)."
             ))
-        self._mark_seen(conn, uid, dry_run)
-
-    def _mark_seen(self, conn, uid, dry_run):
-        if dry_run:
-            return
-        try:
-            conn.store(uid, "+FLAGS", "\\Seen")
-        except Exception as exc:
-            self.stderr.write(f"  Не удалось пометить письмо прочитанным: {exc}")

@@ -138,6 +138,9 @@ EMAIL_ORDER_IMPORT = {
     "PASSWORD": os.environ.get("ORDER_IMAP_PASSWORD", ""),
     # Warehouse new imported orders are placed on (destinations handled later).
     "DEFAULT_WAREHOUSE": os.environ.get("ORDER_DEFAULT_WAREHOUSE", "Новокузнецк"),
+    # Only import emails dated strictly AFTER this date (YYYY-MM-DD) — excludes
+    # pre-automation orders handled manually. Empty = no cutoff (import all).
+    "SINCE": os.environ.get("ORDER_SINCE", ""),
     "SOURCES": [_order_source(n) for n in env_list("ORDER_SOURCES")],
     # Legacy single-source keys, used only if ORDER_SOURCES is empty.
     "MAILBOX": os.environ.get("ORDER_IMAP_MAILBOX", "INBOX"),
