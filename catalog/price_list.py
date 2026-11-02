@@ -1,9 +1,18 @@
 """Build and email a price list (.xlsx) for a price type + warehouse.
 
-Columns: Артикул, Бренд, Наименование, Свободный остаток (stock on the chosen
-warehouse) and Цена (the chosen price type's price, falling back to the
-product's base price when that type has no explicit price). Only active
-products are included.
+Two layouts are available (see :data:`LAYOUTS`):
+
+``standard``
+    Артикул, Бренд, Наименование, Свободный остаток (stock on the chosen
+    warehouse) and Цена (the chosen price type's price, falling back to the
+    product's base price when that type has no explicit price), starting at A1.
+
+``shop`` (интернет-магазин)
+    The same data offset to column B, with a title on row 1 and the column
+    headers on row 8 (products from row 9), plus Штрихкод (gtin), ТН ВЭД and
+    Код ОКПД2 columns.
+
+Both include only active products that have a price.
 """
 
 from io import BytesIO
@@ -103,11 +112,84 @@ def build_price_list_xlsx(price_type, warehouse, in_stock_only=False):
     return bio.getvalue()
 
 
-def send_price_list_email(price_type, warehouse, recipients, in_stock_only=False):
+# «интернет-магазин» layout: data offset to column B, a title on row 1 and the
+# column headers on row 8, products from row 9. Column A is left blank.
+SHOP_HEADERS = [
+    "Артикул", "Бренд", "Штрихкод", "Наименование",
+    "Свободный остаток", "ТН ВЭД", "Код ОКПД2", "Цена",
+]
+SHOP_FIRST_COL = 2   # column B (column A is left blank)
+SHOP_HEADER_ROW = 8  # column labels on row 8
+SHOP_DATA_ROW = 9    # products start on row 9
+SHOP_WIDTHS = [18, 22, 16, 50, 16, 16, 18, 14]
+
+
+def build_price_list_xlsx_shop(price_type, warehouse, in_stock_only=False):
+    """Return the «интернет-магазин» price list as .xlsx bytes (see module doc)."""
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Прайс"
+    today = timezone.localdate().strftime("%d.%m.%Y")
+
+    first = SHOP_FIRST_COL
+    last = first + len(SHOP_HEADERS) - 1
+
+    title = ws.cell(
+        row=1, column=first,
+        value=f"Прайс «{price_type.name}» · склад {warehouse.name} · {today}",
+    )
+    ws.merge_cells(start_row=1, start_column=first, end_row=1, end_column=last)
+    title.font = Font(bold=True, size=14)
+    title.alignment = Alignment(horizontal="left", vertical="center")
+    ws.row_dimensions[1].height = 22
+
+    for offset, header in enumerate(SHOP_HEADERS):
+        cell = ws.cell(row=SHOP_HEADER_ROW, column=first + offset, value=header)
+        cell.font = Font(bold=True)
+    ws.freeze_panes = f"{get_column_letter(first)}{SHOP_DATA_ROW}"
+
+    row = SHOP_DATA_ROW
+    for p in _price_list_products(price_type, warehouse, in_stock_only).iterator():
+        brand = p.brand.name if p.brand_id else ""
+        values = [
+            p.article,
+            BRAND_LABEL_OVERRIDES.get(brand, brand),
+            p.gtin,
+            p.name,
+            p.free_stock,
+            p.tnved,
+            p.okpd,
+            float(p.list_price or 0),
+        ]
+        for offset, value in enumerate(values):
+            ws.cell(row=row, column=first + offset, value=value)
+        row += 1
+
+    for offset, width in enumerate(SHOP_WIDTHS):
+        ws.column_dimensions[get_column_letter(first + offset)].width = width
+
+    bio = BytesIO()
+    wb.save(bio)
+    return bio.getvalue()
+
+
+# Layout name (chosen by the admin action) → builder.
+LAYOUTS = {
+    "standard": build_price_list_xlsx,
+    "shop": build_price_list_xlsx_shop,
+}
+
+
+def send_price_list_email(
+    price_type, warehouse, recipients, in_stock_only=False, layout="standard"
+):
     """Build the price list and email it as an .xlsx attachment.
 
-    `recipients` is a list of addresses. Raises on send failure."""
-    data = build_price_list_xlsx(price_type, warehouse, in_stock_only)
+    `recipients` is a list of addresses. `layout` is a key of :data:`LAYOUTS`
+    ('standard' or 'shop'). Raises on send failure."""
+    data = LAYOUTS.get(layout, build_price_list_xlsx)(
+        price_type, warehouse, in_stock_only
+    )
     filename = f"price-list-{timezone.localdate().strftime('%Y-%m-%d')}.xlsx"
     subject = f"Прайс-лист «{price_type.name}» — Автомеханика-Сибирь"
     body = (

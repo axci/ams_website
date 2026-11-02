@@ -51,10 +51,10 @@ class PriceTypeAdmin(admin.ModelAdmin):
     list_display = ("name", "order", "is_public", "is_default")
     list_editable = ("order", "is_public", "is_default")
     search_fields = ("name",)
-    actions = ["send_price_list"]
+    actions = ["send_price_list", "send_price_list_shop"]
 
     def has_send_price_list_permission(self, request):
-        """Gate the «отправить прайс-лист» action (superusers always pass)."""
+        """Gate the «отправить прайс-лист» actions (superusers always pass)."""
         return request.user.has_perm("catalog.send_price_list")
 
     @admin.action(
@@ -62,8 +62,40 @@ class PriceTypeAdmin(admin.ModelAdmin):
         description="Отправить прайс-лист по email…",
     )
     def send_price_list(self, request, queryset):
-        """Email an .xlsx price list for the selected price type. Asks for the
-        warehouse and recipients on an intermediate page before sending."""
+        """Standard layout: Артикул, Бренд, Наименование, остаток, Цена."""
+        return self._send_price_list(
+            request, queryset,
+            action_name="send_price_list",
+            layout="standard",
+            columns_help=(
+                "Во вложении .xlsx с колонками: Артикул, Бренд, Наименование, "
+                "Свободный остаток (на выбранном складе) и Цена (по выбранному "
+                "типу цены). Только активные товары."
+            ),
+        )
+
+    @admin.action(
+        permissions=["send_price_list"],
+        description="Отправить прайс-лист (интернет-магазин)…",
+    )
+    def send_price_list_shop(self, request, queryset):
+        """Интернет-магазин layout: data from column B / row 9, with
+        Штрихкод, ТН ВЭД and Код ОКПД2 added."""
+        return self._send_price_list(
+            request, queryset,
+            action_name="send_price_list_shop",
+            layout="shop",
+            columns_help=(
+                "Во вложении .xlsx (формат интернет-магазина): данные со второй "
+                "колонки, товары с 9-й строки. Колонки: Артикул, Бренд, Штрихкод, "
+                "Наименование, Свободный остаток (на выбранном складе), ТН ВЭД, "
+                "Код ОКПД2 и Цена (по выбранному типу цены). Только активные товары."
+            ),
+        )
+
+    def _send_price_list(self, request, queryset, *, action_name, layout, columns_help):
+        """Shared flow for the price-list actions: validate the selection, show
+        the warehouse/recipients page, then build and email using ``layout``."""
         if queryset.count() != 1:
             self.message_user(
                 request, "Выберите ровно один тип цены.", level=messages.ERROR
@@ -81,6 +113,7 @@ class PriceTypeAdmin(admin.ModelAdmin):
                         form.cleaned_data["warehouse"],
                         recipients,
                         form.cleaned_data["in_stock_only"],
+                        layout=layout,
                     )
                 except Exception as exc:
                     self.message_user(
@@ -107,6 +140,8 @@ class PriceTypeAdmin(admin.ModelAdmin):
             "selected": list(queryset.values_list("pk", flat=True)),
             "action_checkbox_name": ACTION_CHECKBOX_NAME,
             "opts": self.model._meta,
+            "action_name": action_name,
+            "columns_help": columns_help,
         }
         return render(
             request, "admin/catalog/pricetype/send_price_list.html", context

@@ -14,7 +14,7 @@
 
 <form method="post">
   {% csrf_token %}
-  <input type="hidden" name="action" value="send_price_list">
+  <input type="hidden" name="action" value="{{ action_name|default:'send_price_list' }}">
   <input type="hidden" name="confirm" value="1">
   {% for pk in selected %}<input type="hidden" name="{{ action_checkbox_name }}" value="{{ pk }}">{% endfor %}
   <fieldset class="module aligned">
@@ -27,8 +27,6 @@
 </form>
 
 <div class="help" style="margin-top:1.5em; max-width:60em;">
-  <p>Во вложении будет .xlsx с колонками: <strong>Артикул</strong>, <strong>Бренд</strong>,
-     <strong>Наименование</strong>, <strong>Свободный остаток</strong> (на выбранном складе)
-     и <strong>Цена</strong> (по выбранному типу цены). Включаются только активные товары.</p>
+  <p>{{ columns_help }}</p>
 </div>
 {% endblock %}
