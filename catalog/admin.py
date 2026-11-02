@@ -236,13 +236,6 @@ class ProductAdmin(admin.ModelAdmin):
                     f"{len(result.errors)} error row(s).",
                     level=messages.SUCCESS if not result.errors else messages.WARNING,
                 )
-                if result.warehouses:
-                    self.message_user(
-                        request,
-                        "Stock updated for warehouse(s): "
-                        + ", ".join(result.warehouses),
-                        level=messages.INFO,
-                    )
                 for row_num, msg in result.errors[:15]:
                     self.message_user(request, f"Row {row_num}: {msg}", messages.ERROR)
                 if len(result.errors) > 15:

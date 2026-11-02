@@ -1,11 +1,10 @@
 """Export the whole catalog to an .xlsx workbook (admin-only).
 
-The layout mirrors :mod:`catalog.imports`, so a downloaded file can be edited
-and uploaded straight back: every product column below is one the import
-recognises, price columns are named after their PriceType, and the remaining
-columns after each Warehouse (holding stock quantities). The trailing columns
-in EXTRA_COLUMNS are informational — the import skips them by name rather than
-mistaking them for warehouses.
+The product columns mirror :mod:`catalog.imports`, so a downloaded file can be
+edited and uploaded straight back. Price columns (named after each PriceType),
+the per-Warehouse stock columns, and the trailing EXTRA_COLUMNS are exported for
+reference only: the import reads product attributes and ignores everything else,
+so prices and stock are never changed by re-uploading this file.
 """
 
 from io import BytesIO

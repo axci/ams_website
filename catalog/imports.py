@@ -1,4 +1,4 @@
-"""Import products (and per-warehouse stock) from an .xlsx workbook.
+"""Import products from an .xlsx workbook.
 
 The first row is the header. Recognised product columns (case-insensitive):
 
@@ -6,15 +6,17 @@ The first row is the header. Recognised product columns (case-insensitive):
     weight, volume, viscosity, description (описание),
     pack quantity (количество штук в упаковке),
     manufacturer number (manufacturer_number), supplier (поставщик),
-    price, brand, certificate (сертификат соответствия — a link or text)
+    brand, certificate (сертификат соответствия — a link or text),
+    tnved (ТНВЭД), okpd (ОКПД), gtin, and the cross-reference columns.
 
-A header that matches a price type name («Розничные», «Крупный ОПТ», …) fills
-that type's per-product price. Columns the catalog export adds for information
-only (see IGNORED_COLUMNS) are skipped. Any other non-empty header is treated
-as a WAREHOUSE name, and that column's cells as the stock quantity for that
-warehouse. Rows are matched/created by ``sku``. Categories, subcategories,
-models, brands and warehouses are matched case-insensitively (Unicode-aware)
-and created on demand.
+Rows are matched or created by ``sku``. Categories, subcategories, models and
+brands are matched case-insensitively (Unicode-aware) and created on demand.
+
+Prices and stock are NEVER written from this file: a ``price`` column, columns
+named after a price type, per-warehouse stock columns, and the export's
+information-only columns are all ignored — and warehouses are never created.
+Stock has its own importer (:mod:`orders.stock_import`); prices are managed in
+the admin and the 1С sync.
 """
 
 import re
@@ -23,17 +25,12 @@ from decimal import Decimal, InvalidOperation
 
 import openpyxl
 from django.db import transaction
-from django.utils.text import slugify
-
-from warehouses.models import Stock, Warehouse
 
 from .models import (
     Brand,
     Category,
     ModelProduct,
-    PriceType,
     Product,
-    ProductPrice,
     SubCategory,
 )
 
@@ -110,20 +107,11 @@ FIELD_ALIASES = {
     "сертификат": "certificate",
     "сертификат соответствия": "certificate",
     "certificate of conformity": "certificate",
-    "price": "price",
     "vat": "vat_rate",
     "vat_rate": "vat_rate",
     "ндс": "vat_rate",
     "ставка ндс": "vat_rate",
     "brand": "brand",
-}
-
-# Written by the catalog export for information only. Listed here so a
-# round-tripped file does not mistake them for warehouse columns. The certificate
-# file cannot be re-uploaded from a spreadsheet cell, so it is export-only.
-IGNORED_COLUMNS = {
-    "is_active", "slug", "picture", "certificate_file", "show_certificate",
-    "created_at", "updated_at",
 }
 
 TEXT_LIMITS ={"sku": 64, "article": 64, "manufacturer_number": 64, "nkoil_code": 64, "guid": 50, "tnved": 15, "okpd": 15, "gtin": 15, "supplier": 255, "mann_cross": 255, "mahl_cross": 255, "sakura_cross": 255, "knecht_cross": 255, "oem_cross": 10000, "certificate": 500, "name": 200, "viscosity": 20, "weight_unit": 16, "volume_unit": 16}
@@ -135,7 +123,6 @@ class ImportResult:
     updated: int = 0
     skipped: int = 0
     errors: list = field(default_factory=list)  # list[(row_number, message)]
-    warehouses: list = field(default_factory=list)
 
 
 def _norm(value):
@@ -194,7 +181,6 @@ class _Resolver:
         self.subcats = {
             (s.category_id, s.name.casefold()): s for s in SubCategory.objects.all()
         }
-        self.warehouses = {w.name.casefold(): w for w in Warehouse.objects.all()}
 
     def brand(self, name):
         if not name:
@@ -238,19 +224,6 @@ class _Resolver:
             self.subcats[key] = obj
         return obj
 
-    def warehouse(self, name):
-        key = name.casefold()
-        obj = self.warehouses.get(key)
-        if obj is None:
-            base = (slugify(name, allow_unicode=True) or "wh").upper()[:32]
-            code, n = base, 1
-            while Warehouse.objects.filter(code=code).exists():
-                n += 1
-                code = f"{base[:28]}-{n}"
-            obj = Warehouse.objects.create(name=name, code=code)
-            self.warehouses[key] = obj
-        return obj
-
 
 def import_products(file_obj, default_brand=None):
     wb = openpyxl.load_workbook(file_obj, data_only=True, read_only=True)
@@ -262,31 +235,21 @@ def import_products(file_obj, default_brand=None):
         result.errors.append((0, "The file is empty."))
         return result
 
-    # Columns named after a price type («Розничные», «Крупный ОПТ», …) fill
-    # that type's per-product price; anything else unrecognised is a warehouse.
-    price_types = {_norm(pt.name): pt for pt in PriceType.objects.all()}
-
-    field_cols, warehouse_cols, price_type_cols = {}, {}, {}
+    # Only product-attribute columns are read. Price columns, columns named
+    # after a price type, warehouse/stock columns, and the export's
+    # information-only columns are all ignored: this import never writes prices
+    # or stock, and never creates warehouses.
+    field_cols = {}
     for idx, raw in enumerate(all_rows[0]):
         key = _norm(raw)
-        if not key:
-            continue
         if key in FIELD_ALIASES:
             field_cols[idx] = FIELD_ALIASES[key]
-        elif key in IGNORED_COLUMNS:
-            continue
-        elif key in price_types:
-            price_type_cols[idx] = price_types[key]
-        else:
-            warehouse_cols[idx] = str(raw).strip()
 
     if "sku" not in field_cols.values():
         result.errors.append((0, "No 'sku' column found in the header row."))
         return result
 
     resolver = _Resolver()
-    warehouses = {i: resolver.warehouse(n) for i, n in warehouse_cols.items()}
-    result.warehouses = sorted({w.name for w in warehouses.values()})
 
     for row_num, row in enumerate(all_rows[1:], start=2):
         if row is None or all(c is None or str(c).strip() == "" for c in row):
@@ -361,9 +324,6 @@ def import_products(file_obj, default_brand=None):
                 defaults["subcategory"] = subcategory
             if "model_product" in values:
                 defaults["model_product"] = model_product
-            if "price" in values:
-                d = _decimal(values.get("price"))
-                defaults["price"] = d if d is not None else Decimal("0")
             if "vat_rate" in values:
                 d = _decimal(values.get("vat_rate"))
                 if d is not None:
@@ -399,22 +359,6 @@ def import_products(file_obj, default_brand=None):
                 )
                 result.created += 1 if created else 0
                 result.updated += 0 if created else 1
-
-                for i, price_type in price_type_cols.items():
-                    d = _decimal(cell(i))
-                    if d is None:
-                        continue
-                    ProductPrice.objects.update_or_create(
-                        product=product, price_type=price_type, defaults={"price": d}
-                    )
-
-                for i, warehouse in warehouses.items():
-                    qty = _int(cell(i))
-                    if qty is None:
-                        continue
-                    Stock.objects.update_or_create(
-                        product=product, warehouse=warehouse, defaults={"quantity": qty}
-                    )
         except Exception as exc:  # noqa: BLE001 — report per row, keep importing
             result.errors.append((row_num, f"{sku or '(no sku)'}: {exc}"))
 
