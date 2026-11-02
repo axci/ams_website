@@ -76,12 +76,15 @@ def profile(request):
         form = ProfilePriceListForm(request.POST)
         if form.is_valid():
             recipients = form.cleaned_data["recipients"]
+            # Which send button was pressed; unknown values fall back to standard.
+            layout = "shop" if request.POST.get("layout") == "shop" else "standard"
             try:
                 send_price_list_email(
                     form.cleaned_data["price_type"],
                     form.cleaned_data["warehouse"],
                     recipients,
                     form.cleaned_data["in_stock_only"],
+                    layout=layout,
                 )
             except Exception:  # noqa: BLE001
                 logger.exception("Profile price list email failed")

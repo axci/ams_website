@@ -33,7 +33,7 @@
     <div class="card shadow-sm h-100">
       <div class="card-header"><i class="bi bi-envelope-arrow-up"></i> Отправить прайс</div>
       <div class="card-body">
-        <p class="small text-muted mb-3">Excel-прайс (артикул, бренд, наименование, свободный остаток на выбранном складе, цена) будет отправлен на указанные адреса.</p>
+        <p class="small text-muted mb-3">Excel-прайс по выбранному типу цены и складу будет отправлен на указанные адреса. «Интернет-магазин» — расширенный формат (со штрихкодом, ТН ВЭД и ОКПД2).</p>
         <form method="post">
           {% csrf_token %}
           <input type="hidden" name="form" value="price_list">
@@ -58,7 +58,10 @@
             {{ price_list_form.in_stock_only }}
             <label for="{{ price_list_form.in_stock_only.id_for_label }}" class="form-check-label small">Только товары в наличии на складе</label>
           </div>
-          <button type="submit" class="btn btn-primary btn-sm"><i class="bi bi-send"></i> Отправить прайс</button>
+          <div class="d-flex flex-wrap gap-2">
+            <button type="submit" name="layout" value="standard" class="btn btn-primary btn-sm"><i class="bi bi-send"></i> Отправить прайс</button>
+            <button type="submit" name="layout" value="shop" class="btn btn-outline-primary btn-sm"><i class="bi bi-send"></i> Отправить прайс (интернет-магазин)</button>
+          </div>
         </form>
       </div>
     </div>
