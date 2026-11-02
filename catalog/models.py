@@ -143,6 +143,9 @@ class Product(models.Model):
         help_text="Идентификатор (Ид) товара в 1С — для точного сопоставления "
         "номенклатуры при выгрузке заказов.",
     )
+    tnved = models.CharField("ТНВЭД", max_length=15, blank=True, default="")
+    okpd = models.CharField("ОКПД", max_length=15, blank=True, default="")
+    gtin = models.CharField("GTIN", max_length=15, blank=True, default="")
     supplier = models.CharField("поставщик", max_length=255, blank=True, default="")
     # Cross-reference numbers (used for the «Фильтры» category). Searchable in the
     # catalog — case- and separator-insensitive, so «CU 2945» == «CU2945» ==

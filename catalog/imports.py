@@ -79,6 +79,14 @@ FIELD_ALIASES = {
     "guid 1с": "guid",
     "ид": "guid",
     "идентификатор": "guid",
+    "тнвэд": "tnved",
+    "тн вэд": "tnved",
+    "код тнвэд": "tnved",
+    "окпд": "okpd",
+    "окпд2": "okpd",
+    "окпд 2": "okpd",
+    "gtin": "gtin",
+    "гтин": "gtin",
     "supplier": "supplier",
     "поставщик": "supplier",
     "mann_cross": "mann_cross",
@@ -118,7 +126,7 @@ IGNORED_COLUMNS = {
     "created_at", "updated_at",
 }
 
-TEXT_LIMITS ={"sku": 64, "article": 64, "manufacturer_number": 64, "nkoil_code": 64, "guid": 50, "supplier": 255, "mann_cross": 255, "mahl_cross": 255, "sakura_cross": 255, "knecht_cross": 255, "oem_cross": 10000, "certificate": 500, "name": 200, "viscosity": 20, "weight_unit": 16, "volume_unit": 16}
+TEXT_LIMITS ={"sku": 64, "article": 64, "manufacturer_number": 64, "nkoil_code": 64, "guid": 50, "tnved": 15, "okpd": 15, "gtin": 15, "supplier": 255, "mann_cross": 255, "mahl_cross": 255, "sakura_cross": 255, "knecht_cross": 255, "oem_cross": 10000, "certificate": 500, "name": 200, "viscosity": 20, "weight_unit": 16, "volume_unit": 16}
 
 
 @dataclass
@@ -327,6 +335,12 @@ def import_products(file_obj, default_brand=None):
                 defaults["nkoil_code"] = _text(values.get("nkoil_code"), 64)
             if "guid" in values:
                 defaults["guid"] = _text(values.get("guid"), 50)
+            if "tnved" in values:
+                defaults["tnved"] = _text(values.get("tnved"), 15)
+            if "okpd" in values:
+                defaults["okpd"] = _text(values.get("okpd"), 15)
+            if "gtin" in values:
+                defaults["gtin"] = _text(values.get("gtin"), 15)
             if "supplier" in values:
                 defaults["supplier"] = _text(values.get("supplier"), 255)
             if "mann_cross" in values:
