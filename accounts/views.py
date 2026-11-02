@@ -68,6 +68,7 @@ def profile(request):
         "price_type": request.user.price_list_price_type_id,
         "warehouse": request.user.price_list_warehouse_id,
         "recipients": request.user.price_list_recipients,
+        "recipients_tnved": request.user.price_list_tnved_recipients,
         "in_stock_only": request.user.price_list_in_stock_only,
     })
     if request.method == "POST" and request.POST.get("form") == "price_list":
@@ -75,27 +76,32 @@ def profile(request):
             raise PermissionDenied
         form = ProfilePriceListForm(request.POST)
         if form.is_valid():
-            recipients = form.cleaned_data["recipients"]
-            # Which send button was pressed; unknown values fall back to standard.
+            # Which send button was pressed; each format has its own recipients
+            # box, and unknown values fall back to the standard one.
             layout = "shop" if request.POST.get("layout") == "shop" else "standard"
-            try:
-                send_price_list_email(
-                    form.cleaned_data["price_type"],
-                    form.cleaned_data["warehouse"],
-                    recipients,
-                    form.cleaned_data["in_stock_only"],
-                    layout=layout,
-                )
-            except Exception:  # noqa: BLE001
-                logger.exception("Profile price list email failed")
-                messages.error(
-                    request, "Не удалось отправить прайс. Попробуйте позже."
-                )
+            field = "recipients_tnved" if layout == "shop" else "recipients"
+            recipients = form.cleaned_data[field]
+            if not recipients:
+                form.add_error(field, "Укажите хотя бы один адрес.")
             else:
-                messages.success(
-                    request, "Прайс отправлен: " + ", ".join(recipients) + "."
-                )
-            return redirect("profile")
+                try:
+                    send_price_list_email(
+                        form.cleaned_data["price_type"],
+                        form.cleaned_data["warehouse"],
+                        recipients,
+                        form.cleaned_data["in_stock_only"],
+                        layout=layout,
+                    )
+                except Exception:  # noqa: BLE001
+                    logger.exception("Profile price list email failed")
+                    messages.error(
+                        request, "Не удалось отправить прайс. Попробуйте позже."
+                    )
+                else:
+                    messages.success(
+                        request, "Прайс отправлен: " + ", ".join(recipients) + "."
+                    )
+                return redirect("profile")
     return render(
         request,
         "accounts/profile.html",

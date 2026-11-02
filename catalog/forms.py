@@ -8,6 +8,17 @@ from warehouses.models import Warehouse
 from .models import Brand, PriceType
 
 
+def parse_email_list(raw):
+    """Split a comma/semicolon/space-separated string into validated emails.
+
+    Returns a list (possibly empty); raises ValidationError on a bad address.
+    """
+    emails = [e.strip() for e in re.split(r"[,;\s]+", raw or "") if e.strip()]
+    for email in emails:
+        validate_email(email)
+    return emails
+
+
 class PriceListEmailForm(forms.Form):
     """Pick the warehouse (for «свободный остаток»), recipients and scope when
     emailing a price list from the PriceType admin."""
@@ -26,12 +37,9 @@ class PriceListEmailForm(forms.Form):
     )
 
     def clean_recipients(self):
-        raw = self.cleaned_data["recipients"]
-        emails = [e.strip() for e in re.split(r"[,;\s]+", raw) if e.strip()]
+        emails = parse_email_list(self.cleaned_data["recipients"])
         if not emails:
             raise forms.ValidationError("Укажите хотя бы один адрес.")
-        for email in emails:
-            validate_email(email)
         return emails
 
 
@@ -44,16 +52,34 @@ class ProfilePriceListForm(PriceListEmailForm):
         label="Тип цены",
         widget=forms.Select(attrs={"class": "form-select form-select-sm"}),
     )
-    field_order = ["price_type", "warehouse", "recipients", "in_stock_only"]
+    # Separate recipients for the «с ТН ВЭД» format, with its own default.
+    recipients_tnved = forms.CharField(
+        label="Email получателей (с ТН ВЭД)",
+        required=False,
+    )
+    field_order = [
+        "price_type", "warehouse", "in_stock_only",
+        "recipients", "recipients_tnved",
+    ]
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Both recipient boxes are optional on the form; the view requires the
+        # one matching the pressed button (обычный прайс / с ТН ВЭД).
+        self.fields["recipients"].required = False
         self.fields["warehouse"].widget.attrs["class"] = "form-select form-select-sm"
-        self.fields["recipients"].widget.attrs = {
-            "class": "form-control form-control-sm",
-            "placeholder": "адрес@почта.ру, ещё@почта.ру",
-        }
+        for name in ("recipients", "recipients_tnved"):
+            self.fields[name].widget.attrs = {
+                "class": "form-control form-control-sm",
+                "placeholder": "адрес@почта.ру, ещё@почта.ру",
+            }
         self.fields["in_stock_only"].widget.attrs["class"] = "form-check-input"
+
+    def clean_recipients(self):
+        return parse_email_list(self.cleaned_data.get("recipients"))
+
+    def clean_recipients_tnved(self):
+        return parse_email_list(self.cleaned_data.get("recipients_tnved"))
 
 
 class ProductImportForm(forms.Form):

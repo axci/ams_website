@@ -92,7 +92,8 @@ class UserAdmin(BaseUserAdmin):
             {
                 "fields": (
                     "price_list_price_type", "price_list_warehouse",
-                    "price_list_recipients", "price_list_in_stock_only",
+                    "price_list_recipients", "price_list_tnved_recipients",
+                    "price_list_in_stock_only",
                 ),
                 "description": "Подставляются в блок «Отправить прайс» в профиле "
                 "у пользователей с правом «Рассылка прайса».",

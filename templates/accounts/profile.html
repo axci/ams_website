@@ -33,7 +33,7 @@
     <div class="card shadow-sm h-100">
       <div class="card-header"><i class="bi bi-envelope-arrow-up"></i> Отправить прайс</div>
       <div class="card-body">
-        <p class="small text-muted mb-3">Excel-прайс по выбранному типу цены и складу будет отправлен на указанные адреса. «Интернет-магазин» — расширенный формат (со штрихкодом, ТН ВЭД и ОКПД2).</p>
+        <p class="small text-muted mb-3">Excel-прайс по выбранному типу цены и складу будет отправлен на указанные адреса. «С ТН ВЭД» — расширенный формат: бренд, артикул, штрихкод, наименование, остаток, ТН ВЭД, ОКПД2, цена.</p>
         <form method="post">
           {% csrf_token %}
           <input type="hidden" name="form" value="price_list">
@@ -48,19 +48,27 @@
             {{ price_list_form.warehouse }}
             {% if price_list_form.warehouse.errors %}<div class="text-danger small">{{ price_list_form.warehouse.errors|striptags }}</div>{% endif %}
           </div>
-          <div class="mb-2">
-            <label for="{{ price_list_form.recipients.id_for_label }}" class="form-label small mb-1">Email получателей</label>
-            {{ price_list_form.recipients }}
-            {% if price_list_form.recipients.errors %}<div class="text-danger small">{{ price_list_form.recipients.errors|striptags }}</div>{% endif %}
-            <div class="form-text">Один или несколько адресов через запятую.</div>
-          </div>
           <div class="form-check mb-3">
             {{ price_list_form.in_stock_only }}
             <label for="{{ price_list_form.in_stock_only.id_for_label }}" class="form-check-label small">Только товары в наличии на складе</label>
           </div>
-          <div class="d-flex flex-wrap gap-2">
+          <div class="border-top pt-3 mb-3">
+            <div class="mb-2">
+              <label for="{{ price_list_form.recipients.id_for_label }}" class="form-label small mb-1">Email получателей (обычный прайс)</label>
+              {{ price_list_form.recipients }}
+              {% if price_list_form.recipients.errors %}<div class="text-danger small">{{ price_list_form.recipients.errors|striptags }}</div>{% endif %}
+              <div class="form-text">Один или несколько адресов через запятую.</div>
+            </div>
             <button type="submit" name="layout" value="standard" class="btn btn-primary btn-sm"><i class="bi bi-send"></i> Отправить прайс</button>
-            <button type="submit" name="layout" value="shop" class="btn btn-outline-primary btn-sm"><i class="bi bi-send"></i> Отправить прайс (интернет-магазин)</button>
+          </div>
+          <div class="border-top pt-3">
+            <div class="mb-2">
+              <label for="{{ price_list_form.recipients_tnved.id_for_label }}" class="form-label small mb-1">Email получателей (с ТН ВЭД)</label>
+              {{ price_list_form.recipients_tnved }}
+              {% if price_list_form.recipients_tnved.errors %}<div class="text-danger small">{{ price_list_form.recipients_tnved.errors|striptags }}</div>{% endif %}
+              <div class="form-text">Один или несколько адресов через запятую.</div>
+            </div>
+            <button type="submit" name="layout" value="shop" class="btn btn-outline-primary btn-sm"><i class="bi bi-send"></i> Отправить прайс (с ТН ВЭД)</button>
           </div>
         </form>
       </div>

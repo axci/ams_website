@@ -107,6 +107,13 @@ class User(AbstractUser):
         default="",
         help_text="Один или несколько адресов через запятую.",
     )
+    price_list_tnved_recipients = models.CharField(
+        "прайс с ТН ВЭД: email получателей по умолчанию",
+        max_length=500,
+        blank=True,
+        default="",
+        help_text="Один или несколько адресов через запятую.",
+    )
     price_list_in_stock_only = models.BooleanField(
         "прайс: только товары в наличии на складе",
         default=False,
