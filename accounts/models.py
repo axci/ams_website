@@ -118,6 +118,25 @@ class User(AbstractUser):
         "прайс: только товары в наличии на складе",
         default=False,
     )
+    # Email-order routing: the client's sending addresses and the mailbox(es) of
+    # ours those orders arrive in (used to tie an incoming order email to this
+    # account — see orders/email_import.py).
+    order_incoming_emails = models.CharField(
+        "заказы по почте: входящие email (адреса клиента)",
+        max_length=500,
+        blank=True,
+        default="",
+        help_text="Адреса, с которых клиент присылает заказы. "
+        "Один или несколько через запятую.",
+    )
+    order_our_emails = models.CharField(
+        "заказы по почте: наши email (куда приходят)",
+        max_length=500,
+        blank=True,
+        default="",
+        help_text="Наши ящики, на которые клиент присылает заказы "
+        "(например, avto_optnk@mail.ru). Один или несколько через запятую.",
+    )
 
     def __str__(self):
         return self.get_full_name() or self.username
