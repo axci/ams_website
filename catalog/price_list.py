@@ -12,7 +12,9 @@ Two layouts are available (see :data:`LAYOUTS`):
     headers on row 8 (products from row 9), plus Штрихкод (gtin), ТН ВЭД and
     Код ОКПД2 columns.
 
-Both include only active products that have a price.
+Both include only active products that have a price. A product under a split
+brand (see :data:`BRAND_SPLITS`, e.g. «3ton/Country») is listed once per
+sub-brand — the row is duplicated with each brand label.
 """
 
 from io import BytesIO
@@ -42,6 +44,27 @@ BRAND_LABEL_OVERRIDES = {
     "SCT (Germany)": "SCT",
     "Аляska": "Alaska",
 }
+
+# Combined brands that must appear in the price list as separate brands: a
+# product under such a brand is listed once per sub-brand (its row duplicated).
+# Keyed by _brand_key() so matching is case- and whitespace-insensitive.
+BRAND_SPLITS = {
+    "3ton/country": ["3ton", "Country"],
+}
+
+
+def _brand_key(name):
+    """Normalise a brand name for matching (drop all spaces, casefold)."""
+    return "".join((name or "").split()).casefold()
+
+
+def _brand_labels(brand_name):
+    """The brand label(s) a product is listed under. Usually one (with any
+    display override applied); a split brand returns one label per sub-brand."""
+    split = BRAND_SPLITS.get(_brand_key(brand_name))
+    if split:
+        return list(split)
+    return [BRAND_LABEL_OVERRIDES.get(brand_name, brand_name)]
 
 
 def _price_list_products(price_type, warehouse, in_stock_only=False):
@@ -96,13 +119,14 @@ def build_price_list_xlsx(price_type, warehouse, in_stock_only=False):
 
     for p in _price_list_products(price_type, warehouse, in_stock_only).iterator():
         brand = p.brand.name if p.brand_id else ""
-        ws.append([
-            p.article,
-            BRAND_LABEL_OVERRIDES.get(brand, brand),
-            p.name,
-            p.free_stock,
-            float(p.list_price or 0),
-        ])
+        for brand_label in _brand_labels(brand):
+            ws.append([
+                p.article,
+                brand_label,
+                p.name,
+                p.free_stock,
+                float(p.list_price or 0),
+            ])
 
     for i, width in enumerate([18, 22, 50, 18, 14], start=1):
         ws.column_dimensions[get_column_letter(i)].width = width
@@ -151,19 +175,20 @@ def build_price_list_xlsx_shop(price_type, warehouse, in_stock_only=False):
     row = SHOP_DATA_ROW
     for p in _price_list_products(price_type, warehouse, in_stock_only).iterator():
         brand = p.brand.name if p.brand_id else ""
-        values = [
-            BRAND_LABEL_OVERRIDES.get(brand, brand),
-            p.article,
-            p.gtin,
-            p.name,
-            p.free_stock,
-            p.tnved,
-            p.okpd,
-            float(p.list_price or 0),
-        ]
-        for offset, value in enumerate(values):
-            ws.cell(row=row, column=first + offset, value=value)
-        row += 1
+        for brand_label in _brand_labels(brand):
+            values = [
+                brand_label,
+                p.article,
+                p.gtin,
+                p.name,
+                p.free_stock,
+                p.tnved,
+                p.okpd,
+                float(p.list_price or 0),
+            ]
+            for offset, value in enumerate(values):
+                ws.cell(row=row, column=first + offset, value=value)
+            row += 1
 
     for offset, width in enumerate(SHOP_WIDTHS):
         ws.column_dimensions[get_column_letter(first + offset)].width = width
