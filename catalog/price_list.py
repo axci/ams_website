@@ -115,13 +115,13 @@ def build_price_list_xlsx(price_type, warehouse, in_stock_only=False):
 # «интернет-магазин» layout: data offset to column B, a title on row 1 and the
 # column headers on row 8, products from row 9. Column A is left blank.
 SHOP_HEADERS = [
-    "Артикул", "Бренд", "Штрихкод", "Наименование",
+    "Бренд", "Артикул", "Штрихкод", "Наименование",
     "Свободный остаток", "ТН ВЭД", "Код ОКПД2", "Цена",
 ]
 SHOP_FIRST_COL = 2   # column B (column A is left blank)
 SHOP_HEADER_ROW = 8  # column labels on row 8
 SHOP_DATA_ROW = 9    # products start on row 9
-SHOP_WIDTHS = [18, 22, 16, 50, 16, 16, 18, 14]
+SHOP_WIDTHS = [22, 18, 16, 50, 16, 16, 18, 14]
 
 
 def build_price_list_xlsx_shop(price_type, warehouse, in_stock_only=False):
@@ -152,8 +152,8 @@ def build_price_list_xlsx_shop(price_type, warehouse, in_stock_only=False):
     for p in _price_list_products(price_type, warehouse, in_stock_only).iterator():
         brand = p.brand.name if p.brand_id else ""
         values = [
-            p.article,
             BRAND_LABEL_OVERRIDES.get(brand, brand),
+            p.article,
             p.gtin,
             p.name,
             p.free_stock,
