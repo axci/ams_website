@@ -121,13 +121,21 @@ def _order_source(name):
     return {
         "name": name.strip(),
         "folder": os.environ.get(f"ORDER_{key}_FOLDER", name.strip()),
-        # "nkoil_sections" (Точка продаж, match nkoil_code) or "price_list"
-        # (filled catalog, match sku).
+        # "nkoil_sections" (Точка продаж, match nkoil_code), "price_list"
+        # (filled catalog, match sku) or "supplier_barcodes" («Заказ поставщику
+        # (штрих-коды)», match gtin).
         "format": os.environ.get(f"ORDER_{key}_FORMAT", "nkoil_sections"),
         "match_by": os.environ.get(f"ORDER_{key}_MATCH_BY", "nkoil_code"),
         "senders": env_list(f"ORDER_{key}_SENDERS"),
         "sender_user_map": os.environ.get(f"ORDER_{key}_USER_MAP", ""),
         "resolve_by_email": env_bool(f"ORDER_{key}_RESOLVE_BY_EMAIL", False),
+        # Optional own IMAP account (each key falls back to the shared
+        # ORDER_IMAP_* default) — for a client who mails a different mailbox,
+        # even on another provider, e.g. ORDER_KDS_IMAP_HOST=imap.mail.ru.
+        "imap_host": os.environ.get(f"ORDER_{key}_IMAP_HOST", ""),
+        "imap_port": os.environ.get(f"ORDER_{key}_IMAP_PORT", ""),
+        "imap_user": os.environ.get(f"ORDER_{key}_IMAP_USER", ""),
+        "imap_password": os.environ.get(f"ORDER_{key}_IMAP_PASSWORD", ""),
     }
 
 

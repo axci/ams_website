@@ -16,6 +16,11 @@ product field to match on. Two formats are supported today:
     every row with a positive «Заказ» becomes a line whose «Код» is our
     ``Product.sku``.
 
+``supplier_barcodes``
+    A 1С «Заказ поставщику (штрих-коды)» report (heavily merged cells): the whole
+    file is one order, and every row carrying a «Штрих-код» becomes a line matched
+    to ``Product.gtin``, with the «Количество» column as the quantity.
+
 Parsing is pure and unit-testable; :func:`create_orders_for_email` does the DB
 work. IMAP fetching lives in the ``import_email_orders`` management command.
 """
@@ -46,6 +51,14 @@ _TRAILING_COUNT = re.compile(r"\s*\(\d+\)\s*$")
 PL_CODE_HEADER = "Код"      # our Product.sku
 PL_QTY_HEADER = "Заказ"     # ordered quantity
 PL_NAME_HEADER = "Наименование"
+
+# ---- supplier_barcodes format ----------------------------------------------- #
+# A 1С «Заказ поставщику (штрих-коды)» report. Its cells are heavily merged, so
+# each logical column's value sits in the one (top-left) cell located by its
+# header label; the whole file is one order, matched on the barcode → Product.gtin.
+SB_CODE_HEADER = "Штрих-код"               # our Product.gtin
+SB_QTY_HEADER = "Количество"               # ordered quantity
+SB_NAME_HEADER = "Товары (работы, услуги)"  # product name (optional)
 
 
 # --------------------------------------------------------------------------- #
@@ -171,9 +184,39 @@ def parse_price_list(rows):
     return [ParsedOrder(point_of_sale="", items=items)] if items else []
 
 
+def parse_supplier_barcodes(rows):
+    """supplier_barcodes: a «Заказ поставщику (штрих-коды)» → a single order.
+
+    Finds the header row (the one carrying «Штрих-код» and «Количество»), then
+    every row below with a barcode becomes a line keyed by that barcode (our
+    ``Product.gtin``). Rows with no barcode — blank rows, the «Итого» total, the
+    footer — are ignored, so the table's end needs no special marker.
+    """
+    code_i = qty_i = name_i = None
+    items = []
+    for idx, row in enumerate(rows, start=1):
+        cells = list(row) if row is not None else []
+        if code_i is None:
+            texts = [_clean(c) for c in cells]
+            if SB_CODE_HEADER in texts and SB_QTY_HEADER in texts:
+                code_i = texts.index(SB_CODE_HEADER)
+                qty_i = texts.index(SB_QTY_HEADER)
+                name_i = texts.index(SB_NAME_HEADER) if SB_NAME_HEADER in texts else None
+            continue
+        code = _clean(cells[code_i]) if code_i < len(cells) else ""
+        if not code:
+            continue  # blank row / «Итого» / footer (no barcode)
+        name = _clean(cells[name_i]) if (name_i is not None and name_i < len(cells)) else ""
+        quantity = _parse_qty(cells[qty_i]) if qty_i < len(cells) else None
+        items.append(ParsedLine(code=code, name=name, quantity=quantity or 0, row=idx))
+
+    return [ParsedOrder(point_of_sale="", items=items)] if items else []
+
+
 FORMATS = {
     "nkoil_sections": parse_sections,
     "price_list": parse_price_list,
+    "supplier_barcodes": parse_supplier_barcodes,
 }
 
 # Back-compat alias (older tests import parse_order_rows).
@@ -299,13 +342,14 @@ def resolve_warehouse(config=None):
 
 def match_product(code, match_by="nkoil_code"):
     """Find a catalog product by a client code. ``match_by`` is the Product field
-    to match on: 'nkoil_code' (the client's own code) or 'sku' (our code)."""
+    to match on: 'nkoil_code' (the client's own code), 'sku' (our code) or 'gtin'
+    (the barcode)."""
     from catalog.models import Product
 
     code = (code or "").strip()
     if not code:
         return None
-    field_name = match_by if match_by in ("nkoil_code", "sku") else "nkoil_code"
+    field_name = match_by if match_by in ("nkoil_code", "sku", "gtin") else "nkoil_code"
     qs = Product.objects.filter(**{field_name: code})
     return qs.filter(is_active=True).first() or qs.first()
 

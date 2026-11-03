@@ -1,9 +1,11 @@
 """Import client order spreadsheets that arrive by email.
 
-Connects to the configured IMAP mailbox and walks each *source profile*
-(``settings.EMAIL_ORDER_IMPORT["SOURCES"]``): for every profile it opens that
-profile's folder, finds order emails and turns them into pending Orders (see
-:mod:`orders.email_import`).
+Walks each *source profile* (``settings.EMAIL_ORDER_IMPORT["SOURCES"]``): for
+every profile it opens that profile's folder, finds order emails and turns them
+into pending Orders (see :mod:`orders.email_import`). Profiles are grouped by
+IMAP account so each mailbox is opened once — most share the default account
+(``ORDER_IMAP_*``), but a profile may bring its own (``ORDER_<NAME>_IMAP_*``),
+even on another provider, for a client who mails a different mailbox.
 
 Which emails are imported is decided by two things, never by read/unread (so a
 manager opening a message in webmail changes nothing):
@@ -87,6 +89,21 @@ def _local_date(date_header):
     return dj_timezone.localtime(dt).date()
 
 
+def _source_account(source, config):
+    """IMAP connection params for a source.
+
+    A source may carry its own ``imap_*`` keys (e.g. a client who mails a
+    different mailbox, even on another provider); each one falls back to the
+    shared default account (``ORDER_IMAP_*``) when unset.
+    """
+    return {
+        "host": source.get("imap_host") or config.get("IMAP_HOST", "imap.yandex.ru"),
+        "port": int(source.get("imap_port") or config.get("IMAP_PORT", 993) or 993),
+        "user": source.get("imap_user") or config.get("USERNAME", ""),
+        "password": source.get("imap_password") or config.get("PASSWORD", ""),
+    }
+
+
 def _spreadsheet_attachments(msg):
     """Yield (filename, bytes) for each .xlsx/.xls attachment of a message."""
     for part in msg.walk():
@@ -133,11 +150,6 @@ class Command(BaseCommand):
         config = get_config()
         dry_run = opts["dry_run"]
 
-        username = config.get("USERNAME", "")
-        password = config.get("PASSWORD", "")
-        if not username or not password:
-            raise CommandError("Не заданы ORDER_IMAP_USER / ORDER_IMAP_PASSWORD.")
-
         warehouse = resolve_warehouse(config)
         if warehouse is None:
             raise CommandError(
@@ -167,28 +179,58 @@ class Command(BaseCommand):
         # One query up front; dedup checks are then in-memory.
         imported_ids = set(ImportedOrderEmail.objects.values_list("message_id", flat=True))
 
-        host = config.get("IMAP_HOST", "imap.yandex.ru")
-        port = int(config.get("IMAP_PORT", 993))
-        self.stdout.write(
-            f"Подключение к {host}:{port} как {username}; "
-            + (f"письма после {cutoff}" if cutoff else "все письма (без отсечки)")
-            + (" [DRY-RUN]" if dry_run else "")
-        )
+        # Group sources by IMAP account so each mailbox is opened once — most
+        # share the default account, but a source may bring its own (even on
+        # another provider), e.g. a client who mails a different mailbox.
+        groups = {}
+        for source in sources:
+            acct = _source_account(source, config)
+            key = (acct["host"], acct["port"], acct["user"])
+            groups.setdefault(key, {"account": acct, "sources": []})["sources"].append(source)
 
         totals = {"emails": 0, "orders": 0, "skipped_sender": 0,
                   "before_cutoff": 0, "no_user": 0}
-        conn = imaplib.IMAP4_SSL(host, port)
+        for group in groups.values():
+            self._process_account(group["account"], group["sources"],
+                                   warehouse, cutoff, imported_ids, dry_run, opts, totals)
+
+        self.stdout.write(self.style.SUCCESS(
+            "Готово: обработано писем {emails}, создано заказов {orders}, "
+            "пропущено по отправителю {skipped_sender}, раньше отсечки "
+            "{before_cutoff}, без аккаунта {no_user}.".format(**totals)
+        ))
+
+    # -- per-account (one IMAP connection) ---------------------------------- #
+    def _process_account(self, acct, sources, warehouse, cutoff, imported_ids,
+                         dry_run, opts, totals):
+        host, port, user, password = (
+            acct["host"], acct["port"], acct["user"], acct["password"])
+        names = ", ".join(s.get("name", "?") for s in sources)
+        if not user or not password:
+            self.stderr.write(
+                f"Пропуск источников [{names}]: не заданы IMAP-учётные данные "
+                f"для {host} (ORDER_IMAP_USER/PASSWORD или ORDER_<ИМЯ>_IMAP_USER/PASSWORD)."
+            )
+            return
+
+        self.stdout.write(
+            f"Подключение к {host}:{port} как {user} (источники: {names}); "
+            + (f"письма после {cutoff}" if cutoff else "все письма (без отсечки)")
+            + (" [DRY-RUN]" if dry_run else "")
+        )
         try:
-            conn.login(username, password)
+            conn = imaplib.IMAP4_SSL(host, port)
+        except OSError as exc:
+            self.stderr.write(f"[{host}] не удалось подключиться: {exc}")
+            return
+        try:
+            conn.login(user, password)
             for source in sources:
                 self._process_source(
                     conn, source, warehouse, cutoff, imported_ids, dry_run, host, opts, totals
                 )
-            self.stdout.write(self.style.SUCCESS(
-                "Готово: обработано писем {emails}, создано заказов {orders}, "
-                "пропущено по отправителю {skipped_sender}, раньше отсечки "
-                "{before_cutoff}, без аккаунта {no_user}.".format(**totals)
-            ))
+        except imaplib.IMAP4.error as exc:
+            self.stderr.write(f"[{host}] ошибка IMAP (вход/выборка): {exc}")
         finally:
             try:
                 conn.logout()
