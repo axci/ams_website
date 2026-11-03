@@ -13,8 +13,9 @@ Two layouts are available (see :data:`LAYOUTS`):
     Код ОКПД2 columns.
 
 Both include only active products that have a price. A product under a split
-brand (see :data:`BRAND_SPLITS`, e.g. «3ton/Country») is listed once per
-sub-brand — the row is duplicated with each brand label.
+brand (see :data:`BRAND_SPLITS`, e.g. «3ton/Country») is expanded across its
+sub-brands and, if it has a manufacturer number, across {article, manufacturer
+number} in the Артикул column — so one such product can produce up to four rows.
 """
 
 from io import BytesIO
@@ -58,13 +59,25 @@ def _brand_key(name):
     return "".join((name or "").split()).casefold()
 
 
-def _brand_labels(brand_name):
-    """The brand label(s) a product is listed under. Usually one (with any
-    display override applied); a split brand returns one label per sub-brand."""
+def _price_list_variants(product):
+    """Yield (brand_label, article) pairs — the price-list row(s) for a product.
+
+    A normal product yields one pair (its article, with any brand display
+    override applied). A split brand (see :data:`BRAND_SPLITS`, e.g.
+    «3ton/Country») is expanded across its sub-brands and, when the product has
+    a manufacturer number, across {article, manufacturer_number} in the Артикул
+    column — so such a product yields up to four rows.
+    """
+    brand_name = product.brand.name if product.brand_id else ""
     split = BRAND_SPLITS.get(_brand_key(brand_name))
-    if split:
-        return list(split)
-    return [BRAND_LABEL_OVERRIDES.get(brand_name, brand_name)]
+    if not split:
+        yield (BRAND_LABEL_OVERRIDES.get(brand_name, brand_name), product.article)
+        return
+    mfr = (product.manufacturer_number or "").strip()
+    articles = [product.article, mfr] if mfr else [product.article]
+    for brand_label in split:
+        for article in articles:
+            yield (brand_label, article)
 
 
 def _price_list_products(price_type, warehouse, in_stock_only=False):
@@ -118,10 +131,9 @@ def build_price_list_xlsx(price_type, warehouse, in_stock_only=False):
     ws.freeze_panes = "A3"
 
     for p in _price_list_products(price_type, warehouse, in_stock_only).iterator():
-        brand = p.brand.name if p.brand_id else ""
-        for brand_label in _brand_labels(brand):
+        for brand_label, article in _price_list_variants(p):
             ws.append([
-                p.article,
+                article,
                 brand_label,
                 p.name,
                 p.free_stock,
@@ -174,11 +186,10 @@ def build_price_list_xlsx_shop(price_type, warehouse, in_stock_only=False):
 
     row = SHOP_DATA_ROW
     for p in _price_list_products(price_type, warehouse, in_stock_only).iterator():
-        brand = p.brand.name if p.brand_id else ""
-        for brand_label in _brand_labels(brand):
+        for brand_label, article in _price_list_variants(p):
             values = [
                 brand_label,
-                p.article,
+                article,
                 p.gtin,
                 p.name,
                 p.free_stock,
