@@ -12,10 +12,13 @@ Two layouts are available (see :data:`LAYOUTS`):
     headers on row 8 (products from row 9), plus Штрихкод (gtin), ТН ВЭД and
     Код ОКПД2 columns.
 
-Both include only active products that have a price. A product under a split
-brand (see :data:`BRAND_SPLITS`, e.g. «3ton/Country») is expanded across its
-sub-brands and, if it has a manufacturer number, across {article, manufacturer
-number} in the Артикул column — so one such product can produce up to four rows.
+Both include only active products that have a price. Two display rules can
+expand a product into several rows: a split brand (:data:`BRAND_SPLITS`, e.g.
+«3ton/Country») is listed under each sub-brand, and a brand in
+:data:`BRAND_ARTICLE_MFR` (e.g. «3ton/Country», «Mannol») with a manufacturer
+number is listed twice — once with the article, once with the manufacturer
+number in the Артикул column. «3ton/Country» hits both (up to four rows),
+«Mannol» only the second (up to two).
 """
 
 from io import BytesIO
@@ -53,6 +56,15 @@ BRAND_SPLITS = {
     "3ton/country": ["3ton", "Country"],
 }
 
+# Brands whose products are listed twice when they have a manufacturer number:
+# once with the article, once with the manufacturer number in the Артикул
+# column. A split brand listed here is expanded on both axes (e.g.
+# «3ton/Country»). Keyed by _brand_key() (case- and whitespace-insensitive).
+BRAND_ARTICLE_MFR = {
+    "3ton/country",
+    "mannol",
+}
+
 
 def _brand_key(name):
     """Normalise a brand name for matching (drop all spaces, casefold)."""
@@ -62,20 +74,27 @@ def _brand_key(name):
 def _price_list_variants(product):
     """Yield (brand_label, article) pairs — the price-list row(s) for a product.
 
-    A normal product yields one pair (its article, with any brand display
-    override applied). A split brand (see :data:`BRAND_SPLITS`, e.g.
-    «3ton/Country») is expanded across its sub-brands and, when the product has
-    a manufacturer number, across {article, manufacturer_number} in the Артикул
-    column — so such a product yields up to four rows.
+    Normally one pair (the article, with any brand display override applied).
+    Two independent rules add rows: a split brand (:data:`BRAND_SPLITS`, e.g.
+    «3ton/Country») is listed under each sub-brand, and a brand in
+    :data:`BRAND_ARTICLE_MFR` (e.g. «3ton/Country», «Mannol») with a
+    manufacturer number is listed twice — once with the article, once with the
+    manufacturer number in the Артикул column. A brand in both yields up to four
+    rows; «Mannol» (only the second) up to two.
     """
     brand_name = product.brand.name if product.brand_id else ""
-    split = BRAND_SPLITS.get(_brand_key(brand_name))
-    if not split:
-        yield (BRAND_LABEL_OVERRIDES.get(brand_name, brand_name), product.article)
-        return
-    mfr = (product.manufacturer_number or "").strip()
-    articles = [product.article, mfr] if mfr else [product.article]
-    for brand_label in split:
+    key = _brand_key(brand_name)
+
+    split = BRAND_SPLITS.get(key)
+    labels = list(split) if split else [BRAND_LABEL_OVERRIDES.get(brand_name, brand_name)]
+
+    articles = [product.article]
+    if key in BRAND_ARTICLE_MFR:
+        mfr = (product.manufacturer_number or "").strip()
+        if mfr:
+            articles.append(mfr)
+
+    for brand_label in labels:
         for article in articles:
             yield (brand_label, article)
 
