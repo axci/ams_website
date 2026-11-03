@@ -293,6 +293,46 @@ def _parse_sender_map(raw):
     return mapping
 
 
+def _email_set(raw):
+    """Parse a comma/semicolon-separated address list to a lower-cased set."""
+    return {
+        part.strip().lower()
+        for part in (raw or "").replace(";", ",").split(",")
+        if part.strip()
+    }
+
+
+def _resolve_user_by_fields(sender, mailbox=None):
+    """Find the account whose admin-set «входящие email» list contains ``sender``.
+
+    This is the primary, admin-managed resolution: an office user fills the
+    account's «заказы по почте: входящие email» (the client's sending addresses)
+    and, optionally, «наши email» (the box those orders arrive in). When
+    ``mailbox`` is given and the account lists «наши email», the box must be one
+    of them — so a sender is routed to the right account even if several of our
+    mailboxes are polled. Returns the single active match, or None when there is
+    no match or it is ambiguous (left for a human rather than guessed at).
+    """
+    from accounts.models import User
+
+    sender = (sender or "").strip().lower()
+    if not sender:
+        return None
+    mailbox = (mailbox or "").strip().lower()
+    matches = []
+    for user in User.objects.filter(
+        order_incoming_emails__icontains=sender, is_active=True
+    ):
+        # icontains can over-match on a substring — confirm exact membership.
+        if sender not in _email_set(user.order_incoming_emails):
+            continue
+        our = _email_set(user.order_our_emails)
+        if mailbox and our and mailbox not in our:
+            continue  # arrived in a box this account doesn't use
+        matches.append(user)
+    return matches[0] if len(matches) == 1 else None
+
+
 def sender_allowed(sender, source):
     """Whether a message from ``sender`` should be processed for this source.
 
@@ -306,18 +346,30 @@ def sender_allowed(sender, source):
     return (sender or "").strip().lower() in {s.strip().lower() for s in senders}
 
 
-def resolve_user(sender, source):
-    """Find the site account an email's orders belong to, per the source profile.
+def resolve_user(sender, source, mailbox=None):
+    """Find the site account an email's orders belong to.
 
-    ``resolve_by_email`` → the account whose email equals the sender; otherwise
-    the explicit sender→login map. Returns None when nothing matches, so the mail
-    is reported and left for a human rather than guessed at.
+    Resolution order (first hit wins):
+
+    1. the account's admin-set «входящие email» list, scoped to the mailbox the
+       order arrived in (:func:`_resolve_user_by_fields`) — the primary, office-
+       managed route;
+    2. ``resolve_by_email`` → the account whose email equals the sender;
+    3. the explicit sender→login map (``sender_user_map``).
+
+    Returns None when nothing matches, so the mail is reported and left for a
+    human rather than guessed at.
     """
     from accounts.models import User
 
     sender = (sender or "").strip().lower()
     if not sender:
         return None
+
+    user = _resolve_user_by_fields(sender, mailbox)
+    if user is not None:
+        return user
+
     if source.get("resolve_by_email"):
         return User.objects.filter(email__iexact=sender).first()
     smap = source.get("sender_user_map") or {}

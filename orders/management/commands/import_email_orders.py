@@ -227,7 +227,7 @@ class Command(BaseCommand):
             conn.login(user, password)
             for source in sources:
                 self._process_source(
-                    conn, source, warehouse, cutoff, imported_ids, dry_run, host, opts, totals
+                    conn, source, user, warehouse, cutoff, imported_ids, dry_run, host, opts, totals
                 )
         except imaplib.IMAP4.error as exc:
             self.stderr.write(f"[{host}] ошибка IMAP (вход/выборка): {exc}")
@@ -238,7 +238,7 @@ class Command(BaseCommand):
                 pass
 
     # -- per-source --------------------------------------------------------- #
-    def _process_source(self, conn, source, warehouse, cutoff, imported_ids,
+    def _process_source(self, conn, source, account_user, warehouse, cutoff, imported_ids,
                          dry_run, host, opts, totals):
         name = source.get("name", "?")
         folder = source.get("folder", "INBOX")
@@ -261,11 +261,11 @@ class Command(BaseCommand):
         self.stdout.write(f"[{name}] папка {folder}: писем к проверке {len(uids)}")
         for uid in uids:
             self._process_uid(
-                conn, uid, source, warehouse, cutoff, imported_ids, dry_run, host, totals
+                conn, uid, source, account_user, warehouse, cutoff, imported_ids, dry_run, host, totals
             )
 
     # -- per-message -------------------------------------------------------- #
-    def _process_uid(self, conn, uid, source, warehouse, cutoff, imported_ids,
+    def _process_uid(self, conn, uid, source, account_user, warehouse, cutoff, imported_ids,
                      dry_run, host, totals):
         name = source.get("name", "?")
         # Cheap header peek first (does not touch the \Seen flag).
@@ -315,7 +315,7 @@ class Command(BaseCommand):
             self.stdout.write(f"  [{name}] {sender}: «{subject}» — нет вложений, пропуск.")
             return
 
-        user = resolve_user(sender, source)
+        user = resolve_user(sender, source, mailbox=account_user)
         if user is None:
             totals["no_user"] += 1
             self.stderr.write(
