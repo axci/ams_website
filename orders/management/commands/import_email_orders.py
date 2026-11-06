@@ -150,8 +150,8 @@ class Command(BaseCommand):
         config = get_config()
         dry_run = opts["dry_run"]
 
-        warehouse = resolve_warehouse(config)
-        if warehouse is None:
+        default_warehouse = resolve_warehouse(config)
+        if default_warehouse is None:
             raise CommandError(
                 "Склад по умолчанию не найден: "
                 f"{config.get('DEFAULT_WAREHOUSE')!r}. Проверьте ORDER_DEFAULT_WAREHOUSE."
@@ -192,7 +192,7 @@ class Command(BaseCommand):
                   "before_cutoff": 0, "no_user": 0}
         for group in groups.values():
             self._process_account(group["account"], group["sources"],
-                                   warehouse, cutoff, imported_ids, dry_run, opts, totals)
+                                   default_warehouse, cutoff, imported_ids, dry_run, opts, totals)
 
         self.stdout.write(self.style.SUCCESS(
             "Готово: обработано писем {emails}, создано заказов {orders}, "
@@ -201,7 +201,7 @@ class Command(BaseCommand):
         ))
 
     # -- per-account (one IMAP connection) ---------------------------------- #
-    def _process_account(self, acct, sources, warehouse, cutoff, imported_ids,
+    def _process_account(self, acct, sources, default_warehouse, cutoff, imported_ids,
                          dry_run, opts, totals):
         host, port, user, password = (
             acct["host"], acct["port"], acct["user"], acct["password"])
@@ -227,7 +227,7 @@ class Command(BaseCommand):
             conn.login(user, password)
             for source in sources:
                 self._process_source(
-                    conn, source, user, warehouse, cutoff, imported_ids, dry_run, host, opts, totals
+                    conn, source, user, default_warehouse, cutoff, imported_ids, dry_run, host, opts, totals
                 )
         except imaplib.IMAP4.error as exc:
             self.stderr.write(f"[{host}] ошибка IMAP (вход/выборка): {exc}")
@@ -238,9 +238,16 @@ class Command(BaseCommand):
                 pass
 
     # -- per-source --------------------------------------------------------- #
-    def _process_source(self, conn, source, account_user, warehouse, cutoff, imported_ids,
+    def _process_source(self, conn, source, account_user, default_warehouse, cutoff, imported_ids,
                          dry_run, host, opts, totals):
         name = source.get("name", "?")
+        # Per-source warehouse (ORDER_<NAME>_WAREHOUSE) overrides the default, so
+        # one client's two mailboxes can land on different warehouses.
+        wh_name = (source.get("warehouse") or "").strip()
+        warehouse = resolve_warehouse(name=wh_name) if wh_name else default_warehouse
+        if warehouse is None:
+            self.stderr.write(f"[{name}] склад не найден: {wh_name!r} — источник пропущен.")
+            return
         folder = source.get("folder", "INBOX")
         typ, _ = conn.select(folder)
         if typ != "OK":

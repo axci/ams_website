@@ -129,6 +129,10 @@ def _order_source(name):
         "senders": env_list(f"ORDER_{key}_SENDERS"),
         "sender_user_map": os.environ.get(f"ORDER_{key}_USER_MAP", ""),
         "resolve_by_email": env_bool(f"ORDER_{key}_RESOLVE_BY_EMAIL", False),
+        # Warehouse imported orders from this source land on (defaults to
+        # ORDER_DEFAULT_WAREHOUSE) — lets one client's mailboxes map to
+        # different warehouses, e.g. nkz@→Новокузнецк, opt@→Кемерово.
+        "warehouse": os.environ.get(f"ORDER_{key}_WAREHOUSE", ""),
         # Optional own IMAP account (each key falls back to the shared
         # ORDER_IMAP_* default) — for a client who mails a different mailbox,
         # even on another provider, e.g. ORDER_KDS_IMAP_HOST=imap.mail.ru.

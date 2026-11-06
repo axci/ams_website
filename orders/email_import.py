@@ -381,12 +381,17 @@ def resolve_user(sender, source, mailbox=None):
     return User.objects.filter(username=login).first() if login else None
 
 
-def resolve_warehouse(config=None):
-    """The default warehouse new imported orders are placed on."""
+def resolve_warehouse(config=None, name=None):
+    """A warehouse for imported orders, looked up by name.
+
+    ``name`` picks a specific warehouse (a source's ``ORDER_<NAME>_WAREHOUSE``);
+    without it the configured default (``DEFAULT_WAREHOUSE``) is used. Returns
+    None when the name is empty or no such warehouse exists.
+    """
     from warehouses.models import Warehouse
 
     config = config or get_config()
-    name = (config.get("DEFAULT_WAREHOUSE") or "").strip()
+    name = (name or config.get("DEFAULT_WAREHOUSE") or "").strip()
     if not name:
         return None
     return Warehouse.objects.filter(name=name).first()
