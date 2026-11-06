@@ -188,9 +188,10 @@ def parse_supplier_barcodes(rows):
     """supplier_barcodes: a «Заказ поставщику (штрих-коды)» → a single order.
 
     Finds the header row (the one carrying «Штрих-код» and «Количество»), then
-    every row below with a barcode becomes a line keyed by that barcode (our
-    ``Product.gtin``). Rows with no barcode — blank rows, the «Итого» total, the
-    footer — are ignored, so the table's end needs no special marker.
+    every row below with a barcode becomes a line keyed by that barcode. The
+    barcode is matched against our ``Product.gtin`` (which may list several
+    barcodes — any one matching wins). Rows with no barcode — blank rows, the
+    «Итого» total, the footer — are ignored, so the table's end needs no marker.
     """
     code_i = qty_i = name_i = None
     items = []
@@ -400,13 +401,26 @@ def resolve_warehouse(config=None, name=None):
 def match_product(code, match_by="nkoil_code"):
     """Find a catalog product by a client code. ``match_by`` is the Product field
     to match on: 'nkoil_code' (the client's own code), 'sku' (our code) or 'gtin'
-    (the barcode)."""
-    from catalog.models import Product
+    (the barcode). A product may carry several GTINs — for 'gtin' it matches when
+    *any* of them equals ``code``. Prefers an active product on ties."""
+    from catalog.models import Product, split_gtins
 
     code = (code or "").strip()
     if not code:
         return None
-    field_name = match_by if match_by in ("nkoil_code", "sku", "gtin") else "nkoil_code"
+    if match_by == "gtin":
+        # A product's GTIN field may list several barcodes. Prefilter in the DB,
+        # then confirm exact membership (an icontains hit could be a substring of
+        # a longer barcode, e.g. "123" inside "4601230000123").
+        candidates = [
+            p
+            for p in Product.objects.filter(gtin__icontains=code)
+            if code in split_gtins(p.gtin)
+        ]
+        return next((p for p in candidates if p.is_active), None) or (
+            candidates[0] if candidates else None
+        )
+    field_name = match_by if match_by in ("nkoil_code", "sku") else "nkoil_code"
     qs = Product.objects.filter(**{field_name: code})
     return qs.filter(is_active=True).first() or qs.first()
 

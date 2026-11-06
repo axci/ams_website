@@ -209,7 +209,7 @@ def build_price_list_xlsx_shop(price_type, warehouse, in_stock_only=False):
             values = [
                 brand_label,
                 article,
-                p.gtin,
+                p.primary_gtin,
                 p.name,
                 p.free_stock,
                 p.tnved,

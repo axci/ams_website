@@ -1,9 +1,24 @@
+import re
 from decimal import ROUND_HALF_UP, Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.urls import reverse
 from django.utils.text import slugify
+
+
+def split_gtins(raw):
+    """Split a product's GTIN field into its individual barcodes.
+
+    A product may carry several GTINs (different packaging, or a supplier's
+    repackaged barcode), stored in one field separated by commas, spaces or
+    new lines. Order is preserved and duplicates are dropped.
+    """
+    seen = []
+    for token in re.split(r"[\s,;]+", (raw or "").strip()):
+        if token and token not in seen:
+            seen.append(token)
+    return seen
 
 
 class Brand(models.Model):
@@ -145,7 +160,14 @@ class Product(models.Model):
     )
     tnved = models.CharField("ТНВЭД", max_length=15, blank=True, default="")
     okpd = models.CharField("ОКПД", max_length=15, blank=True, default="")
-    gtin = models.CharField("GTIN", max_length=15, blank=True, default="")
+    gtin = models.CharField(
+        "GTIN (штрих-коды)",
+        max_length=255,
+        blank=True,
+        default="",
+        help_text="Один или несколько штрих-кодов (GTIN). Несколько — через запятую, "
+        "пробел или с новой строки. Используются для сопоставления заказов из Excel.",
+    )
     supplier = models.CharField("поставщик", max_length=255, blank=True, default="")
     # Cross-reference numbers (used for the «Фильтры» category). Searchable in the
     # catalog — case- and separator-insensitive, so «CU 2945» == «CU2945» ==
@@ -255,6 +277,17 @@ class Product(models.Model):
 
     def __str__(self):
         return f"{self.sku} — {self.name}"
+
+    @property
+    def gtins(self):
+        """All barcodes (GTINs) of this product, as a list — it may carry several."""
+        return split_gtins(self.gtin)
+
+    @property
+    def primary_gtin(self):
+        """The first barcode, for single-value displays (price list, exports)."""
+        gtins = self.gtins
+        return gtins[0] if gtins else ""
 
     @property
     def has_certificate(self):
