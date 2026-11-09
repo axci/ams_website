@@ -97,11 +97,19 @@ class AmsCmlHandler(BaseHandler):
         )
 
     def _customer(self, o):
-        """Build the 1С контрагент from the order's company (B2B) or user."""
+        """Build the 1С контрагент from the order's company (B2B) or user.
+
+        Match by the 1С GUID, sent as <Ид> (with the 1С code in <Код>),
+        mirroring how номенклатура is matched. A company without a GUID falls
+        back to its code in <Ид> (which signals the guid still needs filling in,
+        and preserves the previous code-based behaviour)."""
         c = o.company
         if c is not None:
+            guid = (c.guid or "").strip()
+            code = c.code or ""
             return Customer(
-                id=c.code or f"company-{c.pk}",
+                id=guid or code or f"company-{c.pk}",
+                code=code,
                 name=c.company_name or c.code or f"Компания {c.pk}",
                 email=(o.user.email if o.user_id else ""),
                 phone=c.phone,

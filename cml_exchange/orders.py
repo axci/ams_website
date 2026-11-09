@@ -18,8 +18,9 @@ DELIVERY_ITEM_ID = "ORDER_DELIVERY"
 
 @dataclass
 class Customer:
-    id: str                       # постоянный Ид покупателя на сайте, например "user-15"
+    id: str                       # Ид для сопоставления в 1С: GUID контрагента (иначе код/«user-15»)
     name: str                     # как контрагент будет называться в 1С
+    code: str = ""                # Код контрагента в 1С — для сопоставления, уходит в <Код>
     first_name: str = ""
     last_name: str = ""
     email: str = ""
@@ -133,6 +134,8 @@ def build_orders_xml(orders: Iterable[OrderData]) -> bytes:
         agents = _sub(doc, "Контрагенты")
         agent = _sub(agents, "Контрагент")
         _sub(agent, "Ид", c.id)
+        if c.code:
+            _sub(agent, "Код", c.code)
         _sub(agent, "Наименование", c.name)
         _sub(agent, "Роль", "Покупатель")
         if c.is_company:

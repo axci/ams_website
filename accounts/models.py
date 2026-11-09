@@ -175,6 +175,15 @@ class Company(models.Model):
         "(одну компанию можно назначить нескольким пользователям).",
     )
     code = models.CharField("код", max_length=32, unique=True, blank=True, null=True)
+    guid = models.CharField(
+        "GUID (1С)",
+        max_length=50,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Идентификатор (Ид) контрагента в 1С — для точного сопоставления "
+        "при обмене.",
+    )
     type = models.CharField(
         "тип", max_length=16, choices=Type.choices, default=Type.LEGAL, blank=True
     )

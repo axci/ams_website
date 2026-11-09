@@ -144,7 +144,7 @@ class CompanyAdmin(admin.ModelAdmin):
     change_list_template = "admin/accounts/company/change_list.html"
     list_display = ("code", "company_name", "type", "inn", "kpp", "debt", "user_list")
     list_filter = ("type",)
-    search_fields = ("code", "company_name", "inn", "kpp")
+    search_fields = ("code", "guid", "company_name", "inn", "kpp")
     filter_horizontal = ("users",)
     inlines = [CompanyBrandDiscountInline]
 
