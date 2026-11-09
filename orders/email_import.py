@@ -19,7 +19,8 @@ product field to match on. Two formats are supported today:
 ``supplier_barcodes``
     A 1С «Заказ поставщику (штрих-коды)» report (heavily merged cells): the whole
     file is one order, and every row carrying a «Штрих-код» becomes a line matched
-    to ``Product.gtin``, with the «Количество» column as the quantity.
+    to ``Product.gtin``, with the «Количество» column as the quantity. The header
+    fields «Склад» and «Адрес доставки» are copied into the order comment.
 
 Parsing is pure and unit-testable; :func:`create_orders_for_email` does the DB
 work. IMAP fetching lives in the ``import_email_orders`` management command.
@@ -59,6 +60,8 @@ PL_NAME_HEADER = "Наименование"
 SB_CODE_HEADER = "Штрих-код"               # our Product.gtin
 SB_QTY_HEADER = "Количество"               # ordered quantity
 SB_NAME_HEADER = "Товары (работы, услуги)"  # product name (optional)
+# Document-level header fields (above the table) copied into the order comment.
+SB_COMMENT_LABELS = ("Склад", "Адрес доставки")
 
 
 # --------------------------------------------------------------------------- #
@@ -76,6 +79,9 @@ class ParsedLine:
 class ParsedOrder:
     point_of_sale: str
     items: list = field(default_factory=list)
+    # Extra lines to append to the order comment, e.g. document-level
+    # «Склад» / «Адрес доставки» taken from a supplier_barcodes header.
+    comment_lines: list = field(default_factory=list)
 
 
 def _clean(value):
@@ -184,6 +190,24 @@ def parse_price_list(rows):
     return [ParsedOrder(point_of_sale="", items=items)] if items else []
 
 
+def _labeled_value(cells, label):
+    """In a header row, the first non-empty cell to the right of the cell whose
+    text is ``label`` (a trailing colon is ignored). '' if the label is absent.
+
+    The report's cells are heavily merged, so a field's value sits some columns
+    to the right of its label — hence "first non-empty cell after it", not a
+    fixed offset."""
+    target = label.lower()
+    for i, cell in enumerate(cells):
+        if _clean(cell).rstrip(" :").lower() == target:
+            for other in cells[i + 1:]:
+                value = _clean(other)
+                if value:
+                    return value
+            return ""
+    return ""
+
+
 def parse_supplier_barcodes(rows):
     """supplier_barcodes: a «Заказ поставщику (штрих-коды)» → a single order.
 
@@ -192,9 +216,13 @@ def parse_supplier_barcodes(rows):
     barcode is matched against our ``Product.gtin`` (which may list several
     barcodes — any one matching wins). Rows with no barcode — blank rows, the
     «Итого» total, the footer — are ignored, so the table's end needs no marker.
+
+    Document-level header fields above the table — «Склад» and «Адрес доставки»
+    (:data:`SB_COMMENT_LABELS`) — are copied into the order comment.
     """
     code_i = qty_i = name_i = None
     items = []
+    header = {}  # label -> value, captured from the rows above the table
     for idx, row in enumerate(rows, start=1):
         cells = list(row) if row is not None else []
         if code_i is None:
@@ -203,6 +231,12 @@ def parse_supplier_barcodes(rows):
                 code_i = texts.index(SB_CODE_HEADER)
                 qty_i = texts.index(SB_QTY_HEADER)
                 name_i = texts.index(SB_NAME_HEADER) if SB_NAME_HEADER in texts else None
+            else:  # a header row above the table — look for «Склад» / «Адрес доставки»
+                for label in SB_COMMENT_LABELS:
+                    if label not in header:
+                        value = _labeled_value(cells, label)
+                        if value:
+                            header[label] = value
             continue
         code = _clean(cells[code_i]) if code_i < len(cells) else ""
         if not code:
@@ -211,7 +245,10 @@ def parse_supplier_barcodes(rows):
         quantity = _parse_qty(cells[qty_i]) if qty_i < len(cells) else None
         items.append(ParsedLine(code=code, name=name, quantity=quantity or 0, row=idx))
 
-    return [ParsedOrder(point_of_sale="", items=items)] if items else []
+    if not items:
+        return []
+    comment_lines = [f"{label}: {header[label]}" for label in SB_COMMENT_LABELS if header.get(label)]
+    return [ParsedOrder(point_of_sale="", items=items, comment_lines=comment_lines)]
 
 
 FORMATS = {
@@ -459,12 +496,15 @@ class ImportResult:
         return "\n".join(lines)
 
 
-def _order_comment(source_label, point_of_sale):
+def _order_comment(source_label, point_of_sale, extra_lines=None):
     parts = ["Импортирован из письма"]
     if source_label:
         parts[0] += f" ({source_label})"
     if point_of_sale:
         parts.append(f"Точка продаж: {point_of_sale}")
+    for line in (extra_lines or []):
+        if line:
+            parts.append(line)
     return "\n".join(parts)
 
 
@@ -521,7 +561,9 @@ def create_orders_for_email(
                 warehouse=warehouse,
                 company=company,
                 status=Order.Status.PENDING,
-                comment=_order_comment(source_label, section.point_of_sale),
+                comment=_order_comment(
+                    source_label, section.point_of_sale, section.comment_lines
+                ),
                 imported_from_email=source_email,
             )
             for product, price, quantity in matched_lines:
