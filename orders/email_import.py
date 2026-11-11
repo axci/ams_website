@@ -439,20 +439,27 @@ def match_product(code, match_by="nkoil_code"):
     """Find a catalog product by a client code. ``match_by`` is the Product field
     to match on: 'nkoil_code' (the client's own code), 'sku' (our code) or 'gtin'
     (the barcode). A product may carry several GTINs — for 'gtin' it matches when
-    *any* of them equals ``code``. Prefers an active product on ties."""
+    *any* of them equals ``code``, ignoring leading zeros on either side (a client
+    GTIN-14 «04640427714676» matches our GTIN-13 «4640427714676»). Prefers an
+    active product on ties."""
     from catalog.models import Product, split_gtins
 
     code = (code or "").strip()
     if not code:
         return None
     if match_by == "gtin":
-        # A product's GTIN field may list several barcodes. Prefilter in the DB,
-        # then confirm exact membership (an icontains hit could be a substring of
-        # a longer barcode, e.g. "123" inside "4601230000123").
+        # A product's GTIN field may list several barcodes, and the client's code
+        # may carry leading zeros our value omits, so compare with leading zeros
+        # stripped from both sides. The stripped code is a suffix of the raw code,
+        # hence a substring of any barcode that matches — so it is a safe DB
+        # prefilter. Then confirm the stripped values are equal, since an
+        # icontains hit could be a substring of a longer barcode (e.g. "123"
+        # inside "4601230000123").
+        code_key = code.lstrip("0")
         candidates = [
             p
-            for p in Product.objects.filter(gtin__icontains=code)
-            if code in split_gtins(p.gtin)
+            for p in Product.objects.filter(gtin__icontains=code_key or code)
+            if any(g.lstrip("0") == code_key for g in split_gtins(p.gtin))
         ]
         return next((p for p in candidates if p.is_active), None) or (
             candidates[0] if candidates else None
