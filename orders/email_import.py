@@ -493,6 +493,9 @@ class ImportResult:
     unmatched: list = field(default_factory=list)        # (code, name, qty, row)
     skipped: list = field(default_factory=list)          # bad/zero qty lines
     notes: list = field(default_factory=list)
+    # One per created (or would-be) order, in order:
+    # (pk_or_None, consignee_code, matched, consignee_name, has_guid).
+    consignees: list = field(default_factory=list)
 
     def summary(self):
         return (
@@ -501,18 +504,47 @@ class ImportResult:
             f"не найдено: {len(self.unmatched)}, пропущено: {len(self.skipped)}"
         )
 
+    @staticmethod
+    def _consignee_text(code, matched, name, has_guid):
+        """One order's Грузополучатель line for the report."""
+        if not code:
+            return "Грузополучатель: не указан (нет «Склад» в файле)"
+        if not matched:
+            return f"Грузополучатель: {code} — НЕ НАЙДЕН в справочнике (в 1С не передаётся)"
+        label = f"{code} «{name}»" if name else code
+        if not has_guid:
+            return f"Грузополучатель: {label} — в справочнике, но без GUID (в 1С не передаётся)"
+        return f"Грузополучатель: {label} — передаётся в 1С"
+
     def render_report(self):
         """A human-readable report stored on the ImportedOrderEmail row."""
         lines = [self.summary()]
-        pks = [pk for pk in self.created_orders if pk is not None]
-        if pks:
-            lines.append("Заказы: " + ", ".join(f"№{pk}" for pk in pks))
+        if self.consignees:
+            lines.append("Заказы:")
+            for pk, code, matched, name, has_guid in self.consignees:
+                label = f"№{pk}" if pk is not None else "черновик"
+                lines.append(f"  {label} — {self._consignee_text(code, matched, name, has_guid)}")
         for code, name, qty, row in self.unmatched:
             lines.append(f"НЕ НАЙДЕН товар [стр.{row}]: {code} ×{qty} — {name}")
         for code, name, qty, row in self.skipped:
             lines.append(f"ПРОПУЩЕНО (нет кол-ва) [стр.{row}]: {code} — {name}")
         lines.extend(self.notes)
         return "\n".join(lines)
+
+
+def _resolve_consignee_report(code):
+    """Look up the Грузополучатель for the import report: ``(code, matched,
+    name, has_guid)``. Matching/sending still happens at export; this only tells
+    the manager, at import time, whether the GUID will be filled."""
+    code = (code or "").strip()
+    if not code:
+        return ("", False, "", False)
+    from accounts.models import Consignee
+
+    consignee = Consignee.objects.filter(code=code).first()
+    if consignee is None:
+        return (code, False, "", False)
+    return (code, True, consignee.name, bool((consignee.guid or "").strip()))
 
 
 def _order_comment(source_label, point_of_sale, extra_lines=None):
@@ -571,8 +603,11 @@ def create_orders_for_email(
             if not matched_lines:
                 continue  # don't create an empty order
 
+            consignee = _resolve_consignee_report(section.consignee_code)
+
             if dry_run:
                 result.created_orders.append(None)  # a would-be order, no DB write
+                result.consignees.append((None, *consignee))
                 continue
 
             order = Order.objects.create(
@@ -597,6 +632,7 @@ def create_orders_for_email(
                 )
             order.recalculate_total()
             result.created_orders.append(order.pk)
+            result.consignees.append((order.pk, *consignee))
 
         if dry_run:
             transaction.set_rollback(True)
