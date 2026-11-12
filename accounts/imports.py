@@ -10,7 +10,7 @@ from decimal import Decimal, InvalidOperation
 
 import openpyxl
 
-from .models import Company
+from .models import Company, Consignee
 
 # Normalised header -> Company field. Only "code" is required.
 COLUMN_ALIASES = {
@@ -115,6 +115,70 @@ def import_companies(file):
                 company.debt = d if d is not None else Decimal("0")
 
             company.save()
+            if creating:
+                result.created += 1
+            else:
+                result.updated += 1
+        except Exception as exc:  # noqa: BLE001
+            result.errors.append((rownum, str(exc)))
+    return result
+
+
+# Normalised header -> Consignee field. "code" is required.
+CONSIGNEE_ALIASES = {
+    "код": "code",
+    "code": "code",
+    "азс": "code",
+    "код грузополучателя": "code",
+    "наименование": "name",
+    "название": "name",
+    "name": "name",
+    "грузополучатель": "name",
+    "guid": "guid",
+    "гуид": "guid",
+    "ид": "guid",
+}
+
+
+def import_consignees(file):
+    """Import / update Грузополучатели from an Excel file (code, name, GUID).
+
+    Rows are matched by ``code`` (the «Склад» АЗС code) and create/update a
+    :class:`~accounts.models.Consignee`."""
+    result = ImportResult()
+    ws = openpyxl.load_workbook(file, data_only=True).active
+    rows = ws.iter_rows(values_only=True)
+    try:
+        header = next(rows)
+    except StopIteration:
+        result.errors.append((1, "Пустой файл."))
+        return result
+
+    colmap = {}
+    for idx, h in enumerate(header):
+        field_name = CONSIGNEE_ALIASES.get(_norm(h))
+        if field_name and field_name not in colmap.values():
+            colmap[idx] = field_name
+    if "code" not in colmap.values():
+        result.errors.append((1, "Не найден обязательный столбец «Код»."))
+        return result
+
+    for rownum, row in enumerate(rows, start=2):
+        values = {colmap[i]: row[i] for i in colmap if i < len(row)}
+        code = _text(values.get("code"))
+        if not code:
+            result.skipped += 1
+            continue
+        try:
+            consignee = Consignee.objects.filter(code=code).first()
+            creating = consignee is None
+            if creating:
+                consignee = Consignee(code=code)
+            if "name" in values:
+                consignee.name = _text(values.get("name"))[:200]
+            if "guid" in values:
+                consignee.guid = _text(values.get("guid"))[:50]
+            consignee.save()
             if creating:
                 result.created += 1
             else:

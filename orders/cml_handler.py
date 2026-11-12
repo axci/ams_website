@@ -8,7 +8,7 @@ import logging
 
 from django.utils import timezone
 
-from accounts.models import Company
+from accounts.models import Company, Consignee
 from cml_exchange.handlers import BaseHandler
 from cml_exchange.orders import Customer, OrderData
 from cml_exchange.orders import OrderItem as CmlOrderItem
@@ -46,6 +46,7 @@ class AmsCmlHandler(BaseHandler):
             .order_by("created_at")
         )
         for o in orders:
+            consignee = self._consignee(o)
             yield OrderData(
                 id=f"site-{o.pk}",
                 number=o.invoice_number,
@@ -58,8 +59,21 @@ class AmsCmlHandler(BaseHandler):
                 delivery_method=o.get_delivery_method_display(),
                 delivery_address=o.shipping_address,
                 cancelled=(o.status == Order.Status.CANCELLED),
+                consignee_id=(consignee.guid.strip() if consignee else ""),
+                consignee_name=(consignee.name if consignee else ""),
                 extra=self._extra(o),
             )
+
+    @staticmethod
+    def _consignee(o):
+        """The order's Грузополучатель, matched from its stored «Склад» code to a
+        Consignee with a 1С GUID. Returns None when there is no code, no matching
+        consignee, or the consignee has no GUID yet."""
+        code = (o.consignee_code or "").strip()
+        if not code:
+            return None
+        consignee = Consignee.objects.filter(code=code).first()
+        return consignee if (consignee and consignee.guid.strip()) else None
 
     def _extra(self, o):
         """Document-level requisites 1С reads: the fixed «Ответственный» and the

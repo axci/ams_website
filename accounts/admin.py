@@ -19,10 +19,11 @@ from warehouses.models import Manager, Warehouse
 
 from .emails import send_credentials
 from .exports import build_users_xlsx
-from .imports import import_companies
+from .imports import import_companies, import_consignees
 from .models import (
     Company,
     CompanyBrandDiscount,
+    Consignee,
     DeliveryAddress,
     RegistrationRequest,
     User,
@@ -201,6 +202,60 @@ class CompanyAdmin(admin.ModelAdmin):
             "opts": self.model._meta,
         }
         return render(request, "admin/accounts/company/import_excel.html", context)
+
+
+class ConsigneeImportForm(forms.Form):
+    file = forms.FileField(label="Excel-файл (.xlsx)")
+
+
+@admin.register(Consignee)
+class ConsigneeAdmin(admin.ModelAdmin):
+    change_list_template = "admin/accounts/consignee/change_list.html"
+    list_display = ("code", "name", "guid")
+    search_fields = ("code", "name", "guid")
+
+    def get_urls(self):
+        custom = [
+            path(
+                "import-excel/",
+                self.admin_site.admin_view(self.import_excel),
+                name="accounts_consignee_import_excel",
+            ),
+        ]
+        return custom + super().get_urls()
+
+    def import_excel(self, request):
+        if request.method == "POST":
+            form = ConsigneeImportForm(request.POST, request.FILES)
+            if form.is_valid():
+                result = import_consignees(form.cleaned_data["file"])
+                self.message_user(
+                    request,
+                    f"Импорт завершён: создано {result.created}, "
+                    f"обновлено {result.updated}, пропущено {result.skipped}, "
+                    f"ошибок {len(result.errors)}.",
+                    level=messages.SUCCESS if not result.errors else messages.WARNING,
+                )
+                for row_num, msg in result.errors[:15]:
+                    self.message_user(
+                        request, f"Строка {row_num}: {msg}", messages.ERROR
+                    )
+                if len(result.errors) > 15:
+                    self.message_user(
+                        request,
+                        f"…и ещё {len(result.errors) - 15} строк(и) с ошибками.",
+                        messages.ERROR,
+                    )
+                return redirect("admin:accounts_consignee_changelist")
+        else:
+            form = ConsigneeImportForm()
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Импорт грузополучателей из Excel",
+            "form": form,
+            "opts": self.model._meta,
+        }
+        return render(request, "admin/accounts/consignee/import_excel.html", context)
 
 
 @admin.register(DeliveryAddress)

@@ -98,6 +98,14 @@ class Order(models.Model):
         default=DeliveryMethod.DELIVERY,
     )
     shipping_address = models.CharField(max_length=255, blank=True)
+    consignee_code = models.CharField(
+        "код грузополучателя (из файла)",
+        max_length=64,
+        blank=True,
+        default="",
+        help_text="Код из поля «Склад» импортированного заказа (например «АЗС42408»); "
+        "при выгрузке в 1С сопоставляется с грузополучателем и его GUID.",
+    )
     comment = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

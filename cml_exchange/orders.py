@@ -67,6 +67,8 @@ class OrderData:
     delivery_price: Decimal = Decimal(0)
     delivery_address: str = ""
     cancelled: bool = False
+    consignee_id: str = ""        # Грузополучатель: Ид (GUID) в 1С, если сопоставлен
+    consignee_name: str = ""      # наименование грузополучателя (для <Наименование>)
     extra: dict = field(default_factory=dict)   # дополнительные реквизиты {"Наименование": "Значение"}
 
     @property
@@ -166,6 +168,14 @@ def build_orders_xml(orders: Iterable[OrderData]) -> bytes:
                 ct = _sub(contacts, "Контакт")
                 _sub(ct, "Тип", "ТелефонРабочий")
                 _sub(ct, "Значение", c.phone)
+
+        # Грузополучатель — a second контрагент (matched in 1С by its GUID).
+        if order.consignee_id:
+            cg = _sub(agents, "Контрагент")
+            _sub(cg, "Ид", order.consignee_id)
+            if order.consignee_name:
+                _sub(cg, "Наименование", order.consignee_name)
+            _sub(cg, "Роль", "Грузополучатель")
 
         _sub(doc, "Время", created.strftime("%H:%M:%S"))
         if order.comment:

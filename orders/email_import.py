@@ -62,6 +62,9 @@ SB_QTY_HEADER = "Количество"               # ordered quantity
 SB_NAME_HEADER = "Товары (работы, услуги)"  # product name (optional)
 # Document-level header fields (above the table) copied into the order comment.
 SB_COMMENT_LABELS = ("Склад", "Адрес доставки")
+# The «Склад» value's first token (e.g. «АЗС42408») is the Грузополучатель code —
+# stored on the order and resolved to a 1С GUID when the order is exported.
+SB_CONSIGNEE_LABEL = "Склад"
 
 
 # --------------------------------------------------------------------------- #
@@ -82,6 +85,8 @@ class ParsedOrder:
     # Extra lines to append to the order comment, e.g. document-level
     # «Склад» / «Адрес доставки» taken from a supplier_barcodes header.
     comment_lines: list = field(default_factory=list)
+    # Грузополучатель code (the «Склад» АЗС code), resolved to a GUID on export.
+    consignee_code: str = ""
 
 
 def _clean(value):
@@ -248,7 +253,14 @@ def parse_supplier_barcodes(rows):
     if not items:
         return []
     comment_lines = [f"{label}: {header[label]}" for label in SB_COMMENT_LABELS if header.get(label)]
-    return [ParsedOrder(point_of_sale="", items=items, comment_lines=comment_lines)]
+    # The consignee code is the first token of «Склад», e.g. «АЗС42408» in
+    # «АЗС42408 Транспортная».
+    sklad = (header.get(SB_CONSIGNEE_LABEL) or "").split()
+    consignee_code = sklad[0] if sklad else ""
+    return [ParsedOrder(
+        point_of_sale="", items=items, comment_lines=comment_lines,
+        consignee_code=consignee_code,
+    )]
 
 
 FORMATS = {
@@ -571,6 +583,7 @@ def create_orders_for_email(
                 comment=_order_comment(
                     source_label, section.point_of_sale, section.comment_lines
                 ),
+                consignee_code=section.consignee_code,
                 imported_from_email=source_email,
             )
             for product, price, quantity in matched_lines:

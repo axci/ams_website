@@ -211,6 +211,39 @@ class Company(models.Model):
         return self.company_name or self.code or f"Компания #{self.pk}"
 
 
+class Consignee(models.Model):
+    """A 1С Грузополучатель (consignee / delivery point, e.g. an АЗС).
+
+    A kds order names its delivery point in the file's «Склад» field (e.g.
+    «АЗС42408 Транспортная»); that code is stored on the order and resolved here
+    to the 1С GUID that fills «Грузополучатель» in the exported «Заказ
+    покупателя». Грузополучатели are Контрагенты in 1С, each with its own GUID."""
+
+    code = models.CharField(
+        "код (АЗС)",
+        max_length=64,
+        unique=True,
+        help_text="Код грузополучателя из поля «Склад» в файле клиента, например «АЗС42408».",
+    )
+    name = models.CharField("наименование", max_length=200, blank=True, default="")
+    guid = models.CharField(
+        "GUID (1С)",
+        max_length=50,
+        blank=True,
+        default="",
+        db_index=True,
+        help_text="Идентификатор (Ид) грузополучателя в справочнике «Контрагенты» 1С.",
+    )
+
+    class Meta:
+        verbose_name = "грузополучатель"
+        verbose_name_plural = "грузополучатели"
+        ordering = ["code"]
+
+    def __str__(self):
+        return f"{self.code} — {self.name}" if self.name else self.code
+
+
 class CompanyBrandDiscount(models.Model):
     """A percentage discount a company gets on a particular brand.
 
