@@ -60,7 +60,9 @@ class AmsCmlHandler(BaseHandler):
                 delivery_address=o.shipping_address,
                 cancelled=(o.status == Order.Status.CANCELLED),
                 consignee_id=(consignee.guid.strip() if consignee else ""),
-                consignee_name=(consignee.name if consignee else ""),
+                # 1С needs a <Наименование> on the contractor — fall back to the
+                # code when the directory row has no name.
+                consignee_name=((consignee.name or consignee.code) if consignee else ""),
                 extra=self._extra(o),
             )
 
