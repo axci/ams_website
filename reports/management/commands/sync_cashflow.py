@@ -13,6 +13,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
+from django.utils import timezone
 from django.utils.dateparse import parse_date
 
 from reports.models import CashflowDocument
@@ -51,7 +52,9 @@ class Command(BaseCommand):
         if not isinstance(rows, list):
             raise CommandError("Ожидался JSON-массив документов от 1С.")
 
-        created = updated = skipped = 0
+        objs = []
+        skipped = 0
+        now = timezone.now()
         for row in rows:
             if not isinstance(row, dict):
                 skipped += 1
@@ -61,30 +64,47 @@ class Command(BaseCommand):
             if not number or date is None:
                 skipped += 1
                 continue
-            defaults = {
-                "date": date,
-                "amount": _amount(row.get("amount")),
-                "direction": _text(row.get("direction"), 32),
-                "source": _text(row.get("source"), 32),
-                "doc_type": _text(row.get("docType"), 128),
-                "organization": _text(row.get("organization"), 255),
-                "counterparty": _text(row.get("counterparty"), 255),
-                "article": _text(row.get("article"), 255),
-                "comment": _text(row.get("comment")),
-                "purpose": _text(row.get("purpose")),
-            }
-            if opts["dry_run"]:
-                continue
-            _, is_created = CashflowDocument.objects.update_or_create(
-                number=number, defaults=defaults,
-            )
-            created += int(is_created)
-            updated += int(not is_created)
+            objs.append(CashflowDocument(
+                number=number,
+                date=date,
+                amount=_amount(row.get("amount")),
+                direction=_text(row.get("direction"), 32),
+                source=_text(row.get("source"), 32),
+                doc_type=_text(row.get("docType"), 128),
+                organization=_text(row.get("organization"), 255),
+                counterparty=_text(row.get("counterparty"), 255),
+                article=_text(row.get("article"), 255),
+                comment=_text(row.get("comment")),
+                purpose=_text(row.get("purpose")),
+                synced_at=now,
+            ))
 
-        verb = "получено" if opts["dry_run"] else "загружено"
+        if opts["dry_run"]:
+            self.stdout.write(self.style.SUCCESS(
+                f"Готово (dry-run): получено {len(rows)}, разобрано {len(objs)}, "
+                f"пропущено {skipped}. В БД ничего не записано."
+            ))
+            return
+
+        # Batched upsert by number (Postgres INSERT ... ON CONFLICT) — one bulk
+        # statement per batch instead of a query per row (there are ~45k rows).
+        before = CashflowDocument.objects.count()
+        CashflowDocument.objects.bulk_create(
+            objs,
+            update_conflicts=True,
+            unique_fields=["number"],
+            update_fields=[
+                "date", "amount", "direction", "source", "doc_type",
+                "organization", "counterparty", "article", "comment",
+                "purpose", "synced_at",
+            ],
+            batch_size=1000,
+        )
+        after = CashflowDocument.objects.count()
+        created = after - before
         self.stdout.write(self.style.SUCCESS(
-            f"Готово: {verb} {len(rows)}, создано {created}, обновлено {updated}, "
-            f"пропущено {skipped}."
+            f"Готово: получено {len(rows)}, добавлено {created}, "
+            f"обновлено {len(objs) - created}, пропущено {skipped}."
         ))
 
     def _fetch(self, url, cfg):

@@ -118,8 +118,10 @@ CML_EXCHANGE = {
 # reads them. URL/credentials come from the environment (repo is public).
 CASHFLOW_1C = {
     "URL": os.environ.get("CASHFLOW_1C_URL", ""),
-    "USER": os.environ.get("CASHFLOW_1C_USER", ""),
-    "PASSWORD": os.environ.get("CASHFLOW_1C_PASSWORD", ""),
+    # The cashflow endpoint is on the same 1С (УНФ) as the ERP sync, so reuse the
+    # ERP_* credentials by default; CASHFLOW_1C_USER/PASSWORD override if set.
+    "USER": os.environ.get("CASHFLOW_1C_USER", "") or os.environ.get("ERP_USER", ""),
+    "PASSWORD": os.environ.get("CASHFLOW_1C_PASSWORD", "") or os.environ.get("ERP_PASSWORD", ""),
     "TIMEOUT": int(os.environ.get("CASHFLOW_1C_TIMEOUT", "60") or "60"),
 }
 
