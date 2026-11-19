@@ -1,0 +1,13 @@
+{% extends "admin/change_list.html" %}
+
+{% block result_list %}
+  {% if cashflow_totals %}
+  <div class="module" style="margin-bottom:1em; padding:10px 14px; line-height:1.8;">
+    <strong>Итого за период</strong> — документов: {{ cashflow_totals.count }}
+    &nbsp;·&nbsp; Поступление: <strong style="color:#2e7d32;">{{ cashflow_totals.income|floatformat:2 }}</strong>
+    &nbsp;·&nbsp; Расход: <strong style="color:#c62828;">{{ cashflow_totals.outflow|floatformat:2 }}</strong>
+    &nbsp;·&nbsp; Сальдо: <strong>{{ cashflow_totals.net|floatformat:2 }}</strong>
+  </div>
+  {% endif %}
+  {{ block.super }}
+{% endblock %}

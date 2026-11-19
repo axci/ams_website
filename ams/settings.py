@@ -99,6 +99,7 @@ INSTALLED_APPS = [
     "news",
     "about",
     "cml_exchange",
+    "reports",
 ]
 
 # 1С (CommerceML) exchange — endpoint at /1c/exchange. Credentials come from the
@@ -109,6 +110,17 @@ CML_EXCHANGE = {
     "PASSWORD": os.environ.get("CML_PASSWORD", ""),
     "HANDLER": "orders.cml_handler.AmsCmlHandler",
     "DIR": BASE_DIR / "var" / "1c_exchange",
+}
+
+# Cash-flow report (admin-only). The 1С (УНФ) HTTP service lives on the office
+# LAN, unreachable from the VPS, so the `sync_cashflow` command runs office-side
+# (like the ERP sync) and stores documents in the site DB; the admin report
+# reads them. URL/credentials come from the environment (repo is public).
+CASHFLOW_1C = {
+    "URL": os.environ.get("CASHFLOW_1C_URL", ""),
+    "USER": os.environ.get("CASHFLOW_1C_USER", ""),
+    "PASSWORD": os.environ.get("CASHFLOW_1C_PASSWORD", ""),
+    "TIMEOUT": int(os.environ.get("CASHFLOW_1C_TIMEOUT", "60") or "60"),
 }
 
 # Email order import — the `import_email_orders` command polls this IMAP mailbox
