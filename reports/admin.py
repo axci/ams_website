@@ -14,12 +14,6 @@ INCOME_PREFIX = "Поступ"
 _MONTHS_RU = ["", "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль",
               "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"]
 
-# Fields that come from 1С (a mirror) — read-only; only «note» is editable.
-ONEC_FIELDS = (
-    "number", "date", "amount", "direction", "source", "doc_type",
-    "organization", "counterparty", "article", "comment", "purpose", "synced_at",
-)
-
 
 def _totals(qs):
     """Поступление / Расход / Сальдо (+ count) for a queryset."""
@@ -31,8 +25,8 @@ def _totals(qs):
 @admin.register(CashflowDocument)
 class CashflowDocumentAdmin(admin.ModelAdmin):
     """1С cash-flow mirror. The changelist is the quick report (date drill-down,
-    filters, totals); «Сформировать отчёт» opens a period report. Rows are managed
-    by the sync, so the 1С fields are read-only and only «Заметка» is editable."""
+    filters, totals); «Сформировать отчёт» opens the ОДДС. All fields are editable;
+    «Заметка» survives a sync, the 1С fields are refreshed from 1С on the next sync."""
 
     change_list_template = "admin/reports/cashflowdocument/change_list.html"
     date_hierarchy = "date"
@@ -40,14 +34,15 @@ class CashflowDocumentAdmin(admin.ModelAdmin):
         "date", "number", "direction", "source", "amount",
         "organization", "counterparty", "article", "note",
     )
+    list_editable = ("note",)
     list_filter = ("direction", "source", "organization", "article", "date")
     search_fields = ("number", "counterparty", "organization", "article",
                      "comment", "purpose", "note")
     ordering = ("-date", "-number")
-    readonly_fields = ONEC_FIELDS
+    readonly_fields = ("synced_at",)  # auto-managed timestamp; everything else editable
 
-    # The sync owns the rows (full refresh); no manual add/delete. «note» stays
-    # editable (preserved across syncs).
+    # The sync owns which rows exist (full refresh), so no manual add/delete —
+    # but every field of an existing row is editable in its change form.
     def has_add_permission(self, request):
         return False
 
