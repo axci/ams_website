@@ -13,6 +13,7 @@ from decimal import Decimal, InvalidOperation
 
 from django.conf import settings
 from django.core.management.base import BaseCommand, CommandError
+from django.db import transaction
 from django.utils import timezone
 from django.utils.dateparse import parse_date
 
@@ -86,25 +87,16 @@ class Command(BaseCommand):
             ))
             return
 
-        # Batched upsert by number (Postgres INSERT ... ON CONFLICT) — one bulk
-        # statement per batch instead of a query per row (there are ~45k rows).
-        before = CashflowDocument.objects.count()
-        CashflowDocument.objects.bulk_create(
-            objs,
-            update_conflicts=True,
-            unique_fields=["number"],
-            update_fields=[
-                "date", "amount", "direction", "source", "doc_type",
-                "organization", "counterparty", "article", "comment",
-                "purpose", "synced_at",
-            ],
-            batch_size=1000,
-        )
-        after = CashflowDocument.objects.count()
-        created = after - before
+        # The feed is the full snapshot and reuses `number` across years/journals
+        # (no stable unique id), so replace the whole table in one transaction
+        # rather than upserting — the report then mirrors 1С exactly, including
+        # documents deleted there.
+        with transaction.atomic():
+            CashflowDocument.objects.all().delete()
+            CashflowDocument.objects.bulk_create(objs, batch_size=1000)
         self.stdout.write(self.style.SUCCESS(
-            f"Готово: получено {len(rows)}, добавлено {created}, "
-            f"обновлено {len(objs) - created}, пропущено {skipped}."
+            f"Готово: получено {len(rows)}, загружено {len(objs)}, "
+            f"пропущено {skipped} (таблица обновлена полностью)."
         ))
 
     def _fetch(self, url, cfg):

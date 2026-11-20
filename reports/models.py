@@ -4,12 +4,14 @@ from django.db import models
 class CashflowDocument(models.Model):
     """A cash-flow document pulled from 1С (УНФ) by the ``sync_cashflow`` command.
 
-    One row per 1С document, keyed by its ``number``. 1С lives on the office LAN
-    and is unreachable from the VPS, so the office-side sync populates these rows
-    (writing to the site DB, like the ERP sync) and the admin report reads them.
+    1С lives on the office LAN and is unreachable from the VPS, so the office-side
+    sync populates these rows (writing to the site DB, like the ERP sync) and the
+    admin report reads them. The feed returns the full set each time and **reuses
+    ``number`` across years/journals** (so it is not unique and there is no stable
+    id), so the sync fully replaces the table rather than upserting by key.
     """
 
-    number = models.CharField("номер", max_length=64, unique=True)
+    number = models.CharField("номер", max_length=64, db_index=True)
     date = models.DateField("дата", db_index=True)
     amount = models.DecimalField("сумма", max_digits=15, decimal_places=2, default=0)
     direction = models.CharField(
