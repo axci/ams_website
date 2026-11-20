@@ -1,0 +1,75 @@
+{% extends "admin/base_site.html" %}
+{% load l10n %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+  <a href="{% url 'admin:index' %}">Главная</a>
+  &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
+  &rsaquo; <a href="{% url 'admin:reports_cashflowdocument_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
+  &rsaquo; Отчёт за период
+</div>
+{% endblock %}
+
+{% block content %}
+<form method="get">
+  <input type="hidden" name="form" value="1">
+  <fieldset class="module aligned">
+    <div class="form-row field-from">
+      <label for="id_from">Период с:</label>
+      <input type="date" name="from" id="id_from" value="{{ date_from }}">
+    </div>
+    <div class="form-row field-to">
+      <label for="id_to">по:</label>
+      <input type="date" name="to" id="id_to" value="{{ date_to }}">
+    </div>
+  </fieldset>
+  <div class="submit-row">
+    <input type="submit" value="Сформировать" class="default">
+  </div>
+</form>
+
+{% if submitted %}
+  <div class="module" style="margin:1em 0; padding:10px 14px; line-height:1.9;">
+    <strong>Итого за период</strong> — документов: {{ totals.count }}
+    &nbsp;·&nbsp; Поступление: <strong style="color:#2e7d32;">{{ totals.income|floatformat:2 }}</strong>
+    &nbsp;·&nbsp; Расход: <strong style="color:#c62828;">{{ totals.outflow|floatformat:2 }}</strong>
+    &nbsp;·&nbsp; Сальдо: <strong>{{ totals.net|floatformat:2 }}</strong>
+  </div>
+
+  {% if rows %}
+  <div class="results">
+    <table id="result_list">
+      <thead>
+        <tr>
+          <th>Дата</th><th>Номер</th><th>Движение</th><th>Источник</th>
+          <th style="text-align:right;">Сумма</th><th>Организация</th>
+          <th>Контрагент</th><th>Статья</th><th>Заметка</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in rows %}
+        <tr class="{% cycle 'row1' 'row2' %}">
+          <td>{{ d.date|date:"d.m.Y" }}</td>
+          <td>{{ d.number }}</td>
+          <td>{{ d.direction }}</td>
+          <td>{{ d.source }}</td>
+          <td style="text-align:right;">{{ d.amount|floatformat:2 }}</td>
+          <td>{{ d.organization }}</td>
+          <td>{{ d.counterparty }}</td>
+          <td>{{ d.article }}</td>
+          <td>{{ d.note }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% if rows|length == row_cap %}
+    <p class="help">Показаны первые {{ row_cap }} строк (итоги посчитаны по всем). Уточните период.</p>
+  {% endif %}
+  {% else %}
+    <p class="help">За выбранный период документов нет.</p>
+  {% endif %}
+{% else %}
+  <p class="help">Выберите период и нажмите «Сформировать».</p>
+{% endif %}
+{% endblock %}

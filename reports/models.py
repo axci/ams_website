@@ -28,6 +28,14 @@ class CashflowDocument(models.Model):
     article = models.CharField("статья", max_length=255, blank=True, default="", db_index=True)
     comment = models.TextField("комментарий", blank=True, default="")
     purpose = models.TextField("назначение", blank=True, default="")
+    # Manual field — NOT from 1С. The sync preserves it across the full refresh
+    # (re-applied by the natural key number+doc_type+date+amount), so edits here
+    # survive, unlike the 1С-sourced fields which are overwritten each sync.
+    note = models.TextField(
+        "заметка", blank=True, default="",
+        help_text="Ваша заметка к документу. Сохраняется при синхронизации "
+        "(в отличие от полей, которые приходят из 1С).",
+    )
     synced_at = models.DateTimeField("обновлено синхронизацией", auto_now=True)
 
     class Meta:

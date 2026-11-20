@@ -90,13 +90,25 @@ class Command(BaseCommand):
         # The feed is the full snapshot and reuses `number` across years/journals
         # (no stable unique id), so replace the whole table in one transaction
         # rather than upserting — the report then mirrors 1С exactly, including
-        # documents deleted there.
+        # documents deleted there. Manual «Заметка» notes are carried over by the
+        # natural key (number, doc_type, date, amount) so edits survive the refresh.
         with transaction.atomic():
+            notes = {
+                (num, dt, d, amt): note
+                for num, dt, d, amt, note in CashflowDocument.objects
+                .exclude(note="")
+                .values_list("number", "doc_type", "date", "amount", "note")
+            }
+            if notes:
+                for obj in objs:
+                    kept = notes.get((obj.number, obj.doc_type, obj.date, obj.amount))
+                    if kept:
+                        obj.note = kept
             CashflowDocument.objects.all().delete()
             CashflowDocument.objects.bulk_create(objs, batch_size=1000)
         self.stdout.write(self.style.SUCCESS(
             f"Готово: получено {len(rows)}, загружено {len(objs)}, "
-            f"пропущено {skipped} (таблица обновлена полностью)."
+            f"пропущено {skipped} (таблица обновлена, заметок сохранено: {len(notes)})."
         ))
 
     def _fetch(self, url, cfg):
