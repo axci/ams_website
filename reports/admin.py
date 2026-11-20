@@ -1,9 +1,11 @@
 from django.contrib import admin
 from django.db.models import Sum
+from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import path
 from django.utils.dateparse import parse_date
 
+from .exports import build_cashflow_xlsx
 from .models import CashflowDocument
 
 # «Поступление» — money in; everything else counts as money out.
@@ -76,11 +78,13 @@ class CashflowDocumentAdmin(admin.ModelAdmin):
         totals = rows = None
         row_cap = 1000
         if submitted:
-            qs = CashflowDocument.objects.all()
+            qs = (CashflowDocument.objects.all().order_by("date", "number"))
             if date_from:
                 qs = qs.filter(date__gte=date_from)
             if date_to:
                 qs = qs.filter(date__lte=date_to)
+            if request.GET.get("format") == "xlsx":
+                return self._export_xlsx(qs, date_from, date_to)
             totals = _totals(qs)
             rows = list(qs[:row_cap])
         context = {
@@ -95,3 +99,20 @@ class CashflowDocumentAdmin(admin.ModelAdmin):
             "row_cap": row_cap,
         }
         return render(request, "admin/reports/cashflowdocument/report.html", context)
+
+    @staticmethod
+    def _export_xlsx(qs, date_from, date_to):
+        """Download the period's documents (all of them) + totals as .xlsx."""
+        data = build_cashflow_xlsx(
+            qs.iterator(), totals=_totals(qs),
+            date_from=date_from, date_to=date_to,
+        )
+        name = "cashflow"
+        if date_from or date_to:
+            name += f"_{date_from or ''}_{date_to or ''}"
+        response = HttpResponse(
+            data,
+            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+        response["Content-Disposition"] = f'attachment; filename="{name}.xlsx"'
+        return response
