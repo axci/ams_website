@@ -1,76 +1,87 @@
 {% extends "admin/base_site.html" %}
-{% load l10n %}
+
+{% block extrastyle %}{{ block.super }}
+<style>
+  .cf-report th, .cf-report td { padding: 3px 10px; white-space: nowrap; }
+  .cf-report td.num { text-align: right; font-variant-numeric: tabular-nums; }
+  .cf-report td.lbl { text-align: left; }
+  .cf-report tr.k-sec td { font-weight: 700; background: var(--darkened-bg, #f3f3f3); }
+  .cf-report tr.k-grp td, .cf-report tr.k-sub td,
+  .cf-report tr.k-saldo td, .cf-report tr.k-total td { font-weight: 700; }
+  .cf-report tr.k-saldo td, .cf-report tr.k-total td { border-top: 1px solid #bbb; }
+  .cf-d0 { padding-left: 4px; }
+  .cf-d1 { padding-left: 20px; }
+  .cf-d2 { padding-left: 38px; }
+  .cf-d3 { padding-left: 56px; }
+</style>
+{% endblock %}
 
 {% block breadcrumbs %}
 <div class="breadcrumbs">
   <a href="{% url 'admin:index' %}">Главная</a>
   &rsaquo; <a href="{% url 'admin:app_list' app_label=opts.app_label %}">{{ opts.app_config.verbose_name }}</a>
   &rsaquo; <a href="{% url 'admin:reports_cashflowdocument_changelist' %}">{{ opts.verbose_name_plural|capfirst }}</a>
-  &rsaquo; Отчёт за период
+  &rsaquo; Отчёт о движении денежных средств
 </div>
 {% endblock %}
 
 {% block content %}
 <form method="get">
   <input type="hidden" name="form" value="1">
-  <fieldset class="module aligned">
-    <div class="form-row field-from">
-      <label for="id_from">Период с:</label>
-      <input type="date" name="from" id="id_from" value="{{ date_from }}">
-    </div>
-    <div class="form-row field-to">
-      <label for="id_to">по:</label>
-      <input type="date" name="to" id="id_to" value="{{ date_to }}">
-    </div>
-  </fieldset>
-  <div class="submit-row">
+  <fieldset class="module aligned" style="padding:10px 14px;">
+    <label for="id_month">Месяц:</label>
+    <select name="month" id="id_month">
+      {% for m, name in months %}
+        <option value="{{ m }}" {% if m == month %}selected{% endif %}>{{ name }}</option>
+      {% endfor %}
+    </select>
+    &nbsp;&nbsp;
+    <label for="id_year">Год:</label>
+    <select name="year" id="id_year">
+      {% for y in years %}
+        <option value="{{ y }}" {% if y == year %}selected{% endif %}>{{ y }}</option>
+      {% endfor %}
+    </select>
+    &nbsp;&nbsp;
     <input type="submit" value="Сформировать" class="default">
     <button type="submit" name="format" value="xlsx">Скачать в Excel</button>
-  </div>
+  </fieldset>
 </form>
 
-{% if submitted %}
-  <div class="module" style="margin:1em 0; padding:10px 14px; line-height:1.9;">
-    <strong>Итого за период</strong> — документов: {{ totals.count }}
-    &nbsp;·&nbsp; Поступление: <strong style="color:#2e7d32;">{{ totals.income|floatformat:2 }}</strong>
-    &nbsp;·&nbsp; Расход: <strong style="color:#c62828;">{{ totals.outflow|floatformat:2 }}</strong>
-    &nbsp;·&nbsp; Сальдо: <strong>{{ totals.net|floatformat:2 }}</strong>
-  </div>
-
-  {% if rows %}
-  <div class="results">
-    <table id="result_list">
-      <thead>
-        <tr>
-          <th>Дата</th><th>Номер</th><th>Движение</th><th>Источник</th>
-          <th style="text-align:right;">Сумма</th><th>Организация</th>
-          <th>Контрагент</th><th>Статья</th><th>Заметка</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for d in rows %}
-        <tr class="{% cycle 'row1' 'row2' %}">
-          <td>{{ d.date|date:"d.m.Y" }}</td>
-          <td>{{ d.number }}</td>
-          <td>{{ d.direction }}</td>
-          <td>{{ d.source }}</td>
-          <td style="text-align:right;">{{ d.amount|floatformat:2 }}</td>
-          <td>{{ d.organization }}</td>
-          <td>{{ d.counterparty }}</td>
-          <td>{{ d.article }}</td>
-          <td>{{ d.note }}</td>
-        </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-  {% if rows|length == row_cap %}
-    <p class="help">Показаны первые {{ row_cap }} строк (итоги посчитаны по всем). Уточните период.</p>
-  {% endif %}
-  {% else %}
-    <p class="help">За выбранный период документов нет.</p>
-  {% endif %}
-{% else %}
-  <p class="help">Выберите период и нажмите «Сформировать».</p>
-{% endif %}
+<div class="results" style="margin-top:1em;">
+  <table class="cf-report">
+    <thead>
+      <tr>
+        <th class="lbl">Статья</th>
+        <th class="num">Месяц текущий</th>
+        <th class="num">Месяц год назад</th>
+        <th class="num">+/−</th>
+        <th class="num">%</th>
+        <th class="num">С начала года</th>
+        <th class="num">С начала пред. года</th>
+        <th class="num">+/−</th>
+        <th class="num">%</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for row in rows %}
+      <tr class="k-{{ row.kind }}">
+        <td class="lbl cf-d{{ row.depth }}">{{ row.label }}</td>
+        {% if row.cols %}
+          <td class="num">{{ row.cols.cur_disp }}</td>
+          <td class="num">{{ row.cols.prev_disp }}</td>
+          <td class="num">{{ row.cols.diff_m_disp }}</td>
+          <td class="num">{{ row.cols.pct_m_disp }}</td>
+          <td class="num">{{ row.cols.ytd_disp }}</td>
+          <td class="num">{{ row.cols.pytd_disp }}</td>
+          <td class="num">{{ row.cols.diff_y_disp }}</td>
+          <td class="num">{{ row.cols.pct_y_disp }}</td>
+        {% else %}
+          <td colspan="8"></td>
+        {% endif %}
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
 {% endblock %}

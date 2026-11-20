@@ -3,13 +3,16 @@ from django.db.models import Sum
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import path
-from django.utils.dateparse import parse_date
+from django.utils import timezone
 
-from .exports import build_cashflow_xlsx
+from .cashflow_report import build_cashflow_odds_xlsx, build_rows
 from .models import CashflowDocument
 
 # «Поступление» — money in; everything else counts as money out.
 INCOME_PREFIX = "Поступ"
+
+_MONTHS_RU = ["", "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль",
+              "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"]
 
 # Fields that come from 1С (a mirror) — read-only; only «note» is editable.
 ONEC_FIELDS = (
@@ -71,48 +74,32 @@ class CashflowDocumentAdmin(admin.ModelAdmin):
         return response
 
     def report_view(self, request):
-        """Period report: «с … по …» → totals + the documents for that range."""
-        date_from = parse_date((request.GET.get("from") or "").strip())
-        date_to = parse_date((request.GET.get("to") or "").strip())
-        submitted = "form" in request.GET
-        totals = rows = None
-        row_cap = 1000
-        if submitted:
-            qs = (CashflowDocument.objects.all().order_by("date", "number"))
-            if date_from:
-                qs = qs.filter(date__gte=date_from)
-            if date_to:
-                qs = qs.filter(date__lte=date_to)
-            if request.GET.get("format") == "xlsx":
-                return self._export_xlsx(qs, date_from, date_to)
-            totals = _totals(qs)
-            rows = list(qs[:row_cap])
+        """ОДДС — cash-flow statement for a chosen Месяц + Год, on-screen or .xlsx."""
+        today = timezone.localdate()
+        try:
+            month = int(request.GET.get("month") or today.month)
+            year = int(request.GET.get("year") or today.year)
+        except (TypeError, ValueError):
+            month, year = today.month, today.year
+        month = min(max(month, 1), 12)
+
+        if request.GET.get("format") == "xlsx":
+            data = build_cashflow_odds_xlsx(month, year)
+            response = HttpResponse(
+                data,
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            )
+            response["Content-Disposition"] = f'attachment; filename="cashflow_{year}-{month:02d}.xlsx"'
+            return response
+
         context = {
             **self.admin_site.each_context(request),
-            "title": "Денежный поток — отчёт за период",
+            "title": "Отчёт о движении денежных средств",
             "opts": self.model._meta,
-            "date_from": request.GET.get("from", ""),
-            "date_to": request.GET.get("to", ""),
-            "submitted": submitted,
-            "totals": totals,
-            "rows": rows,
-            "row_cap": row_cap,
+            "month": month,
+            "year": year,
+            "months": list(enumerate(_MONTHS_RU[1:], start=1)),
+            "years": list(range(today.year, today.year - 8, -1)),
+            "rows": build_rows(month, year),
         }
         return render(request, "admin/reports/cashflowdocument/report.html", context)
-
-    @staticmethod
-    def _export_xlsx(qs, date_from, date_to):
-        """Download the period's documents (all of them) + totals as .xlsx."""
-        data = build_cashflow_xlsx(
-            qs.iterator(), totals=_totals(qs),
-            date_from=date_from, date_to=date_to,
-        )
-        name = "cashflow"
-        if date_from or date_to:
-            name += f"_{date_from or ''}_{date_to or ''}"
-        response = HttpResponse(
-            data,
-            content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        )
-        response["Content-Disposition"] = f'attachment; filename="{name}.xlsx"'
-        return response
