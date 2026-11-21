@@ -48,6 +48,14 @@
   </fieldset>
 </form>
 
+{% if unmapped %}
+<ul class="messagelist"><li class="warning">
+  Не сопоставлены статьи (попали в «прочие расходы денежных средств») — добавьте их в
+  <a href="{% url 'admin:reports_cashflowarticlemapping_changelist' %}">сопоставление статей</a>:
+  <b>{{ unmapped|join:"; " }}</b>
+</li></ul>
+{% endif %}
+
 <div class="results" style="margin-top:1em;">
   <table class="cf-report">
     <thead>

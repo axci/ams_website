@@ -15,8 +15,6 @@ import openpyxl
 from django.db.models import Q, Sum
 from openpyxl.styles import Alignment, Font
 
-from .models import CashflowDocument
-
 # 1С «статья» (lower-cased) -> report line. Articles not here fall into the
 # catch-all «прочие расходы денежных средств»; EXCLUDED ones are dropped.
 EXCLUDED = {"перемещение между кассами, счетами"}
@@ -166,6 +164,40 @@ STRUCTURE = [
     ("Сальдо денежных средств", "total"),
 ]
 
+def _collect_leaves(nodes):
+    for node in nodes:
+        if node[1] == "leaf":
+            yield node[0]
+        elif len(node) > 2:
+            yield from _collect_leaves(node[2])
+
+
+# All report line labels (leaves) — the valid targets for an article mapping.
+REPORT_LINES = []
+for _node in STRUCTURE:
+    if _node[1] == "sec":
+        REPORT_LINES.extend(_collect_leaves(_node[2]))
+
+
+def effective_mapping():
+    """Article (lower-cased) -> (report_line | None, exclude). Hard-coded defaults
+    merged with the admin-editable overrides (``CashflowArticleMapping``)."""
+    mapping = {k: (v, False) for k, v in ARTICLE_TO_LINE.items()}
+    for key in EXCLUDED:
+        mapping[key] = (None, True)
+    from .models import CashflowArticleMapping
+    for row in CashflowArticleMapping.objects.all():
+        key = (row.article or "").strip().lower()
+        if not key:
+            continue
+        if row.exclude:
+            mapping[key] = (None, True)
+        elif row.report_line:
+            mapping[key] = (row.report_line, False)
+        # blank line and not excluded -> leave the default in place
+    return mapping
+
+
 _PERIODS = ("cur", "prev", "ytd", "pytd")
 
 
@@ -178,8 +210,14 @@ def _growth(cur, prev):
     return float((cur - prev) / prev) if prev else None
 
 
-def _line_net(date_from, date_to):
-    """Netto (поступления − расходы) per report line for the date range."""
+def _line_net(date_from, date_to, mapping, unmapped):
+    """Netto (поступления − расходы) per report line for the date range.
+
+    ``mapping`` comes from :func:`effective_mapping`. Articles absent from it are
+    put in the catch-all line and recorded in the ``unmapped`` set for the warning.
+    """
+    from .models import CashflowDocument
+
     agg = (
         CashflowDocument.objects
         .filter(date__gte=date_from, date__lte=date_to)
@@ -191,24 +229,35 @@ def _line_net(date_from, date_to):
     )
     lines = {}
     for row in agg:
-        key = (row["article"] or "").strip().lower()
-        if key in EXCLUDED:
-            continue
+        raw = (row["article"] or "").strip()
+        target = mapping.get(raw.lower())
+        if target is not None and target[1]:
+            continue  # excluded from the report
+        if target is None:
+            unmapped.add(raw)
+            line = CATCH_ALL_LINE
+        else:
+            line = target[0] or CATCH_ALL_LINE
         net = (row["inc"] or Decimal(0)) - (row["out"] or Decimal(0))
-        line = ARTICLE_TO_LINE.get(key, CATCH_ALL_LINE)
         lines[line] = lines.get(line, Decimal(0)) + net
     return lines
 
 
 def build_rows(month, year):
-    """Return the statement as a flat ordered list of
-    {label, depth, kind, cols} — cols is None for section headers, else a dict
-    with cur/prev/diff_m/pct_m/ytd/pytd/diff_y/pct_y."""
+    """Return ``(rows, unmapped)``: the statement as a flat ordered list of
+    {label, depth, kind, cols} (cols None for section headers), and the sorted
+    list of article names seen in the data but not mapped to any report line."""
+    mapping = effective_mapping()
+    unmapped = set()
+
+    def net(df, dt):
+        return _line_net(df, dt, mapping, unmapped)
+
     nets = {
-        "cur": _line_net(datetime.date(year, month, 1), _last_day(year, month)),
-        "prev": _line_net(datetime.date(year - 1, month, 1), _last_day(year - 1, month)),
-        "ytd": _line_net(datetime.date(year, 1, 1), _last_day(year, month)),
-        "pytd": _line_net(datetime.date(year - 1, 1, 1), _last_day(year - 1, month)),
+        "cur": net(datetime.date(year, month, 1), _last_day(year, month)),
+        "prev": net(datetime.date(year - 1, month, 1), _last_day(year - 1, month)),
+        "ytd": net(datetime.date(year, 1, 1), _last_day(year, month)),
+        "pytd": net(datetime.date(year - 1, 1, 1), _last_day(year - 1, month)),
     }
 
     def zero():
@@ -279,7 +328,7 @@ def build_rows(month, year):
                 "diff_y_disp": _money(g - h), "pct_y_disp": _pct(py),
             }
         out.append({"label": r["label"], "depth": r["depth"], "kind": r["kind"], "cols": cols})
-    return out
+    return out, sorted(unmapped)
 
 
 _COL_KEYS = ("cur", "prev", "diff_m", "pct_m", "ytd", "pytd", "diff_y", "pct_y")
@@ -290,7 +339,7 @@ _BOLD_KINDS = {"sec", "grp", "sub", "saldo", "total"}
 
 def build_cashflow_odds_xlsx(month, year):
     """Return the ОДДС for month+year as .xlsx bytes, matching the template."""
-    rows = build_rows(month, year)
+    rows, _unmapped = build_rows(month, year)
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "cf"

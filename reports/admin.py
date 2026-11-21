@@ -6,7 +6,7 @@ from django.urls import path
 from django.utils import timezone
 
 from .cashflow_report import build_cashflow_odds_xlsx, build_rows
-from .models import CashflowDocument
+from .models import CashflowArticleMapping, CashflowDocument
 
 # «Поступление» — money in; everything else counts as money out.
 INCOME_PREFIX = "Поступ"
@@ -32,9 +32,8 @@ class CashflowDocumentAdmin(admin.ModelAdmin):
     date_hierarchy = "date"
     list_display = (
         "date", "number", "direction", "source", "amount",
-        "organization", "counterparty", "article", "note",
+        "organization", "counterparty", "article",
     )
-    list_editable = ("note",)
     list_filter = ("direction", "source", "organization", "article", "date")
     search_fields = ("number", "counterparty", "organization", "article",
                      "comment", "purpose", "note")
@@ -95,6 +94,14 @@ class CashflowDocumentAdmin(admin.ModelAdmin):
             "year": year,
             "months": list(enumerate(_MONTHS_RU[1:], start=1)),
             "years": list(range(today.year, today.year - 8, -1)),
-            "rows": build_rows(month, year),
         }
+        context["rows"], context["unmapped"] = build_rows(month, year)
         return render(request, "admin/reports/cashflowdocument/report.html", context)
+
+
+@admin.register(CashflowArticleMapping)
+class CashflowArticleMappingAdmin(admin.ModelAdmin):
+    list_display = ("article", "report_line", "exclude")
+    list_editable = ("report_line", "exclude")
+    search_fields = ("article", "report_line")
+    ordering = ("article",)

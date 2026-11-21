@@ -1,5 +1,7 @@
 from django.db import models
 
+from .cashflow_report import REPORT_LINES
+
 
 class CashflowDocument(models.Model):
     """A cash-flow document pulled from 1С (УНФ) by the ``sync_cashflow`` command.
@@ -51,3 +53,33 @@ class CashflowDocument(models.Model):
     def is_income(self):
         """True for «Поступление» (money in); everything else is treated as out."""
         return self.direction.strip().lower().startswith("поступ")
+
+
+class CashflowArticleMapping(models.Model):
+    """Admin-editable override: map a 1С «Статья» to a line of the ОДДС, or
+    exclude it. Built-in defaults live in ``cashflow_report.ARTICLE_TO_LINE``;
+    rows here override them, and articles missing from both are flagged after a
+    report is built."""
+
+    article = models.CharField(
+        "статья (из 1С)", max_length=255, unique=True,
+        help_text="Название статьи ДДС, как в 1С (регистр не важен).",
+    )
+    report_line = models.CharField(
+        "строка отчёта", max_length=255, blank=True, default="",
+        choices=[(line, line) for line in REPORT_LINES],
+        help_text="Куда отнести статью в отчёте ОДДС.",
+    )
+    exclude = models.BooleanField(
+        "исключить из отчёта", default=False,
+        help_text="Не учитывать статью (например, перемещения между своими кассами/счетами).",
+    )
+
+    class Meta:
+        verbose_name = "сопоставление статьи ДДС"
+        verbose_name_plural = "Денежный поток: сопоставление статей"
+        ordering = ["article"]
+
+    def __str__(self):
+        target = "(исключить)" if self.exclude else (self.report_line or "—")
+        return f"{self.article} → {target}"
