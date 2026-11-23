@@ -25,6 +25,10 @@ class CashflowDocument(models.Model):
         help_text="«Касса» или «Счет».",
     )
     doc_type = models.CharField("вид документа", max_length=128, blank=True, default="")
+    operation_type = models.CharField(
+        "вид операции", max_length=128, blank=True, default="",
+        help_text="«Вид операции» из 1С (напр. «Перевод на другой счет организации»).",
+    )
     organization = models.CharField("организация", max_length=255, blank=True, default="")
     counterparty = models.CharField("контрагент", max_length=255, blank=True, default="")
     article = models.CharField("статья", max_length=255, blank=True, default="", db_index=True)

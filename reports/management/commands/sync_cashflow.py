@@ -72,6 +72,7 @@ class Command(BaseCommand):
                 direction=_text(row.get("direction"), 32),
                 source=_text(row.get("source"), 32),
                 doc_type=_text(row.get("docType"), 128),
+                operation_type=_text(row.get("operationType"), 128),
                 organization=_text(row.get("organization"), 255),
                 counterparty=_text(row.get("counterparty"), 255),
                 article=_text(row.get("article"), 255),

@@ -478,6 +478,7 @@ _DOC_COLUMNS = [
     ("Дата", "date", 12),
     ("Номер", "number", 16),
     ("Вид документа", "doc_type", 26),
+    ("Вид операции", "operation_type", 28),
     ("Движение", "direction", 13),
     ("Источник", "source", 10),
     ("Организация", "organization", 26),
@@ -545,6 +546,7 @@ def build_cashflow_documents_xlsx(month, year):
             outflow_total += amt
         values = {
             "date": doc.date, "number": doc.number, "doc_type": doc.doc_type,
+            "operation_type": doc.operation_type,
             "direction": doc.direction, "source": doc.source,
             "organization": doc.organization, "counterparty": doc.counterparty,
             "article": doc.article, "purpose": doc.purpose,
