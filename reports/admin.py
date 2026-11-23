@@ -80,6 +80,7 @@ class CashflowDocumentAdmin(admin.ModelAdmin):
         except (TypeError, ValueError):
             month, year = today.month, today.year
         month = min(max(month, 1), 12)
+        thousands = request.GET.get("units") == "thousands"
 
         fmt = request.GET.get("format")
         if fmt in ("xlsx", "docs"):
@@ -87,8 +88,8 @@ class CashflowDocumentAdmin(admin.ModelAdmin):
                 data = build_cashflow_documents_xlsx(month, year)
                 fname = f"cashflow_documents_{year}-{month:02d}.xlsx"
             else:
-                data = build_cashflow_odds_xlsx(month, year)
-                fname = f"cashflow_{year}-{month:02d}.xlsx"
+                data = build_cashflow_odds_xlsx(month, year, thousands=thousands)
+                fname = f"cashflow_{year}-{month:02d}{'_thousands' if thousands else ''}.xlsx"
             response = HttpResponse(
                 data,
                 content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
@@ -102,10 +103,11 @@ class CashflowDocumentAdmin(admin.ModelAdmin):
             "opts": self.model._meta,
             "month": month,
             "year": year,
+            "thousands": thousands,
             "months": list(enumerate(_MONTHS_RU[1:], start=1)),
             "years": list(range(today.year, today.year - 8, -1)),
         }
-        context["rows"], context["diag"] = build_rows(month, year)
+        context["rows"], context["diag"] = build_rows(month, year, thousands=thousands)
         return render(request, "admin/reports/cashflowdocument/report.html", context)
 
 

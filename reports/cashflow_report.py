@@ -247,11 +247,6 @@ def _line_net(date_from, date_to, mapping, unmapped):
     return lines
 
 
-def _fmt(v):
-    """Whole-ruble display with space thousands (keeps the sign, shows 0)."""
-    return f"{v:,.0f}".replace(",", " ")
-
-
 def _period_totals(date_from, date_to):
     """(total_net, transfers_net) for a range: netto of ALL documents, and of the
     «Перемещение между кассами, счетами» article (own-account transfers)."""
@@ -270,13 +265,16 @@ def _period_totals(date_from, date_to):
     return total, transfers
 
 
-def build_rows(month, year):
+def build_rows(month, year, thousands=False):
     """Return ``(rows, diag)``: the statement as a flat ordered list of
     {label, depth, kind, cols} (cols None for section headers), plus a diagnostics
     dict (unmapped articles, transfers netto, and the balance reconciliation for
-    the selected month)."""
+    the selected month). ``thousands`` divides every money value by 1000 (тыс. руб.)
+    for the display strings and the numeric ``cols``; ratios (%) and the raw diag
+    values stay unscaled so the reconciliation keeps its ₽ tolerance."""
     mapping = effective_mapping()
     unmapped = set()
+    scale = Decimal(1000) if thousands else Decimal(1)
 
     def net(df, dt):
         return _line_net(df, dt, mapping, unmapped)
@@ -334,7 +332,10 @@ def build_rows(month, year):
         section_totals.append(sec_base)
 
     def _money(v):
-        return "" if v == 0 else f"{v:,.0f}".replace(",", " ")
+        if v == 0:
+            return ""
+        s = f"{v / scale:,.0f}".replace(",", " ")
+        return "0" if s == "-0" else s
 
     def _pct(ratio):
         return "" if ratio is None else f"{ratio * 100:,.0f}%".replace(",", " ")
@@ -347,8 +348,8 @@ def build_rows(month, year):
             c, d, g, h = base["cur"], base["prev"], base["ytd"], base["pytd"]
             pm, py = _growth(c, d), _growth(g, h)
             cols = {
-                "cur": c, "prev": d, "diff_m": c - d, "pct_m": pm,
-                "ytd": g, "pytd": h, "diff_y": g - h, "pct_y": py,
+                "cur": c / scale, "prev": d / scale, "diff_m": (c - d) / scale, "pct_m": pm,
+                "ytd": g / scale, "pytd": h / scale, "diff_y": (g - h) / scale, "pct_y": py,
                 # display strings (HTML); the .xlsx uses the raw values above.
                 "cur_disp": _money(c), "prev_disp": _money(d),
                 "diff_m_disp": _money(c - d), "pct_m_disp": _pct(pm),
@@ -357,25 +358,31 @@ def build_rows(month, year):
             }
         out.append({"label": r["label"], "depth": r["depth"], "kind": r["kind"], "cols": cols})
 
-    # Control checks for the selected month.
+    # Control checks for the selected month — kept in full rubles (the ₽ tolerance
+    # is meaningful there); only the display strings follow the chosen scale.
     total_net, transfers_net = _period_totals(datetime.date(year, month, 1), _last_day(year, month))
     report_saldo = next(
-        (r["cols"]["cur"] for r in out if r["kind"] == "total" and r["cols"]),
+        (r["base"]["cur"] for r in rows if r["kind"] == "total" and r["base"]),
         Decimal(0),
     )
     discrepancy = total_net - report_saldo
     tol = Decimal("0.5")
+
+    def _fmt_s(v):
+        s = f"{v / scale:,.0f}".replace(",", " ")
+        return "0" if s == "-0" else s
+
     diag = {
         "unmapped": sorted(unmapped),
         "transfers_net": transfers_net,
-        "transfers_net_disp": _fmt(transfers_net),
+        "transfers_net_disp": _fmt_s(transfers_net),
         "transfers_ok": abs(transfers_net) < tol,
         "report_saldo": report_saldo,
-        "report_saldo_disp": _fmt(report_saldo),
+        "report_saldo_disp": _fmt_s(report_saldo),
         "total_net": total_net,
-        "total_net_disp": _fmt(total_net),
+        "total_net_disp": _fmt_s(total_net),
         "discrepancy": discrepancy,
-        "discrepancy_disp": _fmt(discrepancy),
+        "discrepancy_disp": _fmt_s(discrepancy),
         "balanced": abs(discrepancy) < tol,
     }
     return out, diag
@@ -399,9 +406,9 @@ _ROW_FILLS = {
 }
 
 
-def build_cashflow_odds_xlsx(month, year):
-    """Return the ОДДС for month+year as formatted .xlsx bytes."""
-    rows, _diag = build_rows(month, year)
+def build_cashflow_odds_xlsx(month, year, thousands=False):
+    """Return the ОДДС for month+year as formatted .xlsx bytes (``thousands`` → тыс. руб.)."""
+    rows, _diag = build_rows(month, year, thousands=thousands)
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "cf"
@@ -413,7 +420,7 @@ def build_cashflow_odds_xlsx(month, year):
     top_border = Border(left=thin, right=thin, top=med, bottom=thin)
 
     # Title + period parameters.
-    ws["B1"] = "Отчёт о движении денежных средств"
+    ws["B1"] = "Отчёт о движении денежных средств" + (" (тыс. руб.)" if thousands else "")
     ws["B1"].font = Font(bold=True, size=14)
     ws["C1"], ws["D1"], ws["E1"], ws["F1"] = "Месяц", month, "Год", year
     ws["C1"].font = ws["E1"].font = Font(bold=True)

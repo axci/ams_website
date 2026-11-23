@@ -48,10 +48,13 @@
       {% endfor %}
     </select>
     &nbsp;&nbsp;
+    <label for="id_units"><input type="checkbox" name="units" value="thousands" id="id_units" {% if thousands %}checked{% endif %}> в тыс. руб.</label>
+    &nbsp;&nbsp;
     <input type="submit" value="Сформировать" class="default">
     <button type="submit" name="format" value="xlsx">Скачать отчёт в Excel</button>
     <button type="submit" name="format" value="docs">Скачать список документов</button>
   </fieldset>
+  <p style="margin:.2em 0 0; color:#666; font-size:92%;">«Скачать список документов» всегда выгружается в рублях.</p>
 </form>
 
 <div class="module cf-check">
@@ -81,7 +84,8 @@
   {% endif %}
 </div>
 
-<div class="results" style="margin-top:1em;">
+<p style="margin:1em 0 0; color:#555;">Единицы измерения: <b>{% if thousands %}тыс. руб.{% else %}руб.{% endif %}</b></p>
+<div class="results" style="margin-top:.4em;">
   <table class="cf-report">
     <thead>
       <tr>
