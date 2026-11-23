@@ -95,7 +95,7 @@ class CashflowDocumentAdmin(admin.ModelAdmin):
             "months": list(enumerate(_MONTHS_RU[1:], start=1)),
             "years": list(range(today.year, today.year - 8, -1)),
         }
-        context["rows"], context["unmapped"] = build_rows(month, year)
+        context["rows"], context["diag"] = build_rows(month, year)
         return render(request, "admin/reports/cashflowdocument/report.html", context)
 
 

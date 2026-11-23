@@ -243,10 +243,34 @@ def _line_net(date_from, date_to, mapping, unmapped):
     return lines
 
 
+def _fmt(v):
+    """Whole-ruble display with space thousands (keeps the sign, shows 0)."""
+    return f"{v:,.0f}".replace(",", " ")
+
+
+def _period_totals(date_from, date_to):
+    """(total_net, transfers_net) for a range: netto of ALL documents, and of the
+    «Перемещение между кассами, счетами» article (own-account transfers)."""
+    from .models import CashflowDocument
+
+    def _net(qs):
+        agg = qs.aggregate(
+            inc=Sum("amount", filter=Q(direction__istartswith="Поступ")),
+            out=Sum("amount", filter=~Q(direction__istartswith="Поступ")),
+        )
+        return (agg["inc"] or Decimal(0)) - (agg["out"] or Decimal(0))
+
+    base = CashflowDocument.objects.filter(date__gte=date_from, date__lte=date_to)
+    total = _net(base)
+    transfers = _net(base.filter(article__iexact="Перемещение между кассами, счетами"))
+    return total, transfers
+
+
 def build_rows(month, year):
-    """Return ``(rows, unmapped)``: the statement as a flat ordered list of
-    {label, depth, kind, cols} (cols None for section headers), and the sorted
-    list of article names seen in the data but not mapped to any report line."""
+    """Return ``(rows, diag)``: the statement as a flat ordered list of
+    {label, depth, kind, cols} (cols None for section headers), plus a diagnostics
+    dict (unmapped articles, transfers netto, and the balance reconciliation for
+    the selected month)."""
     mapping = effective_mapping()
     unmapped = set()
 
@@ -328,7 +352,29 @@ def build_rows(month, year):
                 "diff_y_disp": _money(g - h), "pct_y_disp": _pct(py),
             }
         out.append({"label": r["label"], "depth": r["depth"], "kind": r["kind"], "cols": cols})
-    return out, sorted(unmapped)
+
+    # Control checks for the selected month.
+    total_net, transfers_net = _period_totals(datetime.date(year, month, 1), _last_day(year, month))
+    report_saldo = next(
+        (r["cols"]["cur"] for r in out if r["kind"] == "total" and r["cols"]),
+        Decimal(0),
+    )
+    discrepancy = total_net - report_saldo
+    tol = Decimal("0.5")
+    diag = {
+        "unmapped": sorted(unmapped),
+        "transfers_net": transfers_net,
+        "transfers_net_disp": _fmt(transfers_net),
+        "transfers_ok": abs(transfers_net) < tol,
+        "report_saldo": report_saldo,
+        "report_saldo_disp": _fmt(report_saldo),
+        "total_net": total_net,
+        "total_net_disp": _fmt(total_net),
+        "discrepancy": discrepancy,
+        "discrepancy_disp": _fmt(discrepancy),
+        "balanced": abs(discrepancy) < tol,
+    }
+    return out, diag
 
 
 _COL_KEYS = ("cur", "prev", "diff_m", "pct_m", "ytd", "pytd", "diff_y", "pct_y")
@@ -351,7 +397,7 @@ _ROW_FILLS = {
 
 def build_cashflow_odds_xlsx(month, year):
     """Return the ОДДС for month+year as formatted .xlsx bytes."""
-    rows, _unmapped = build_rows(month, year)
+    rows, _diag = build_rows(month, year)
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "cf"

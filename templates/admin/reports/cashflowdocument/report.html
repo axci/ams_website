@@ -13,6 +13,11 @@
   .cf-d1 { padding-left: 20px; }
   .cf-d2 { padding-left: 38px; }
   .cf-d3 { padding-left: 56px; }
+  .cf-check { margin: 1em 0; padding: 10px 14px; }
+  .cf-check h3 { margin: 0 0 .4em; }
+  .cf-check p { margin: .3em 0; }
+  .cf-ok { color: #2e7d32; }
+  .cf-warn { color: #c62828; font-weight: 600; }
 </style>
 {% endblock %}
 
@@ -48,13 +53,32 @@
   </fieldset>
 </form>
 
-{% if unmapped %}
-<ul class="messagelist"><li class="warning">
-  Не сопоставлены статьи (попали в «прочие расходы денежных средств») — добавьте их в
-  <a href="{% url 'admin:reports_cashflowarticlemapping_changelist' %}">сопоставление статей</a>:
-  <b>{{ unmapped|join:"; " }}</b>
-</li></ul>
-{% endif %}
+<div class="module cf-check">
+  <h3>Контроль</h3>
+
+  {% if diag.unmapped %}
+    <p class="cf-warn">⚠ Не сопоставлены статьи (учтены в «прочие расходы денежных средств») —
+      добавьте их в <a href="{% url 'admin:reports_cashflowarticlemapping_changelist' %}">сопоставление статей</a>:
+      <b>{{ diag.unmapped|join:"; " }}</b></p>
+  {% else %}
+    <p class="cf-ok">✓ Все статьи сопоставлены.</p>
+  {% endif %}
+
+  {% if diag.transfers_ok %}
+    <p class="cf-ok">✓ «Перемещение между кассами, счетами» за месяц сбалансировано (нетто {{ diag.transfers_net_disp }}).</p>
+  {% else %}
+    <p class="cf-warn">⚠ «Перемещение между кассами, счетами»: нетто за месяц = {{ diag.transfers_net_disp }} (должно быть 0) — переводы между своими кассами/счетами не сошлись.</p>
+  {% endif %}
+
+  {% if diag.balanced %}
+    <p class="cf-ok">✓ Итоговое сальдо корректно: «Сальдо денежных средств» ({{ diag.report_saldo_disp }})
+      совпадает с фактическим движением всех средств за месяц ({{ diag.total_net_disp }}).</p>
+  {% else %}
+    <p class="cf-warn">⚠ Итоговое сальдо некорректно: «Сальдо денежных средств» отчёта = {{ diag.report_saldo_disp }},
+      фактическое движение всех средств за месяц = {{ diag.total_net_disp }},
+      расхождение = {{ diag.discrepancy_disp }} (исключённые статьи не обнулились).</p>
+  {% endif %}
+</div>
 
 <div class="results" style="margin-top:1em;">
   <table class="cf-report">
