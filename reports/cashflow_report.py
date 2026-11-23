@@ -394,8 +394,8 @@ _HEADERS = ["месяц текущий", "месяц год назад", " +/-",
 _BOLD_KINDS = {"sec", "grp", "sub", "saldo", "total"}
 
 
-_NUM_FMT = "#,##0;[Red]-#,##0"   # negatives in red
-_PCT_FMT = "0%;[Red]-0%"
+_NUM_FMT = "#,##0;-#,##0"   # negatives with a minus sign (no colour)
+_PCT_FMT = "0%;-0%"
 _LAST_COL = 10  # J
 _HEADER_FILL = PatternFill("solid", fgColor="4472C4")
 _ROW_FILLS = {
