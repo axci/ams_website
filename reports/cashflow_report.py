@@ -14,6 +14,10 @@ from io import BytesIO
 import openpyxl
 from django.db.models import Q, Sum
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
+from openpyxl.utils import get_column_letter
+
+_MONTHS_RU = ["", "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь", "Июль",
+              "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"]
 
 # 1С «статья» (lower-cased) -> report line. Articles not here fall into the
 # catch-all «прочие расходы денежных средств»; EXCLUDED ones are dropped.
@@ -462,6 +466,128 @@ def build_cashflow_odds_xlsx(month, year):
     for col in "CDEFGHIJ":
         ws.column_dimensions[col].width = 14
     ws.freeze_panes = "C4"
+
+    stream = BytesIO()
+    wb.save(stream)
+    return stream.getvalue()
+
+
+# Flat document-list export: (header, CashflowDocument attribute, column width).
+# "_income"/"_outflow" split the signed amount into the two money columns.
+_DOC_COLUMNS = [
+    ("Дата", "date", 12),
+    ("Номер", "number", 16),
+    ("Вид документа", "doc_type", 26),
+    ("Движение", "direction", 13),
+    ("Источник", "source", 10),
+    ("Организация", "organization", 26),
+    ("Контрагент", "counterparty", 28),
+    ("Статья", "article", 28),
+    ("Поступление", "_income", 14),
+    ("Расход", "_outflow", 14),
+    ("Назначение", "purpose", 40),
+    ("Комментарий", "comment", 40),
+    ("Заметка", "note", 22),
+]
+
+
+def build_cashflow_documents_xlsx(month, year):
+    """Return the flat list of 1С cash-flow documents for month+year as .xlsx bytes.
+
+    Unlike :func:`build_cashflow_odds_xlsx` (the aggregated statement), this is the
+    raw ledger: every ``CashflowDocument`` of the month, with the amount split into
+    «Поступление»/«Расход» columns and an «Итого» row that ties to the report."""
+    from .models import CashflowDocument
+
+    date_from = datetime.date(year, month, 1)
+    date_to = _last_day(year, month)
+    docs = (
+        CashflowDocument.objects
+        .filter(date__gte=date_from, date__lte=date_to)
+        .order_by("date", "number")
+    )
+
+    wb = openpyxl.Workbook()
+    ws = wb.active
+    ws.title = "Документы"
+    ws.sheet_view.showGridLines = False
+
+    thin = Side(style="thin", color="BFBFBF")
+    med = Side(style="medium", color="808080")
+    thin_border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    total_border = Border(left=thin, right=thin, top=med, bottom=thin)
+    ncols = len(_DOC_COLUMNS)
+    inc_idx = next(i for i, c in enumerate(_DOC_COLUMNS, start=1) if c[1] == "_income")
+    out_idx = next(i for i, c in enumerate(_DOC_COLUMNS, start=1) if c[1] == "_outflow")
+
+    # Title + period.
+    ws.cell(row=1, column=1, value="Движение денежных средств — список документов").font = Font(bold=True, size=14)
+    ws.cell(row=2, column=1, value=f"{_MONTHS_RU[month]} {year}").font = Font(bold=True)
+
+    # Header (row 3).
+    for i, (head, _attr, _w) in enumerate(_DOC_COLUMNS, start=1):
+        cell = ws.cell(row=3, column=i, value=head)
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = _HEADER_FILL
+        cell.alignment = Alignment(wrap_text=True, vertical="center", horizontal="center")
+        cell.border = thin_border
+    ws.row_dimensions[3].height = 26
+
+    income_total = Decimal(0)
+    outflow_total = Decimal(0)
+    r = 4
+    for doc in docs:
+        is_income = doc.is_income
+        amt = doc.amount or Decimal(0)
+        if is_income:
+            income_total += amt
+        else:
+            outflow_total += amt
+        values = {
+            "date": doc.date, "number": doc.number, "doc_type": doc.doc_type,
+            "direction": doc.direction, "source": doc.source,
+            "organization": doc.organization, "counterparty": doc.counterparty,
+            "article": doc.article, "purpose": doc.purpose,
+            "comment": doc.comment, "note": doc.note,
+            "_income": float(amt) if is_income else None,
+            "_outflow": None if is_income else float(amt),
+        }
+        for i, (_head, attr, _w) in enumerate(_DOC_COLUMNS, start=1):
+            cell = ws.cell(row=r, column=i)
+            cell.border = thin_border
+            v = values[attr]
+            if attr in ("_income", "_outflow"):
+                if v is not None:
+                    cell.value = v
+                    cell.number_format = _NUM_FMT
+                cell.alignment = Alignment(horizontal="right", vertical="center")
+            elif attr == "date":
+                cell.value = v
+                cell.number_format = "DD.MM.YYYY"
+                cell.alignment = Alignment(vertical="center")
+            else:
+                cell.value = v
+                cell.alignment = Alignment(vertical="center", wrap_text=attr in ("purpose", "comment"))
+        r += 1
+
+    # «Итого» row: sums of the money columns (ties to the report's netto).
+    for col in range(1, ncols + 1):
+        cell = ws.cell(row=r, column=col)
+        cell.border = total_border
+        cell.font = Font(bold=True)
+    ws.cell(row=r, column=1, value="Итого")
+    ic = ws.cell(row=r, column=inc_idx, value=float(income_total))
+    oc = ws.cell(row=r, column=out_idx, value=float(outflow_total))
+    for cell in (ic, oc):
+        cell.number_format = _NUM_FMT
+        cell.alignment = Alignment(horizontal="right")
+        cell.font = Font(bold=True)
+
+    for i, (_head, _attr, width) in enumerate(_DOC_COLUMNS, start=1):
+        ws.column_dimensions[get_column_letter(i)].width = width
+    ws.freeze_panes = "A4"
+    if r > 4:  # header + data rows only (exclude the «Итого» row from the filter)
+        ws.auto_filter.ref = f"A3:{get_column_letter(ncols)}{r - 1}"
 
     stream = BytesIO()
     wb.save(stream)

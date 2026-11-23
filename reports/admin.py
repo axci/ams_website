@@ -5,7 +5,11 @@ from django.shortcuts import render
 from django.urls import path
 from django.utils import timezone
 
-from .cashflow_report import build_cashflow_odds_xlsx, build_rows
+from .cashflow_report import (
+    build_cashflow_documents_xlsx,
+    build_cashflow_odds_xlsx,
+    build_rows,
+)
 from .models import CashflowArticleMapping, CashflowDocument
 
 # «Поступление» — money in; everything else counts as money out.
@@ -77,13 +81,19 @@ class CashflowDocumentAdmin(admin.ModelAdmin):
             month, year = today.month, today.year
         month = min(max(month, 1), 12)
 
-        if request.GET.get("format") == "xlsx":
-            data = build_cashflow_odds_xlsx(month, year)
+        fmt = request.GET.get("format")
+        if fmt in ("xlsx", "docs"):
+            if fmt == "docs":
+                data = build_cashflow_documents_xlsx(month, year)
+                fname = f"cashflow_documents_{year}-{month:02d}.xlsx"
+            else:
+                data = build_cashflow_odds_xlsx(month, year)
+                fname = f"cashflow_{year}-{month:02d}.xlsx"
             response = HttpResponse(
                 data,
                 content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
-            response["Content-Disposition"] = f'attachment; filename="cashflow_{year}-{month:02d}.xlsx"'
+            response["Content-Disposition"] = f'attachment; filename="{fname}"'
             return response
 
         context = {
