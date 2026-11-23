@@ -13,7 +13,7 @@ from io import BytesIO
 
 import openpyxl
 from django.db.models import Q, Sum
-from openpyxl.styles import Alignment, Font
+from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
 # 1С «статья» (lower-cased) -> report line. Articles not here fall into the
 # catch-all «прочие расходы денежных средств»; EXCLUDED ones are dropped.
@@ -337,36 +337,76 @@ _HEADERS = ["месяц текущий", "месяц год назад", " +/-",
 _BOLD_KINDS = {"sec", "grp", "sub", "saldo", "total"}
 
 
+_NUM_FMT = "#,##0;[Red]-#,##0"   # negatives in red
+_PCT_FMT = "0%;[Red]-0%"
+_LAST_COL = 10  # J
+_HEADER_FILL = PatternFill("solid", fgColor="4472C4")
+_ROW_FILLS = {
+    "sec": PatternFill("solid", fgColor="D9E1F2"),
+    "grp": PatternFill("solid", fgColor="F2F2F2"),
+    "saldo": PatternFill("solid", fgColor="FFF2CC"),
+    "total": PatternFill("solid", fgColor="D9E1F2"),
+}
+
+
 def build_cashflow_odds_xlsx(month, year):
-    """Return the ОДДС for month+year as .xlsx bytes, matching the template."""
+    """Return the ОДДС for month+year as formatted .xlsx bytes."""
     rows, _unmapped = build_rows(month, year)
     wb = openpyxl.Workbook()
     ws = wb.active
     ws.title = "cf"
+    ws.sheet_view.showGridLines = False
 
+    thin = Side(style="thin", color="BFBFBF")
+    med = Side(style="medium", color="808080")
+    thin_border = Border(left=thin, right=thin, top=thin, bottom=thin)
+    top_border = Border(left=thin, right=thin, top=med, bottom=thin)
+
+    # Title + period parameters.
     ws["B1"] = "Отчёт о движении денежных средств"
-    ws["B1"].font = Font(bold=True, size=13)
+    ws["B1"].font = Font(bold=True, size=14)
     ws["C1"], ws["D1"], ws["E1"], ws["F1"] = "Месяц", month, "Год", year
+    ws["C1"].font = ws["E1"].font = Font(bold=True)
+
+    # Header row (3): «Статья» + the 8 comparison columns.
+    head_cell = ws.cell(row=3, column=2, value="Статья")
+    head_cell.font = Font(bold=True, color="FFFFFF")
+    head_cell.fill = _HEADER_FILL
+    head_cell.alignment = Alignment(vertical="center")
+    head_cell.border = thin_border
     for i, head in enumerate(_HEADERS):
         cell = ws.cell(row=3, column=3 + i, value=head)
-        cell.font = Font(bold=True)
-        cell.alignment = Alignment(wrap_text=True, vertical="center")
+        cell.font = Font(bold=True, color="FFFFFF")
+        cell.fill = _HEADER_FILL
+        cell.alignment = Alignment(wrap_text=True, vertical="center", horizontal="center")
+        cell.border = thin_border
+    ws.row_dimensions[3].height = 30
 
     r = 4
     for row in rows:
-        bold = row["kind"] in _BOLD_KINDS
+        kind = row["kind"]
+        bold = kind in _BOLD_KINDS
+        fill = _ROW_FILLS.get(kind)
+        border = top_border if kind in ("saldo", "total") else thin_border
+
         label = ws.cell(row=r, column=2, value=row["label"])
         label.font = Font(bold=bold)
-        label.alignment = Alignment(indent=row["depth"])
+        label.alignment = Alignment(indent=row["depth"], vertical="center")
+        for col in range(2, _LAST_COL + 1):
+            cell = ws.cell(row=r, column=col)
+            cell.border = border
+            if fill is not None:
+                cell.fill = fill
+
         if row["cols"]:
             for i, key in enumerate(_COL_KEYS):
                 v = row["cols"][key]
-                if v is None:
-                    continue
                 cell = ws.cell(row=r, column=3 + i)
-                is_pct = key in ("pct_m", "pct_y")
-                cell.value = v if is_pct else float(v)
-                cell.number_format = "0%" if is_pct else "#,##0"
+                if v is not None:
+                    is_pct = key in ("pct_m", "pct_y")
+                    cell.value = v if is_pct else float(v)
+                    cell.number_format = _PCT_FMT if is_pct else _NUM_FMT
+                cell.alignment = Alignment(horizontal="right", vertical="center")
                 if bold:
                     cell.font = Font(bold=True)
         r += 1
@@ -374,7 +414,7 @@ def build_cashflow_odds_xlsx(month, year):
     ws.column_dimensions["A"].width = 3.4
     ws.column_dimensions["B"].width = 54
     for col in "CDEFGHIJ":
-        ws.column_dimensions[col].width = 13
+        ws.column_dimensions[col].width = 14
     ws.freeze_panes = "C4"
 
     stream = BytesIO()
