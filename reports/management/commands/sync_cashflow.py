@@ -89,14 +89,17 @@ class Command(BaseCommand):
             return
 
         # The feed is the full snapshot and reuses `number` across years/journals
-        # (no stable unique id), so replace the whole table in one transaction
-        # rather than upserting — the report then mirrors 1С exactly, including
-        # documents deleted there. Manual «Заметка» notes are carried over by the
-        # natural key (number, doc_type, date, amount) so edits survive the refresh.
+        # (no stable unique id), so replace the 1С rows in one transaction rather
+        # than upserting — the report then mirrors 1С exactly, including documents
+        # deleted there. Only the synced rows (manual=False) are replaced: documents
+        # added by hand in the admin (manual=True) are left untouched. Manual
+        # «Заметка» notes on synced rows are carried over by the natural key
+        # (number, doc_type, date, amount) so edits survive the refresh.
         with transaction.atomic():
             notes = {
                 (num, dt, d, amt): note
                 for num, dt, d, amt, note in CashflowDocument.objects
+                .filter(manual=False)
                 .exclude(note="")
                 .values_list("number", "doc_type", "date", "amount", "note")
             }
@@ -105,11 +108,13 @@ class Command(BaseCommand):
                     kept = notes.get((obj.number, obj.doc_type, obj.date, obj.amount))
                     if kept:
                         obj.note = kept
-            CashflowDocument.objects.all().delete()
+            CashflowDocument.objects.filter(manual=False).delete()
             CashflowDocument.objects.bulk_create(objs, batch_size=1000)
+            manual_kept = CashflowDocument.objects.filter(manual=True).count()
         self.stdout.write(self.style.SUCCESS(
             f"Готово: получено {len(rows)}, загружено {len(objs)}, "
-            f"пропущено {skipped} (таблица обновлена, заметок сохранено: {len(notes)})."
+            f"пропущено {skipped} (синхронизированные строки обновлены, "
+            f"заметок сохранено: {len(notes)}, ручных документов сохранено: {manual_kept})."
         ))
 
     def _fetch(self, url, cfg):

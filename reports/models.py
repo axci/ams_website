@@ -42,6 +42,14 @@ class CashflowDocument(models.Model):
         help_text="Ваша заметка к документу. Сохраняется при синхронизации "
         "(в отличие от полей, которые приходят из 1С).",
     )
+    # Set automatically for documents added by hand in the admin (not from 1С).
+    # The sync deletes and recreates only the 1С rows (manual=False), so these
+    # hand-entered documents survive the full refresh.
+    manual = models.BooleanField(
+        "добавлено вручную", default=False, editable=False,
+        help_text="Документ добавлен вручную в админке (не из 1С) и не "
+        "удаляется при синхронизации.",
+    )
     synced_at = models.DateTimeField("обновлено синхронизацией", auto_now=True)
 
     class Meta:

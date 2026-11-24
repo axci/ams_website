@@ -36,21 +36,31 @@ class CashflowDocumentAdmin(admin.ModelAdmin):
     date_hierarchy = "date"
     list_display = (
         "date", "number", "direction", "source", "amount",
-        "organization", "counterparty", "article",
+        "organization", "counterparty", "article", "manual",
     )
-    list_filter = ("direction", "source", "organization", "article", "date")
+    list_filter = ("manual", "direction", "source", "organization", "article", "date")
     search_fields = ("number", "counterparty", "organization", "article",
                      "comment", "purpose", "note")
     ordering = ("-date", "-number")
-    readonly_fields = ("synced_at",)  # auto-managed timestamp; everything else editable
 
-    # The sync owns which rows exist (full refresh), so no manual add/delete —
-    # but every field of an existing row is editable in its change form.
+    def get_readonly_fields(self, request, obj=None):
+        # «synced_at» is always auto-managed; «manual» is shown read-only on an
+        # existing document (it is set automatically, never edited by hand).
+        return ("synced_at", "manual") if obj is not None else ("synced_at",)
+
+    # The sync owns the 1С rows (full refresh). Documents may be added by hand;
+    # such rows are flagged manual=True so the sync keeps them, and only those
+    # hand-added rows may be deleted here — synced rows stay protected.
     def has_add_permission(self, request):
-        return False
+        return True
 
     def has_delete_permission(self, request, obj=None):
-        return False
+        return bool(obj is not None and obj.manual)
+
+    def save_model(self, request, obj, form, change):
+        if not change:
+            obj.manual = True  # mark hand-added docs so the sync won't wipe them
+        super().save_model(request, obj, form, change)
 
     def get_urls(self):
         custom = [
