@@ -91,30 +91,28 @@ class Command(BaseCommand):
         # The feed is the full snapshot and reuses `number` across years/journals
         # (no stable unique id), so replace the 1С rows in one transaction rather
         # than upserting — the report then mirrors 1С exactly, including documents
-        # deleted there. Only the synced rows (manual=False) are replaced: documents
-        # added by hand in the admin (manual=True) are left untouched. Manual
-        # «Заметка» notes on synced rows are carried over by the natural key
-        # (number, doc_type, date, amount) so edits survive the refresh.
+        # deleted there. Rows are KEPT (neither overwritten nor deleted) when:
+        #   • manual=True — added by hand in the admin; or
+        #   • they carry a «Заметка» (note) — the user has annotated the document,
+        #     so the sync must leave it untouched.
+        # For a kept row that still exists in the feed, the matching feed document
+        # (same natural key number+doc_type+date+amount) is dropped so it is not
+        # recreated as a duplicate. Everything else (un-annotated synced rows) is
+        # deleted and reloaded from the feed.
         with transaction.atomic():
-            notes = {
-                (num, dt, d, amt): note
-                for num, dt, d, amt, note in CashflowDocument.objects
-                .filter(manual=False)
-                .exclude(note="")
-                .values_list("number", "doc_type", "date", "amount", "note")
-            }
-            if notes:
-                for obj in objs:
-                    kept = notes.get((obj.number, obj.doc_type, obj.date, obj.amount))
-                    if kept:
-                        obj.note = kept
-            CashflowDocument.objects.filter(manual=False).delete()
+            frozen = CashflowDocument.objects.filter(manual=False).exclude(note="")
+            frozen_keys = set(frozen.values_list("number", "doc_type", "date", "amount"))
+            frozen_kept = frozen.count()
+            if frozen_keys:
+                objs = [o for o in objs
+                        if (o.number, o.doc_type, o.date, o.amount) not in frozen_keys]
+            CashflowDocument.objects.filter(manual=False, note="").delete()
             CashflowDocument.objects.bulk_create(objs, batch_size=1000)
             manual_kept = CashflowDocument.objects.filter(manual=True).count()
         self.stdout.write(self.style.SUCCESS(
-            f"Готово: получено {len(rows)}, загружено {len(objs)}, "
-            f"пропущено {skipped} (синхронизированные строки обновлены, "
-            f"заметок сохранено: {len(notes)}, ручных документов сохранено: {manual_kept})."
+            f"Готово: получено {len(rows)}, загружено {len(objs)}, пропущено {skipped} "
+            f"(синхронизированные строки обновлены; сохранено без изменений: "
+            f"с заметкой {frozen_kept}, ручных {manual_kept})."
         ))
 
     def _fetch(self, url, cfg):

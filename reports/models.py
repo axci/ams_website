@@ -39,8 +39,9 @@ class CashflowDocument(models.Model):
     # survive, unlike the 1С-sourced fields which are overwritten each sync.
     note = models.TextField(
         "заметка", blank=True, default="",
-        help_text="Ваша заметка к документу. Сохраняется при синхронизации "
-        "(в отличие от полей, которые приходят из 1С).",
+        help_text="Ваша заметка к документу. Если заметка заполнена, документ "
+        "НЕ изменяется при синхронизации с 1С — строка сохраняется целиком "
+        "(иначе поля из 1С перезаписываются при каждой синхронизации).",
     )
     # Set automatically for documents added by hand in the admin (not from 1С).
     # The sync deletes and recreates only the 1С rows (manual=False), so these
