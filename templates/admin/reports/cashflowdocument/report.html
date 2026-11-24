@@ -13,6 +13,8 @@
   .cf-d1 { padding-left: 20px; }
   .cf-d2 { padding-left: 38px; }
   .cf-d3 { padding-left: 56px; }
+  .cf-report td.cf-hl { background: rgba(68, 114, 196, .28); }  /* «Месяц текущий», «С начала года» */
+  .cf-report td.cf-em, .cf-report th.cf-em { font-style: italic; }  /* «+/−», «%» */
   .cf-check { margin: 1em 0; padding: 10px 14px; }
   .cf-check h3 { margin: 0 0 .4em; }
   .cf-check p { margin: .3em 0; }
@@ -92,12 +94,12 @@
         <th class="lbl">Статья</th>
         <th class="num">Месяц текущий</th>
         <th class="num">Месяц год назад</th>
-        <th class="num">+/−</th>
-        <th class="num">%</th>
+        <th class="num cf-em">+/−</th>
+        <th class="num cf-em">%</th>
         <th class="num">С начала года</th>
         <th class="num">С начала пред. года</th>
-        <th class="num">+/−</th>
-        <th class="num">%</th>
+        <th class="num cf-em">+/−</th>
+        <th class="num cf-em">%</th>
       </tr>
     </thead>
     <tbody>
@@ -105,14 +107,14 @@
       <tr class="k-{{ row.kind }}">
         <td class="lbl cf-d{{ row.depth }}">{{ row.label }}</td>
         {% if row.cols %}
-          <td class="num">{{ row.cols.cur_disp }}</td>
+          <td class="num cf-hl">{{ row.cols.cur_disp }}</td>
           <td class="num">{{ row.cols.prev_disp }}</td>
-          <td class="num">{{ row.cols.diff_m_disp }}</td>
-          <td class="num">{{ row.cols.pct_m_disp }}</td>
-          <td class="num">{{ row.cols.ytd_disp }}</td>
+          <td class="num cf-em">{{ row.cols.diff_m_disp }}</td>
+          <td class="num cf-em">{{ row.cols.pct_m_disp }}</td>
+          <td class="num cf-hl">{{ row.cols.ytd_disp }}</td>
           <td class="num">{{ row.cols.pytd_disp }}</td>
-          <td class="num">{{ row.cols.diff_y_disp }}</td>
-          <td class="num">{{ row.cols.pct_y_disp }}</td>
+          <td class="num cf-em">{{ row.cols.diff_y_disp }}</td>
+          <td class="num cf-em">{{ row.cols.pct_y_disp }}</td>
         {% else %}
           <td colspan="8"></td>
         {% endif %}

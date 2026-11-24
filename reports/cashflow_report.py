@@ -404,6 +404,11 @@ _ROW_FILLS = {
     "saldo": PatternFill("solid", fgColor="FFF2CC"),
     "total": PatternFill("solid", fgColor="D9E1F2"),
 }
+# «Месяц текущий» (cur) + «С начала года» (ytd) get a light-blue column highlight;
+# the «+/-» and «%» comparison columns are italic. Both apply on-screen and in .xlsx.
+_HIGHLIGHT_FILL = PatternFill("solid", fgColor="BDD7EE")
+_HIGHLIGHT_COLS = {3, 7}  # worksheet columns C (cur) and G (ytd)
+_ITALIC_KEYS = {"diff_m", "pct_m", "diff_y", "pct_y"}
 
 
 def build_cashflow_odds_xlsx(month, year, thousands=False):
@@ -433,7 +438,7 @@ def build_cashflow_odds_xlsx(month, year, thousands=False):
     head_cell.border = thin_border
     for i, head in enumerate(_HEADERS):
         cell = ws.cell(row=3, column=3 + i, value=head)
-        cell.font = Font(bold=True, color="FFFFFF")
+        cell.font = Font(bold=True, color="FFFFFF", italic=_COL_KEYS[i] in _ITALIC_KEYS)
         cell.fill = _HEADER_FILL
         cell.alignment = Alignment(wrap_text=True, vertical="center", horizontal="center")
         cell.border = thin_border
@@ -454,6 +459,8 @@ def build_cashflow_odds_xlsx(month, year, thousands=False):
             cell.border = border
             if fill is not None:
                 cell.fill = fill
+            elif col in _HIGHLIGHT_COLS:
+                cell.fill = _HIGHLIGHT_FILL
 
         if row["cols"]:
             for i, key in enumerate(_COL_KEYS):
@@ -464,8 +471,9 @@ def build_cashflow_odds_xlsx(month, year, thousands=False):
                     cell.value = v if is_pct else float(v)
                     cell.number_format = _PCT_FMT if is_pct else _NUM_FMT
                 cell.alignment = Alignment(horizontal="right", vertical="center")
-                if bold:
-                    cell.font = Font(bold=True)
+                italic = key in _ITALIC_KEYS
+                if bold or italic:
+                    cell.font = Font(bold=bold, italic=italic)
         r += 1
 
     ws.column_dimensions["A"].width = 3.4
