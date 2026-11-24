@@ -95,17 +95,17 @@ class Command(BaseCommand):
         #   • manual=True — added by hand in the admin; or
         #   • they carry a «Заметка» (note) — the user has annotated the document,
         #     so the sync must leave it untouched.
-        # For a kept row that still exists in the feed, the matching feed document
-        # (same natural key number+doc_type+date+amount) is dropped so it is not
-        # recreated as a duplicate. Everything else (un-annotated synced rows) is
-        # deleted and reloaded from the feed.
+        # A document is identified by Номер + Дата: for a kept (noted) row the feed
+        # document with the same (number, date) is dropped so it is not recreated as
+        # a duplicate — even when the user corrected a field (e.g. the amount), the
+        # feed's original must not come back. Everything else (un-annotated synced
+        # rows) is deleted and reloaded from the feed.
         with transaction.atomic():
             frozen = CashflowDocument.objects.filter(manual=False).exclude(note="")
-            frozen_keys = set(frozen.values_list("number", "doc_type", "date", "amount"))
+            frozen_keys = set(frozen.values_list("number", "date"))
             frozen_kept = frozen.count()
             if frozen_keys:
-                objs = [o for o in objs
-                        if (o.number, o.doc_type, o.date, o.amount) not in frozen_keys]
+                objs = [o for o in objs if (o.number, o.date) not in frozen_keys]
             CashflowDocument.objects.filter(manual=False, note="").delete()
             CashflowDocument.objects.bulk_create(objs, batch_size=1000)
             manual_kept = CashflowDocument.objects.filter(manual=True).count()
