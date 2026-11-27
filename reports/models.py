@@ -159,3 +159,83 @@ class ReceiptLine(models.Model):
     def __str__(self):
         kind = "расход" if self.is_expense else "товар"
         return f"{self.product} ({kind}): {self.quantity} × {self.price} = {self.line_sum}"
+
+
+class AddExpense(models.Model):
+    """A «Дополнительные расходы» document from 1С (УНФ), loaded by the
+    ``sync_addexpenses`` command — extra costs (e.g. «Транспортные услуги»
+    freight) booked against earlier goods receipts and distributed over their
+    goods. Part of true COGS alongside :class:`Receipt`.
+
+    Two line kinds hang off :class:`AddExpenseLine` (via ``is_expense``): the
+    **cost** lines (``expenses`` in the feed — what ``amount`` totals) and the
+    **goods** lines (``items`` — the receipt goods the cost is spread over, each
+    naming its receipt in ``receipt_doc``). ``(number, date)`` is unique in the
+    feed but ``number`` alone is not, so — like [[Receipt]] / cashflow — the sync
+    does a full refresh and no unique constraint is enforced.
+    """
+
+    number = models.CharField("номер", max_length=32, db_index=True)
+    date = models.DateField("дата", db_index=True)
+    organization = models.CharField("организация", max_length=128, blank=True, default="")
+    counterparty = models.CharField("контрагент", max_length=255, blank=True, default="")
+    amount = models.DecimalField(
+        "сумма расходов", max_digits=15, decimal_places=2, default=0,
+        help_text="Итог дополнительных расходов документа (= сумма строк-расходов).",
+    )
+    synced_at = models.DateTimeField("обновлено синхронизацией", auto_now=True)
+
+    class Meta:
+        verbose_name = "дополнительные расходы"
+        verbose_name_plural = "Доп. расходы (на поступления)"
+        ordering = ["-date", "-number"]
+        indexes = [models.Index(fields=["date"])]
+
+    def __str__(self):
+        return f"{self.number} от {self.date}: {self.amount}"
+
+
+class AddExpenseLine(models.Model):
+    """One line of an :class:`AddExpense`. ``is_expense=True`` is a cost line
+    (from the feed's ``expenses`` — e.g. «Транспортные услуги»); ``is_expense=False``
+    is a goods line (from ``items``) carrying ``receipt_doc`` — the 1С presentation
+    of the receipt document the cost attaches to — and ``line_sum`` as the goods'
+    value used as the allocation base. The feed has no per-line price here."""
+
+    document = models.ForeignKey(
+        AddExpense, on_delete=models.CASCADE, related_name="lines",
+        verbose_name="документ доп. расходов",
+    )
+    is_expense = models.BooleanField(
+        "строка расхода", default=False,
+        help_text="True — строка самого расхода (напр. доставка); "
+        "False — товар поступления, на который расход распределяется.",
+    )
+    receipt_doc = models.CharField(
+        "документ-поступление", max_length=255, blank=True, default="", db_index=True,
+        help_text="Представление приходной накладной из 1С, к которой относится "
+        "строка (только у товарных строк).",
+    )
+    # Soft join key to Receipt — parsed from receipt_doc at sync time («5886» →
+    # «00НФ-005886», plus the doc's own date). NOT a FK: Receipt and AddExpense
+    # full-refresh independently, and some refs are unposted («не проведён») with
+    # no Receipt at all. Step ③ matches Receipt on (number, date) via these.
+    receipt_number = models.CharField(
+        "номер поступления", max_length=32, blank=True, default="",
+        help_text="Номер приходной накладной (напр. «00НФ-005886»), восстановленный "
+        "из «документ-поступление» для связи с поступлением товаров.",
+    )
+    receipt_date = models.DateField("дата поступления", null=True, blank=True)
+    product = models.CharField("номенклатура", max_length=255, blank=True, default="")
+    quantity = models.DecimalField("количество", max_digits=15, decimal_places=3, default=0)
+    line_sum = models.DecimalField("сумма", max_digits=15, decimal_places=2, default=0)
+
+    class Meta:
+        verbose_name = "строка доп. расходов"
+        verbose_name_plural = "строки доп. расходов"
+        ordering = ["id"]
+        indexes = [models.Index(fields=["receipt_number", "receipt_date"])]
+
+    def __str__(self):
+        kind = "расход" if self.is_expense else "товар"
+        return f"{self.product} ({kind}): {self.line_sum}"

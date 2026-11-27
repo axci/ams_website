@@ -10,7 +10,14 @@ from .cashflow_report import (
     build_cashflow_odds_xlsx,
     build_rows,
 )
-from .models import CashflowArticleMapping, CashflowDocument, Receipt, ReceiptLine
+from .models import (
+    AddExpense,
+    AddExpenseLine,
+    CashflowArticleMapping,
+    CashflowDocument,
+    Receipt,
+    ReceiptLine,
+)
 
 # «Поступление» — money in; everything else counts as money out.
 INCOME_PREFIX = "Поступ"
@@ -158,6 +165,52 @@ class ReceiptAdmin(admin.ModelAdmin):
 
     def get_queryset(self, request):
         return super().get_queryset(request).annotate(_lines=Count("lines"))
+
+    @admin.display(description="строк", ordering="_lines")
+    def lines_count(self, obj):
+        return obj._lines
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+
+
+class AddExpenseLineInline(admin.TabularInline):
+    model = AddExpenseLine
+    extra = 0
+    can_delete = False
+    fields = ("is_expense", "receipt_doc", "receipt_number", "receipt_date",
+              "product", "quantity", "line_sum")
+    readonly_fields = fields
+    ordering = ("is_expense", "id")
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(AddExpense)
+class AddExpenseAdmin(admin.ModelAdmin):
+    """«Дополнительные расходы» synced from 1С — freight/landed costs booked
+    against receipts (the other cost input of the profit report). Read-only:
+    the `sync_addexpenses` command owns the rows (full refresh)."""
+
+    date_hierarchy = "date"
+    list_display = ("date", "number", "counterparty", "organization",
+                    "amount", "lines_count")
+    list_filter = ("organization", "counterparty", "date")
+    search_fields = ("number", "counterparty", "organization",
+                     "lines__receipt_doc", "lines__receipt_number")
+    ordering = ("-date", "-number")
+    inlines = [AddExpenseLineInline]
+    readonly_fields = ("number", "date", "organization", "counterparty",
+                       "amount", "synced_at")
+
+    def get_queryset(self, request):
+        # distinct=True: the receipt_doc search joins `lines`, which would
+        # otherwise multiply this count.
+        return super().get_queryset(request).annotate(_lines=Count("lines", distinct=True))
 
     @admin.display(description="строк", ordering="_lines")
     def lines_count(self, obj):

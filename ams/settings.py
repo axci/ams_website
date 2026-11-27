@@ -134,6 +134,15 @@ RECEIPTS_1C = {
     "TIMEOUT": int(os.environ.get("RECEIPTS_1C_TIMEOUT", "120") or "120"),
 }
 
+# «Дополнительные расходы» feed — freight/landed costs booked against receipts
+# (sync_addexpenses). Same office-side 1С service and ERP_* credentials.
+ADDEXPENSES_1C = {
+    "URL": os.environ.get("ADDEXPENSES_1C_URL", ""),
+    "USER": os.environ.get("ADDEXPENSES_1C_USER", "") or os.environ.get("ERP_USER", ""),
+    "PASSWORD": os.environ.get("ADDEXPENSES_1C_PASSWORD", "") or os.environ.get("ERP_PASSWORD", ""),
+    "TIMEOUT": int(os.environ.get("ADDEXPENSES_1C_TIMEOUT", "120") or "120"),
+}
+
 # Email order import — the `import_email_orders` command polls this IMAP mailbox
 # and, per source profile, turns client order spreadsheets into pending Orders
 # (see orders/email_import.py). Client-specific config (folders, senders, maps)
