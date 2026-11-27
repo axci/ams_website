@@ -125,6 +125,15 @@ CASHFLOW_1C = {
     "TIMEOUT": int(os.environ.get("CASHFLOW_1C_TIMEOUT", "60") or "60"),
 }
 
+# Goods receipts (cost side of the profit report) — same 1С (УНФ) service, so the
+# `sync_receipts` command also runs office-side and reuses the ERP_* credentials.
+RECEIPTS_1C = {
+    "URL": os.environ.get("RECEIPTS_1C_URL", ""),
+    "USER": os.environ.get("RECEIPTS_1C_USER", "") or os.environ.get("ERP_USER", ""),
+    "PASSWORD": os.environ.get("RECEIPTS_1C_PASSWORD", "") or os.environ.get("ERP_PASSWORD", ""),
+    "TIMEOUT": int(os.environ.get("RECEIPTS_1C_TIMEOUT", "120") or "120"),
+}
+
 # Email order import — the `import_email_orders` command polls this IMAP mailbox
 # and, per source profile, turns client order spreadsheets into pending Orders
 # (see orders/email_import.py). Client-specific config (folders, senders, maps)

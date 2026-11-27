@@ -96,3 +96,66 @@ class CashflowArticleMapping(models.Model):
     def __str__(self):
         target = "(исключить)" if self.exclude else (self.report_line or "—")
         return f"{self.article} → {target}"
+
+
+class Receipt(models.Model):
+    """A goods receipt pulled from 1С (УНФ) by the ``sync_receipts`` command — the
+    cost side of the profit report (what we paid suppliers, plus freight/landed
+    costs). Mirrors the [[cashflow-report]] data flow: the office-side sync fetches
+    the full feed and replaces the table; the lines hang off :class:`ReceiptLine`.
+
+    ``operationType`` is one of «Поступление от поставщика» (a purchase), «Возврат
+    от комиссионера» or «Возврат от покупателя» (goods coming back) — all kept.
+    ``(number, date)`` is unique in the feed but not enforced here (the sync does a
+    full refresh and must tolerate any future duplicate without aborting).
+    """
+
+    number = models.CharField("номер", max_length=32, db_index=True)
+    date = models.DateField("дата", db_index=True)
+    organization = models.CharField("организация", max_length=128, blank=True, default="")
+    counterparty = models.CharField("контрагент", max_length=255, blank=True, default="")
+    operation_type = models.CharField(
+        "вид операции", max_length=64, blank=True, default="", db_index=True,
+        help_text="«Поступление от поставщика», «Возврат от комиссионера» или "
+        "«Возврат от покупателя».",
+    )
+    warehouse = models.CharField("склад", max_length=128, blank=True, default="")
+    amount = models.DecimalField("сумма документа", max_digits=15, decimal_places=2, default=0)
+    synced_at = models.DateTimeField("обновлено синхронизацией", auto_now=True)
+
+    class Meta:
+        verbose_name = "поступление товаров"
+        verbose_name_plural = "Поступления товаров (закупки/возвраты)"
+        ordering = ["-date", "-number"]
+        indexes = [models.Index(fields=["operation_type", "date"])]
+
+    def __str__(self):
+        return f"{self.number} от {self.date}: {self.amount}"
+
+
+class ReceiptLine(models.Model):
+    """One line of a :class:`Receipt`: a stock item (``is_expense=False``) or an
+    additional-cost line (``is_expense=True``, e.g. «Транспортные услуги» freight).
+    Both arrive from 1С with the same shape (product/quantity/price/sum); ``sum`` is
+    stored as-is because ~4% of feed lines have ``sum != quantity*price``."""
+
+    receipt = models.ForeignKey(
+        Receipt, on_delete=models.CASCADE, related_name="lines", verbose_name="поступление",
+    )
+    is_expense = models.BooleanField(
+        "доп. расход", default=False,
+        help_text="Строка дополнительных расходов (напр. доставка), а не товар.",
+    )
+    product = models.CharField("номенклатура", max_length=255, blank=True, default="")
+    quantity = models.DecimalField("количество", max_digits=15, decimal_places=3, default=0)
+    price = models.DecimalField("цена", max_digits=15, decimal_places=2, default=0)
+    line_sum = models.DecimalField("сумма", max_digits=15, decimal_places=2, default=0)
+
+    class Meta:
+        verbose_name = "строка поступления"
+        verbose_name_plural = "строки поступления"
+        ordering = ["id"]
+
+    def __str__(self):
+        kind = "расход" if self.is_expense else "товар"
+        return f"{self.product} ({kind}): {self.quantity} × {self.price} = {self.line_sum}"

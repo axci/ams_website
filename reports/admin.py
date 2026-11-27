@@ -1,5 +1,5 @@
 from django.contrib import admin
-from django.db.models import Sum
+from django.db.models import Count, Sum
 from django.http import HttpResponse
 from django.shortcuts import render
 from django.urls import path
@@ -10,7 +10,7 @@ from .cashflow_report import (
     build_cashflow_odds_xlsx,
     build_rows,
 )
-from .models import CashflowArticleMapping, CashflowDocument
+from .models import CashflowArticleMapping, CashflowDocument, Receipt, ReceiptLine
 
 # «Поступление» — money in; everything else counts as money out.
 INCOME_PREFIX = "Поступ"
@@ -127,3 +127,44 @@ class CashflowArticleMappingAdmin(admin.ModelAdmin):
     list_editable = ("report_line", "exclude")
     search_fields = ("article", "report_line")
     ordering = ("article",)
+
+
+class ReceiptLineInline(admin.TabularInline):
+    model = ReceiptLine
+    extra = 0
+    can_delete = False
+    fields = ("is_expense", "product", "quantity", "price", "line_sum")
+    readonly_fields = fields
+    ordering = ("is_expense", "id")
+
+    def has_add_permission(self, request, obj=None):
+        return False
+
+
+@admin.register(Receipt)
+class ReceiptAdmin(admin.ModelAdmin):
+    """Goods receipts synced from 1С — the cost side of the profit report.
+    Read-only: the `sync_receipts` command owns the rows (full refresh)."""
+
+    date_hierarchy = "date"
+    list_display = ("date", "number", "operation_type", "organization",
+                    "counterparty", "warehouse", "amount", "lines_count")
+    list_filter = ("operation_type", "organization", "warehouse", "date")
+    search_fields = ("number", "counterparty", "organization", "warehouse")
+    ordering = ("-date", "-number")
+    inlines = [ReceiptLineInline]
+    readonly_fields = ("number", "date", "operation_type", "organization",
+                       "counterparty", "warehouse", "amount", "synced_at")
+
+    def get_queryset(self, request):
+        return super().get_queryset(request).annotate(_lines=Count("lines"))
+
+    @admin.display(description="строк", ordering="_lines")
+    def lines_count(self, obj):
+        return obj._lines
+
+    def has_add_permission(self, request):
+        return False
+
+    def has_delete_permission(self, request, obj=None):
+        return False
